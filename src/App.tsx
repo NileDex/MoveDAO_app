@@ -1,0 +1,108 @@
+import React, { useState } from 'react';
+import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import MainDashboard from './components/MainDashboard';
+import CreateDAO from './components/CreateDAO';
+import DAODetail from './components/DAODetail';
+import { DAO } from './types/dao';
+
+function App() {
+  const [currentView, setCurrentView] = useState('home');
+  const [selectedDAO, setSelectedDAO] = useState<DAO | null>(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleDAOSelect = (dao: DAO) => {
+    setSelectedDAO(dao);
+    setCurrentView('dao-detail');
+  };
+
+  const handleBackToHome = () => {
+    setCurrentView('home');
+    setSelectedDAO(null);
+  };
+
+  const renderContent = () => {
+    switch (currentView) {
+      case 'home':
+        return <MainDashboard onDAOSelect={handleDAOSelect} onCreateDAO={() => setCurrentView('create')} />;
+      case 'create':
+        return <CreateDAO onBack={handleBackToHome} />;
+      case 'create-new':
+        return <CreateDAO onBack={handleBackToHome} />;
+      case 'dao-detail':
+        return selectedDAO ? (
+          <DAODetail dao={selectedDAO} onBack={handleBackToHome} />
+        ) : (
+          <MainDashboard onDAOSelect={handleDAOSelect} onCreateDAO={() => setCurrentView('create')} />
+        );
+      case 'search':
+        return (
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="professional-card rounded-xl p-12 text-center">
+              <h1 className="text-3xl font-bold text-white mb-4">Explore DAOs</h1>
+              <p className="text-gray-400 mb-8">Advanced search and discovery features</p>
+              <div className="w-16 h-16 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-xl flex items-center justify-center mx-auto">
+                <span className="text-2xl">🔍</span>
+              </div>
+              <p className="text-gray-500 mt-4">Coming soon...</p>
+            </div>
+          </div>
+        );
+      case 'trending':
+        return (
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="professional-card rounded-xl p-12 text-center">
+              <h1 className="text-3xl font-bold text-white mb-4">Trending DAOs</h1>
+              <p className="text-gray-400 mb-8">Discover the most active and popular communities</p>
+              <div className="w-16 h-16 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-xl flex items-center justify-center mx-auto">
+                <span className="text-2xl">📈</span>
+              </div>
+              <p className="text-gray-500 mt-4">Coming soon...</p>
+            </div>
+          </div>
+        );
+      case 'community':
+        return (
+          <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="professional-card rounded-xl p-12 text-center">
+              <h1 className="text-3xl font-bold text-white mb-4">Community Hub</h1>
+              <p className="text-gray-400 mb-8">Connect with other DAO members and builders</p>
+              <div className="w-16 h-16 bg-gradient-to-br from-pink-500/20 to-rose-500/20 rounded-xl flex items-center justify-center mx-auto">
+                <span className="text-2xl">👥</span>
+              </div>
+              <p className="text-gray-500 mt-4">Coming soon...</p>
+            </div>
+          </div>
+        );
+      default:
+        return <MainDashboard onDAOSelect={handleDAOSelect} />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#0f0f11] flex">
+      {/* Sidebar: always visible on sm+, overlay on mobile */}
+      <Sidebar
+        currentView={currentView}
+        onViewChange={(view) => {
+          setCurrentView(view);
+          setSidebarOpen(false); // close on mobile after selection
+        }}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+      <div className="flex-1 flex flex-col ml-0 sm:ml-20">
+        <Header
+          currentDAO={selectedDAO?.name}
+          // Pass a prop to trigger sidebar open on mobile
+          onMenuClick={() => setSidebarOpen(true)}
+        />
+        <main className="flex-1 overflow-auto">
+          {renderContent()}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+export default App;
