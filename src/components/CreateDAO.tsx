@@ -944,21 +944,64 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-8">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-8">
-        <button
-          onClick={onBack}
-          className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all self-start"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div className="text-center sm:text-left">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white">Create New DAO</h1>
-          <p className="text-gray-400 mt-1 text-sm sm:text-base">Build your decentralized community in minutes</p>
+      <div className="relative mb-8">
+        {/* Mobile: Back button absolute positioned, content centered */}
+        <div className="sm:hidden">
+          <button
+            onClick={onBack}
+            className="absolute left-0 top-0 p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="text-center pt-2">
+            <h1 className="text-2xl font-bold text-white">Create New DAO</h1>
+            <p className="text-gray-400 mt-1 text-sm">Build your decentralized community in minutes</p>
+          </div>
+        </div>
+        
+        {/* Desktop: Back button inline with content */}
+        <div className="hidden sm:flex items-center gap-4">
+          <button
+            onClick={onBack}
+            className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="text-center">
+            <h1 className="text-3xl font-bold text-white">Create New DAO</h1>
+            <p className="text-gray-400 mt-1 text-base">Build your decentralized community in minutes</p>
+          </div>
         </div>
       </div>
 
       {/* Progress Steps */}
-      <div className="flex flex-col sm:flex-row items-center justify-center mb-8 space-y-4 sm:space-y-0">
+      {/* Mobile: One step at a time */}
+      <div className="sm:hidden mb-8">
+        <div className="space-y-3">
+          {/* Progress indicator */}
+          <div className="text-center">
+            <span className="text-xs text-gray-400">Step {currentStep} of {steps.length}</span>
+          </div>
+          
+          {/* Current step only */}
+          {steps
+            .filter(step => step.id === currentStep)
+            .map((step) => {
+              const Icon = step.icon;
+              return (
+                <div key={step.id} className="flex justify-center">
+                  <div className="bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-4 py-3 rounded-xl flex items-center space-x-3">
+                    <Icon className="w-5 h-5" />
+                    <span className="text-sm font-medium">{step.title}</span>
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+      </div>
+
+      {/* Desktop: Original horizontal layout */}
+      <div className="hidden sm:flex items-center justify-center mb-8 space-x-4">
         {steps.map((step, index) => {
           const Icon = step.icon;
           const isActive = currentStep === step.id;
@@ -966,16 +1009,16 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
           
           return (
             <div key={step.id} className="flex items-center">
-              <div className={`flex items-center space-x-2 sm:space-x-3 px-3 sm:px-4 py-2 rounded-xl transition-all ${
+              <div className={`flex items-center space-x-3 px-4 py-2 rounded-xl transition-all ${
                 isActive ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30' :
                 isCompleted ? 'bg-green-500/20 text-green-300 border border-green-500/30' :
                 'bg-white/5 text-gray-400'
               }`}>
                 <Icon className="w-4 h-4" />
-                <span className="text-xs sm:text-sm font-medium">{step.title}</span>
+                <span className="text-sm font-medium">{step.title}</span>
               </div>
               {index < steps.length - 1 && (
-                <div className={`w-4 sm:w-8 h-0.5 mx-1 sm:mx-2 ${
+                <div className={`w-8 h-0.5 mx-2 ${
                   isCompleted ? 'bg-green-500' : 'bg-white/20'
                 }`} />
               )}

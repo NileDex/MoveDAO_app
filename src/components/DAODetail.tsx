@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Home, FileText, Wallet, Users, Zap, Coins, Shield } from 'lucide-react';
+import { ArrowLeft, Home, FileText, Wallet, Users, Zap, Coins, Shield, Menu, X } from 'lucide-react';
 import { FaShare } from 'react-icons/fa';
 import { DAO } from '../types/dao';
 import DAOHome from './dao/DAOHome';
@@ -22,6 +22,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack }) => {
   const [avatarError, setAvatarError] = useState(false);
   const [bgLoaded, setBgLoaded] = useState(false);
   const [bgError, setBgError] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Preload background and avatar to avoid flicker
   useEffect(() => {
@@ -52,6 +53,16 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack }) => {
     }
   }, [dao.image]);
   const [showShareModal, setShowShareModal] = useState(false);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = 'unset';
+      };
+    }
+  }, [isMobileMenuOpen]);
 
   // Update meta tags when DAO changes
   useEffect(() => {
@@ -88,6 +99,18 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack }) => {
         return <DAOMembers dao={dao} />;
       case 'admin':
         return <DAOAdmin dao={dao} />;
+      case 'apps':
+        return (
+          <div className="container mx-auto px-2 sm:px-6 max-w-screen-lg space-y-6">
+            <div className="professional-card rounded-xl p-12 text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Zap className="w-8 h-8 text-cyan-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Apps & Integrations</h3>
+              <p className="text-gray-400">Connect third-party apps and services to enhance your DAO</p>
+            </div>
+          </div>
+        );
       default:
         return (
           <div className="container mx-auto px-2 sm:px-6 max-w-screen-lg space-y-6">
@@ -104,35 +127,64 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack }) => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden">
       {/* Header */}
       <div className="relative bg-black/30 border-b border-white/10 overflow-hidden">
-        {/* Background Image - Only show if background exists */}
-        {dao.background && !bgError && (
-          <div 
-            className={`absolute left-0 right-0 top-0 bottom-0 bg-cover bg-center bg-no-repeat pointer-events-none transition-opacity duration-300 ${bgLoaded ? 'opacity-30' : 'opacity-0'}`}
-            style={{ backgroundImage: `url(${dao.background})` }}
-          />
-        )}
-        {dao.background && !bgLoaded && !bgError && (
-          <div className="absolute left-0 right-0 top-0 bottom-0 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 pointer-events-none" />
-        )}
-        {(!dao.background || bgError) && (
-          <div className="absolute left-0 right-0 top-0 bottom-0 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 pointer-events-none" />
-        )}
+        {/* Desktop Background - Full coverage */}
+        <div className="hidden sm:block">
+          {dao.background && !bgError && (
+            <div 
+              className={`absolute left-0 right-0 top-0 bottom-0 bg-cover bg-center bg-no-repeat pointer-events-none transition-opacity duration-300 ${bgLoaded ? 'opacity-30' : 'opacity-0'}`}
+              style={{ backgroundImage: `url(${dao.background})` }}
+            />
+          )}
+          {dao.background && !bgLoaded && !bgError && (
+            <div className="absolute left-0 right-0 top-0 bottom-0 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 pointer-events-none" />
+          )}
+          {(!dao.background || bgError) && (
+            <div className="absolute left-0 right-0 top-0 bottom-0 bg-gradient-to-r from-indigo-600/20 to-purple-600/20 pointer-events-none" />
+          )}
+        </div>
+
+        {/* Mobile Background - Twitter banner style */}
+        <div className="sm:hidden">
+          {dao.background && !bgError && (
+            <div 
+              className={`absolute left-0 right-0 top-0 h-32 bg-cover bg-center bg-no-repeat pointer-events-none transition-opacity duration-300 ${bgLoaded ? 'opacity-60' : 'opacity-0'}`}
+              style={{ backgroundImage: `url(${dao.background})` }}
+            />
+          )}
+          {dao.background && !bgLoaded && !bgError && (
+            <div className="absolute left-0 right-0 top-0 h-32 bg-gradient-to-r from-indigo-600/30 to-purple-600/30 pointer-events-none" />
+          )}
+          {(!dao.background || bgError) && (
+            <div className="absolute left-0 right-0 top-0 h-32 bg-gradient-to-r from-indigo-600/30 to-purple-600/30 pointer-events-none" />
+          )}
+        </div>
         
         <div className="relative z-10 max-w-7xl mx-auto px-6 py-6">
           {/* Breadcrumb */}
-          <div className="flex items-center space-x-3 mb-6 text-sm">
-            <button
-              onClick={onBack}
-              className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-xl transition-all"
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3 text-sm">
+              <button
+                onClick={onBack}
+                className="p-2 text-white hover:text-gray-300 hover:bg-white/5 rounded-xl transition-all"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+              <span className="text-white">Dashboard</span>
+              <span className="text-white/60">/</span>
+              <span className="text-white font-medium">{dao.name}</span>
+            </div>
+            
+            {/* Mobile Share Button */}
+            <button 
+              onClick={() => setShowShareModal(true)}
+              className="sm:hidden p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl transition-all"
+              title="Share this DAO"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <FaShare className="w-4 h-4" />
             </button>
-            <span className="text-gray-400">Dashboard</span>
-            <span className="text-gray-600">/</span>
-            <span className="text-white font-medium">{dao.name}</span>
           </div>
 
           {/* DAO Header */}
@@ -181,7 +233,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack }) => {
               </div>
             </div>
             
-            <div className="flex items-center space-x-3">
+            <div className="hidden sm:flex items-center space-x-3">
               <button 
                 onClick={() => setShowShareModal(true)}
                 className="p-3 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl transition-all"
@@ -193,7 +245,8 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack }) => {
           </div>
 
           {/* Navigation Tabs */}
-          <nav className="flex flex-col gap-2 sm:flex-row sm:space-x-1 mt-8 bg-white/5 rounded-xl p-1">
+          {/* Desktop Navigation - Hidden on Mobile */}
+          <nav className="hidden md:flex flex-row space-x-1 mt-8 bg-white/5 rounded-xl p-1">
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -201,7 +254,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack }) => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-all w-full sm:w-auto justify-center sm:justify-start ${
+                  className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-all justify-center ${
                     isActive
                       ? 'bg-white/10 text-white shadow-lg'
                       : 'text-gray-400 hover:text-white hover:bg-white/5'
@@ -213,13 +266,89 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack }) => {
               );
             })}
           </nav>
+
+          {/* Mobile Menu Button - Visible on Mobile */}
+          <div className="md:hidden mt-8">
+            <button
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="w-full bg-white/5 rounded-xl p-4 flex items-center justify-between text-white font-medium hover:bg-white/10 transition-all"
+            >
+              <div className="flex items-center space-x-2">
+                {(() => {
+                  const activeTabData = tabs.find(tab => tab.id === activeTab);
+                  const Icon = activeTabData?.icon || Home;
+                  return (
+                    <>
+                      <Icon className={`w-4 h-4 ${activeTabData?.color || 'text-blue-400'}`} />
+                      <span>{activeTabData?.label || 'Overview'}</span>
+                    </>
+                  );
+                })()}
+              </div>
+              <Menu className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 py-8">
         {renderContent()}
       </div>
+
+      {/* Mobile Navigation Modal - Bottom Sheet */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[9998] md:hidden" style={{ pointerEvents: 'auto' }}>
+          {/* Light Overlay - Lower z-index to not interfere with header */}
+          <div 
+            className="absolute inset-0 bg-black/30"
+            style={{ pointerEvents: 'auto' }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsMobileMenuOpen(false);
+            }}
+          />
+          
+          {/* Bottom Sheet */}
+          <div 
+            className="absolute bottom-0 left-0 right-0 bg-white/10 backdrop-blur-xl rounded-t-3xl p-4 max-h-[60vh] overflow-y-auto z-[9999]"
+            style={{ pointerEvents: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Handle */}
+            <div className="w-12 h-1 bg-gray-400/50 rounded-full mx-auto mb-4" />
+            
+            {/* Navigation Items */}
+            <div className="space-y-2">
+              {tabs.map((tab) => {
+                const Icon = tab.icon;
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveTab(tab.id);
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className={`flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl font-medium transition-all text-left ${
+                      isActive
+                        ? 'bg-white/20 text-white shadow-lg'
+                        : 'text-gray-300 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    <Icon className={`w-5 h-5 ${isActive ? tab.color : 'text-gray-400'}`} />
+                    <span className="flex-1">{tab.label}</span>
+                    {isActive && (
+                      <div className="w-2 h-2 bg-blue-400 rounded-full" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Share Modal */}
       <ShareModal 

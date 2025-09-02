@@ -183,41 +183,41 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
   }, [dao.id]);
 
   return (
-    <div className="container mx-auto px-2 sm:px-6 space-y-6 sm:space-y-10 max-w-screen-lg">
+    <div className="container mx-auto px-2 sm:px-6 space-y-6 max-w-screen-lg">
 
       {/* Governance Parameters section removed as requested */}
 
       {/* DAO Details & About */}
-      <div className="professional-card w-full rounded-lg sm:rounded-xl p-3 sm:p-6 box-border">
-        <h2 className="text-base sm:text-xl font-bold text-white mb-3 sm:mb-6 flex items-center space-x-2">
-          <Info className="w-5 h-5 text-blue-400" />
-          <span>About {dao.name}</span>
+      <div className="professional-card w-full max-w-full rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 box-border overflow-hidden">
+        <h2 className="text-sm sm:text-lg lg:text-xl font-bold text-white mb-3 sm:mb-4 lg:mb-6 flex items-center space-x-2">
+          <Info className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0" />
+          <span className="truncate">About {dao.name}</span>
         </h2>
         
         {/* DAO Stats */}
-        <div className="grid grid-cols-3 gap-4 w-full mb-6">
-          <div className="flex flex-col items-center">
-            <span className="font-medium text-xs sm:text-base text-gray-400 mb-1">Established</span>
-            <span className="text-base sm:text-lg font-bold text-white">{dao.established}</span>
+        <div className="grid grid-cols-3 gap-1 sm:gap-2 md:gap-4 w-full mb-4 sm:mb-6">
+          <div className="flex flex-col items-center px-1">
+            <span className="font-medium text-[10px] sm:text-xs md:text-sm text-gray-400 mb-1 text-center leading-tight">Established</span>
+            <span className="text-xs sm:text-sm md:text-base font-bold text-white text-center">{dao.established}</span>
           </div>
-          <div className="flex flex-col items-center">
-            <span className="font-medium text-xs sm:text-base text-gray-400 mb-1">Treasury Value</span>
-            <span className="text-base sm:text-lg font-bold text-white font-mono">
+          <div className="flex flex-col items-center px-1">
+            <span className="font-medium text-[10px] sm:text-xs md:text-sm text-gray-400 mb-1 text-center leading-tight">Treasury</span>
+            <span className="text-xs sm:text-sm md:text-base font-bold text-white font-mono text-center">
               {isLoadingTreasury ? 'Loading...' : `${treasuryBalance} MOVE`}
             </span>
           </div>
-          <div className="flex flex-col items-center">
-            <span className="font-medium text-xs sm:text-base text-gray-400 mb-1">Admin</span>
-            <span className="text-base sm:text-lg font-bold text-white font-mono">
+          <div className="flex flex-col items-center px-1">
+            <span className="font-medium text-[10px] sm:text-xs md:text-sm text-gray-400 mb-1 text-center leading-tight">Admin</span>
+            <span className="text-xs sm:text-sm md:text-base font-bold text-white font-mono text-center break-all">
               {isLoadingAdmin ? '...' : adminAddress}
             </span>
           </div>
         </div>
         
         {/* About Description */}
-        <div className="prose prose-invert max-w-none">
+        <div className="prose prose-invert max-w-none w-full overflow-hidden">
           {dao.description && (
-            <p className="text-gray-300 leading-relaxed mb-2 sm:mb-4 text-xs sm:text-base">
+            <p className="text-gray-300 leading-relaxed mb-2 sm:mb-4 text-xs sm:text-sm lg:text-base break-words">
               {dao.description}
             </p>
           )}
@@ -226,7 +226,7 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
 
 
       {/* Recent Activity - Optimized Contract-based data */}
-      <div className="w-full">
+      <div className="w-full" style={{ maxWidth: '100vw', overflow: 'hidden' }}>
         <OptimizedActivityTable
           activities={activities}
           isLoading={isLoading}
@@ -235,6 +235,7 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
           showUserColumn={true}
           showAmountColumn={true}
           showDAOColumn={false}
+          showActionColumn={false}
           maxRows={10}
           title="Recent DAO Activity"
         />
