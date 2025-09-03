@@ -1,5 +1,5 @@
 import React from 'react';
-import { Home, Plus, Search, TrendingUp, Users, Settings } from 'lucide-react';
+import { Home, Plus, Search, Users, Settings, TrendingUp } from 'lucide-react';
 
 interface SidebarProps {
   currentView: string;
@@ -13,7 +13,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
     { id: 'home', icon: Home, label: 'Dashboard', color: 'text-blue-400' },
     { id: 'search', icon: Search, label: 'Explore DAOs', color: 'text-green-400' },
     { id: 'create-new', icon: Plus, label: 'Create DAO', color: 'text-purple-400' },
-    { id: 'trending', icon: TrendingUp, label: 'Trending', color: 'text-yellow-400' },
     { id: 'community', icon: Users, label: 'Community', color: 'text-pink-400' },
   ];
 
@@ -39,6 +38,18 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
         );
       })}
       <div className="flex-1"></div>
+      {/* Trending Icon at Bottom */}
+      <div className="mt-auto pb-4">
+        <button
+          onClick={() => onViewChange('trending')}
+          className={`group relative transition-all duration-300 ${
+            currentView === 'trending' ? 'text-yellow-400' : 'text-gray-400 group-hover:text-white'
+          }`}
+          title="Trending"
+        >
+          <TrendingUp className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 
@@ -79,6 +90,18 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
           })}
         </div>
         <div className="flex-1"></div>
+        {/* Trending Icon at Bottom for Mobile */}
+        <div className="flex justify-center pt-4">
+          <button
+            onClick={() => onViewChange('trending')}
+            className={`flex items-center gap-4 text-lg font-semibold transition-all duration-200 ${
+              currentView === 'trending' ? 'text-yellow-400' : 'text-gray-300'
+            }`}
+          >
+            <TrendingUp className="w-5 h-5" />
+            <span>Trending</span>
+          </button>
+        </div>
       </div>
     </>
   ) : null;

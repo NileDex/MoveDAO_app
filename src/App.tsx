@@ -4,6 +4,7 @@ import Sidebar from './components/Sidebar';
 import MainDashboard from './components/MainDashboard';
 import CreateDAO from './components/CreateDAO';
 import DAODetail from './components/DAODetail';
+import PlatformGrowthCharts from './components/PlatformGrowthCharts';
 import { DAO } from './types/dao';
 
 function App() {
@@ -49,18 +50,7 @@ function App() {
           </div>
         );
       case 'trending':
-        return (
-          <div className="max-w-7xl mx-auto px-6 py-8">
-            <div className="professional-card rounded-xl p-12 text-center">
-              <h1 className="text-3xl font-bold text-white mb-4">Trending DAOs</h1>
-              <p className="text-gray-400 mb-8">Discover the most active and popular communities</p>
-              <div className="w-16 h-16 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 rounded-xl flex items-center justify-center mx-auto">
-                <span className="text-2xl">📈</span>
-              </div>
-              <p className="text-gray-500 mt-4">Coming soon...</p>
-            </div>
-          </div>
-        );
+        return <PlatformGrowthCharts />;
       case 'community':
         return (
           <div className="max-w-7xl mx-auto px-6 py-8">
