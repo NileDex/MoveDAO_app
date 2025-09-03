@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Wallet, Plus, Minus, Info, Shield, Clock, AlertTriangle, RefreshCw, XCircle } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Wallet, Plus, Minus, Info, Shield, Clock, AlertTriangle, RefreshCw, XCircle, Users, Lock } from 'lucide-react';
 import { FaCheckCircle } from 'react-icons/fa';
 import { useTreasury } from '../../hooks/useTreasury';
 import { DAO } from '../../types/dao';
@@ -17,6 +17,7 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [isTogglingPublicDeposits, setIsTogglingPublicDeposits] = useState(false);
 
   // Use the treasury hook
   const {
@@ -26,6 +27,7 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
     isAdmin,
     deposit,
     withdraw,
+    togglePublicDeposits,
     refreshData
   } = useTreasury(dao.id);
 
@@ -89,6 +91,26 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
     }
   };
 
+  const handleTogglePublicDeposits = async (allow: boolean) => {
+    try {
+      setIsTogglingPublicDeposits(true);
+      setErrorMessage('');
+      
+      await togglePublicDeposits(allow);
+      
+      setSuccessMessage(
+        allow 
+          ? 'Public deposits enabled - anyone can now deposit to this treasury' 
+          : 'Public deposits disabled - only members and admins can deposit'
+      );
+    } catch (error: any) {
+      console.error('Toggle public deposits failed:', error);
+      setErrorMessage(error.message || 'Failed to update public deposit settings');
+    } finally {
+      setIsTogglingPublicDeposits(false);
+    }
+  };
+
   const tabs = [
     { id: 'overview', label: 'Overview', icon: Wallet },
     { id: 'transactions', label: 'Transactions', icon: Clock }
@@ -143,6 +165,88 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
         </div>
       </div>
 
+      {/* Public Deposits Toggle - Admin Only */}
+      {isAdmin && (
+        <div className="professional-card rounded-xl p-4 sm:p-6">
+          <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
+            <Users className="w-5 h-5 text-blue-400" />
+            <span>Public Deposits Settings</span>
+          </h3>
+          
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center space-x-2 mb-2">
+                {treasuryData.allowsPublicDeposits ? (
+                  <Users className="w-5 h-5 text-green-400" />
+                ) : (
+                  <Lock className="w-5 h-5 text-yellow-400" />
+                )}
+                <span className={`font-medium ${
+                  treasuryData.allowsPublicDeposits ? 'text-green-300' : 'text-yellow-300'
+                }`}>
+                  {treasuryData.allowsPublicDeposits ? 'Public Deposits Enabled' : 'Member-Only Deposits'}
+                </span>
+              </div>
+              <p className="text-sm text-gray-400">
+                {treasuryData.allowsPublicDeposits 
+                  ? 'Anyone can deposit tokens to support this DAO' 
+                  : 'Only DAO members and admins can deposit tokens'}
+              </p>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+              <button
+                onClick={() => handleTogglePublicDeposits(true)}
+                disabled={treasuryData.allowsPublicDeposits || isTogglingPublicDeposits}
+                className={`px-4 py-2 rounded-lg font-medium transition-all text-sm flex items-center justify-center w-full sm:w-auto ${
+                  treasuryData.allowsPublicDeposits
+                    ? 'bg-green-500/20 text-green-300 cursor-not-allowed opacity-50'
+                    : isTogglingPublicDeposits
+                    ? 'bg-green-500/10 text-green-400 cursor-not-allowed'
+                    : 'bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-500/30'
+                }`}
+              >
+                {isTogglingPublicDeposits && treasuryData.allowsPublicDeposits === false ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-green-300"></div>
+                    <span>Enabling...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <Users className="w-4 h-4" />
+                    <span>Enable Public</span>
+                  </div>
+                )}
+              </button>
+              
+              <button
+                onClick={() => handleTogglePublicDeposits(false)}
+                disabled={!treasuryData.allowsPublicDeposits || isTogglingPublicDeposits}
+                className={`px-4 py-2 rounded-lg font-medium transition-all text-sm flex items-center justify-center w-full sm:w-auto ${
+                  !treasuryData.allowsPublicDeposits
+                    ? 'bg-yellow-500/20 text-yellow-300 cursor-not-allowed opacity-50'
+                    : isTogglingPublicDeposits
+                    ? 'bg-yellow-500/10 text-yellow-400 cursor-not-allowed'
+                    : 'bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/30'
+                }`}
+              >
+                {isTogglingPublicDeposits && treasuryData.allowsPublicDeposits === true ? (
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-300"></div>
+                    <span>Disabling...</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-2">
+                    <Lock className="w-4 h-4" />
+                    <span>Member Only</span>
+                  </div>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Actions */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div style={{
@@ -162,10 +266,18 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
               cursor: 'pointer',
               minWidth: 'fit-content',
             }}
-            title={treasuryData.allowsPublicDeposits ? 'Anyone can deposit' : 'Only members/admins can deposit'}
+            title={treasuryData.allowsPublicDeposits 
+              ? 'Public deposits enabled - Anyone can deposit to support this DAO' 
+              : 'Member-only deposits - Only DAO members and admins can deposit'
+            }
         >
           <Plus className="w-4 h-4" />
           <span>Deposit Tokens</span>
+          {treasuryData.allowsPublicDeposits ? (
+            <Users className="w-3 h-3 text-green-400" title="Public deposits enabled" />
+          ) : (
+            <Lock className="w-3 h-3 text-yellow-400" title="Member-only deposits" />
+          )}
         </button>
         </div>
         {isAdmin && (
@@ -334,10 +446,21 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
           </div>
           
           <div className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
-            <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5" />
+            {treasuryData.allowsPublicDeposits ? (
+              <Users className="w-5 h-5 text-green-400 mt-0.5" />
+            ) : (
+              <Lock className="w-5 h-5 text-yellow-400 mt-0.5" />
+            )}
             <div>
-              <p className="text-white font-medium">Admin Required</p>
-              <p className="text-sm text-gray-400">Only DAO admins can withdraw funds. Anyone can deposit to support the DAO.</p>
+              <p className="text-white font-medium">
+                {treasuryData.allowsPublicDeposits ? 'Public Deposits Enabled' : 'Member-Only Deposits'}
+              </p>
+              <p className="text-sm text-gray-400">
+                {treasuryData.allowsPublicDeposits
+                  ? 'Anyone can deposit tokens to support the DAO. Only admins can withdraw funds.'
+                  : 'Only DAO members and admins can deposit tokens. Admins can toggle this setting.'
+                }
+              </p>
             </div>
           </div>
           
@@ -353,50 +476,95 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
     </div>
   );
 
-  const renderTransactions = () => (
-    <div className="space-y-6">
-      <div className="professional-card rounded-xl p-4 sm:p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Recent Transactions</h3>
-        <div className="space-y-3">
-          {transactions.length > 0 ? (
-            transactions.map((tx, index) => (
-              <div key={index} className="flex items-center justify-between p-4 bg-white/5 rounded-xl">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    tx.type === 'deposit' ? 'bg-green-500/20' : 'bg-red-500/20'
-                  }`}>
-                    {tx.type === 'deposit' ? (
-                      <ArrowDownRight className="w-5 h-5 text-green-400" />
-                    ) : (
-                      <ArrowUpRight className="w-5 h-5 text-red-400" />
-                    )}
+  const renderTransactions = () => {
+    // Helper function to truncate addresses for mobile
+    const truncateAddress = (address: string | undefined): string => {
+      if (!address) return 'Unknown';
+      if (address.length <= 12) return address;
+      return `${address.slice(0, 6)}...${address.slice(-4)}`;
+    };
+
+    return (
+      <div className="space-y-6">
+        <div className="professional-card rounded-xl p-4 sm:p-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Recent Transactions</h3>
+          <div className="space-y-3">
+            {transactions.length > 0 ? (
+              transactions.map((tx, index) => (
+                <div key={index} className="bg-white/5 rounded-xl p-4">
+                  {/* Mobile Layout: Stacked */}
+                  <div className="flex flex-col sm:hidden space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                          tx.type === 'deposit' ? 'bg-green-500/20' : 'bg-red-500/20'
+                        }`}>
+                          {tx.type === 'deposit' ? (
+                            <ArrowDownRight className="w-4 h-4 text-green-400" />
+                          ) : (
+                            <ArrowUpRight className="w-4 h-4 text-red-400" />
+                          )}
+                        </div>
+                        <span className="font-medium text-white capitalize text-sm">{tx.type}</span>
+                      </div>
+                      <p className={`font-semibold text-sm ${tx.type === 'deposit' ? 'text-green-400' : 'text-red-400'}`}>
+                        {tx.type === 'deposit' ? '+' : '-'}{tx.amount.toFixed(3)} MOVE
+                      </p>
+                    </div>
+                    <div className="flex items-center justify-between text-sm text-gray-400">
+                      <span>
+                        {tx.type === 'deposit' 
+                          ? `From: ${truncateAddress(tx.from)}` 
+                          : `To: ${truncateAddress(tx.to)}`
+                        }
+                      </span>
+                      <span>{new Date(tx.timestamp).toLocaleDateString()}</span>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-medium text-white capitalize">{tx.type}</p>
-                    <p className="text-sm text-gray-400">
-                      {tx.type === 'deposit' ? `From: ${tx.from}` : `To: ${tx.to}`}
-                    </p>
+
+                  {/* Desktop Layout: Side by Side */}
+                  <div className="hidden sm:flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        tx.type === 'deposit' ? 'bg-green-500/20' : 'bg-red-500/20'
+                      }`}>
+                        {tx.type === 'deposit' ? (
+                          <ArrowDownRight className="w-5 h-5 text-green-400" />
+                        ) : (
+                          <ArrowUpRight className="w-5 h-5 text-red-400" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium text-white capitalize">{tx.type}</p>
+                        <p className="text-sm text-gray-400">
+                          {tx.type === 'deposit' 
+                            ? `From: ${truncateAddress(tx.from)}` 
+                            : `To: ${truncateAddress(tx.to)}`
+                          }
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={`font-medium ${tx.type === 'deposit' ? 'text-green-400' : 'text-red-400'}`}>
+                        {tx.type === 'deposit' ? '+' : '-'}{tx.amount.toFixed(3)} MOVE
+                      </p>
+                      <p className="text-sm text-gray-400">{new Date(tx.timestamp).toLocaleDateString()}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="text-right">
-                  <p className={`font-medium ${tx.type === 'deposit' ? 'text-green-400' : 'text-red-400'}`}>
-                    {tx.type === 'deposit' ? '+' : '-'}{tx.amount.toFixed(3)} MOVE
-                  </p>
-                  <p className="text-sm text-gray-400">{new Date(tx.timestamp).toLocaleDateString()}</p>
-                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <Clock className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                <p className="text-gray-400 mb-2">No transactions yet</p>
+                <p className="text-sm text-gray-500">Treasury transactions will appear here</p>
               </div>
-            ))
-          ) : (
-            <div className="text-center py-8">
-              <Clock className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-              <p className="text-gray-400 mb-2">No transactions yet</p>
-              <p className="text-sm text-gray-500">Treasury transactions will appear here</p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
 
 
 

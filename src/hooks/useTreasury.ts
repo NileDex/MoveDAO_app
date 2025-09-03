@@ -449,29 +449,11 @@ export const useTreasury = (daoId: string) => {
         }
       }
 
-      // Force refresh treasury data to get the object if missing
-      if (!treasuryData.treasuryObject) {
-        console.log('Treasury object missing, fetching directly for DAO:', daoId);
-        
-        // First check if DAO exists
-        try {
-          const daoExists = await aptosClient.view({
-            payload: {
-              function: `${MODULE_ADDRESS}::dao_core_file::dao_exists`,
-              functionArguments: [daoId]
-            }
-          });
-          console.log('DAO exists check result:', daoExists);
-          
-          if (!(daoExists as any)?.[0]) {
-            throw new Error(`DAO ${daoId} does not exist or was not properly created`);
-          }
-        } catch (error) {
-          console.error('DAO existence check failed:', error);
-          throw new Error(`Cannot verify DAO existence: ${error}`);
-        }
-
-        // Then try to get treasury object
+      // Get treasury object - try from state first, then fetch if needed
+      let treasuryObject = treasuryData.treasuryObject;
+      
+      if (!treasuryObject) {
+        console.log('Treasury object missing from state, fetching for DAO:', daoId);
         try {
           const objectResult = await aptosClient.view({
             payload: {
@@ -480,40 +462,35 @@ export const useTreasury = (daoId: string) => {
             }
           });
           console.log('Treasury object fetch result:', objectResult);
-          const rawObj = (objectResult as any)?.[0];
-          if (rawObj) {
-            // Update treasury data with the found object
-            setTreasuryData(prev => ({ ...prev, treasuryObject: rawObj }));
-            console.log('Direct fetch successful, treasury object:', rawObj);
-          } else {
-            console.error('Treasury object fetch returned null/undefined');
+          treasuryObject = (objectResult as any)?.[0];
+          
+          if (treasuryObject) {
+            console.log('Fetched treasury object:', treasuryObject);
+            // Update state for future use
+            setTreasuryData(prev => ({ ...prev, treasuryObject }));
           }
         } catch (error) {
-          console.error('Failed to fetch treasury object directly:', error);
-          // Try to provide more specific error information
-          if ((error as any)?.message?.includes('MISSING_DATA')) {
-            throw new Error(`DAO ${daoId} exists but has no treasury object. This DAO may have been created incorrectly.`);
-          }
-          throw new Error(`Failed to fetch treasury object: ${error}`);
+          console.error('Failed to fetch treasury object:', error);
         }
       }
 
-      // Use object-based deposit function (required for all modern DAOs)
+      // Use object-based deposit if treasury object is available
       let payload;
-      if (treasuryData.treasuryObject) {
-        // Extract the inner address - this is what the Aptos SDK expects for Object types
-        const objectAddr = (treasuryData.treasuryObject as any).inner;
-        console.log('Using treasury object address:', objectAddr);
+      if (treasuryObject) {
+        // Extract address for wallet parameter
+        const objectAddress = typeof treasuryObject === 'string' 
+          ? treasuryObject 
+          : (treasuryObject as any).inner || (treasuryObject as any).value || treasuryObject;
+        
+        console.log('Using deposit_to_object with address:', objectAddress);
         payload = {
           function: `${MODULE_ADDRESS}::treasury::deposit_to_object`,
           typeArguments: [],
-          functionArguments: [objectAddr, amountOctas.toString()],
+          functionArguments: [objectAddress, amountOctas.toString()],
         };
       } else {
-        // If no object found, just use the legacy method
-        // The 0x8 error from legacy might be due to treasury not being at DAO address
-        // Let's try using the extracted object address directly with legacy method
-        console.log('No treasury object in state, using legacy deposit method...');
+        // Fallback to legacy deposit (shouldn't happen for modern DAOs)
+        console.log('No treasury object available, using legacy deposit');
         payload = {
           function: `${MODULE_ADDRESS}::treasury::deposit`,
           typeArguments: [],
@@ -521,12 +498,15 @@ export const useTreasury = (daoId: string) => {
         };
       }
 
+      console.log('Final deposit payload:', JSON.stringify(payload, null, 2));
+      
       const tx = await signAndSubmitTransaction({ payload } as any);
       if (tx && (tx as any).hash) {
         await aptosClient.waitForTransaction({ 
           transactionHash: (tx as any).hash, 
           options: { checkSuccess: true } 
         });
+        console.log('Deposit transaction successful:', (tx as any).hash);
       }
 
       // Debug: Check what events were emitted
@@ -548,17 +528,21 @@ export const useTreasury = (daoId: string) => {
 
     } catch (error: any) {
       console.error('Deposit failed:', error);
+      console.error('Full error details:', JSON.stringify(error, null, 2));
       
       if (error.message?.includes('User rejected')) {
         throw new Error('Transaction cancelled by user');
       } else if (error.message?.includes('insufficient') || error.message?.includes('0x6507')) {
         throw new Error('Insufficient MOVE balance for transaction and gas fees');
       } else if (error.message?.includes('0x97') || error.message?.includes('not_member')) {
-        throw new Error('Only DAO members or admins can deposit to this treasury.');
-      } else if (error.message?.includes('0x8') || error.message?.includes('already_exists')) {
-        throw new Error('Resource already exists. This could be a duplicate transaction or AptosCoin registration issue.');
-      } else if (error.message?.includes('not_found')) {
+        const publicDepositsStatus = treasuryData.allowsPublicDeposits ? 'enabled' : 'disabled';
+        throw new Error(`Deposit denied: You must be a DAO member or admin to deposit. Public deposits are currently ${publicDepositsStatus}. ${treasuryData.allowsPublicDeposits ? 'This may be a contract bug - public deposits should allow anyone to deposit.' : 'Ask a DAO admin to enable public deposits or join as a member first.'}`);
+      } else if (error.message?.includes('0xa') || error.message?.includes('already_exists')) {
+        throw new Error('Object or resource already exists. This may be due to an invalid treasury object format or a duplicate registration.');
+      } else if (error.message?.includes('0x8') || error.message?.includes('not_found')) {
         throw new Error('Treasury not found. This DAO may use a newer treasury system that requires different deposit methods.');
+      } else if (error.message?.includes('0x1') || error.message?.includes('not_admin')) {
+        throw new Error('Permission denied. You may not have the required permissions to deposit to this treasury.');
       } else {
         throw new Error(error.message || 'Deposit transaction failed');
       }
@@ -593,16 +577,16 @@ export const useTreasury = (daoId: string) => {
       // Use object-based withdraw function (correct method for new DAOs)
       let payload;
       if (treasuryData.treasuryObject) {
-        // Extract the treasury object address properly
-        const objArg = typeof treasuryData.treasuryObject === 'string' 
+        // Extract the inner address for the wallet - it expects just the address string for Object<T> parameters
+        const objectAddress = typeof treasuryData.treasuryObject === 'string' 
           ? treasuryData.treasuryObject 
           : (treasuryData.treasuryObject as any).inner || (treasuryData.treasuryObject as any).value || treasuryData.treasuryObject;
         
-        console.log('Using treasury object for withdrawal:', objArg);
+        console.log('Using treasury object for withdrawal:', objectAddress);
         payload = {
           function: `${MODULE_ADDRESS}::treasury::withdraw_from_object`,
           typeArguments: [],
-          functionArguments: [daoId, objArg, amountOctas.toString()],
+          functionArguments: [daoId, objectAddress, amountOctas.toString()],
         };
       } else {
         // Fallback to legacy withdraw if no treasury object found
@@ -679,6 +663,64 @@ export const useTreasury = (daoId: string) => {
     return () => clearInterval(interval);
   }, [daoId, account?.address, fetchTreasuryData, fetchUserBalance, checkAdminStatus, fetchTreasuryTransactions]);
 
+  // Toggle public deposits (admin only)
+  const togglePublicDeposits = useCallback(async (allow: boolean): Promise<boolean> => {
+    if (!account || !signAndSubmitTransaction || !daoId) {
+      throw new Error('Wallet not connected or DAO ID missing');
+    }
+
+    if (!isAdmin) {
+      throw new Error('Only DAO admins can change public deposit settings');
+    }
+
+    try {
+      console.log('Toggling public deposits:', allow, 'for DAO:', daoId);
+      console.log('Treasury object:', treasuryData.treasuryObject);
+      
+      let payload;
+      if (treasuryData.treasuryObject) {
+        // Extract the inner address for the wallet - it expects just the address string for Object<T> parameters
+        const objectAddress = typeof treasuryData.treasuryObject === 'string' 
+          ? treasuryData.treasuryObject 
+          : (treasuryData.treasuryObject as any).inner || (treasuryData.treasuryObject as any).value || treasuryData.treasuryObject;
+        
+        console.log('Using treasury object for toggle:', objectAddress);
+        payload = {
+          function: `${MODULE_ADDRESS}::treasury::set_public_deposits`,
+          typeArguments: [],
+          functionArguments: [daoId, objectAddress, allow],
+        };
+      } else {
+        throw new Error('Treasury object not found. Cannot toggle public deposits.');
+      }
+
+      const tx = await signAndSubmitTransaction({ payload } as any);
+      if (tx && (tx as any).hash) {
+        await aptosClient.waitForTransaction({ 
+          transactionHash: (tx as any).hash, 
+          options: { checkSuccess: true } 
+        });
+      }
+
+      // Refresh treasury data to get updated public deposits setting
+      await fetchTreasuryData();
+      return true;
+
+    } catch (error: any) {
+      console.error('Toggle public deposits failed:', error);
+      
+      if (error.message?.includes('User rejected')) {
+        throw new Error('Transaction cancelled by user');
+      } else if (error.message?.includes('not_admin') || error.message?.includes('0x1')) {
+        throw new Error('Only DAO admins can change public deposit settings');
+      } else if (error.message?.includes('0x8') || error.message?.includes('not_found')) {
+        throw new Error('Treasury not found. Cannot update public deposit settings.');
+      } else {
+        throw new Error(error.message || 'Failed to update public deposit settings');
+      }
+    }
+  }, [account, signAndSubmitTransaction, daoId, isAdmin, treasuryData.treasuryObject, fetchTreasuryData]);
+
   return {
     treasuryData,
     transactions,
@@ -686,6 +728,7 @@ export const useTreasury = (daoId: string) => {
     isAdmin,
     deposit,
     withdraw,
+    togglePublicDeposits,
     refreshData: () => Promise.all([fetchTreasuryData(), fetchUserBalance(), checkAdminStatus(), fetchTreasuryTransactions()]),
     toMOVE,
     fromMOVE
