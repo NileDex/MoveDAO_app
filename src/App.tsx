@@ -5,6 +5,7 @@ import MainDashboard from './components/MainDashboard';
 import CreateDAO from './components/CreateDAO';
 import DAODetail from './components/DAODetail';
 import PlatformGrowthCharts from './components/PlatformGrowthCharts';
+import { UserProfile } from './components/profile';
 import { DAO } from './types/dao';
 
 function App() {
@@ -64,6 +65,8 @@ function App() {
             </div>
           </div>
         );
+      case 'profile':
+        return <UserProfile />;
       default:
         return <MainDashboard onDAOSelect={handleDAOSelect} />;
     }
@@ -86,6 +89,7 @@ function App() {
           currentDAO={selectedDAO?.name}
           // Pass a prop to trigger sidebar open on mobile
           onMenuClick={() => setSidebarOpen(true)}
+          onProfileClick={() => setCurrentView('profile')}
         />
         <main className="flex-1 overflow-auto">
           {renderContent()}

@@ -342,6 +342,32 @@ export const ABI = {
       ]
     },
     {
+      "name": "get_daos_created_by",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "vector<address>"
+      ]
+    },
+    {
+      "name": "get_daos_joined_by",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "vector<address>"
+      ]
+    },
+    {
       "name": "get_daos_paginated",
       "visibility": "public",
       "is_entry": false,
@@ -414,6 +440,20 @@ export const ABI = {
       ],
       "return": [
         "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>"
+      ]
+    },
+    {
+      "name": "get_user_daos",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "vector<address>",
+        "vector<address>"
       ]
     },
     {

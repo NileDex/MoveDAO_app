@@ -26,29 +26,10 @@
   align-items: center;
   gap: 0.5rem;
 }
-.header-logo-outer {
+.header-logo-image {
   width: 2rem;
   height: 2rem;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  border-radius: 0.75rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.header-logo-inner {
-  width: 1.25rem;
-  height: 1.25rem;
-  background: #fff;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.header-logo-dot {
-  width: 0.625rem;
-  height: 0.625rem;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-  border-radius: 0.25rem;
+  object-fit: contain;
 }
 .header-title {
   font-size: 1rem;

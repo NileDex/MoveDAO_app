@@ -94,12 +94,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
         <div className="flex justify-center pt-4">
           <button
             onClick={() => onViewChange('trending')}
-            className={`flex items-center gap-4 text-lg font-semibold transition-all duration-200 ${
+            className={`transition-all duration-200 ${
               currentView === 'trending' ? 'text-yellow-400' : 'text-gray-300'
             }`}
+            title="Trending"
           >
             <TrendingUp className="w-5 h-5" />
-            <span>Trending</span>
           </button>
         </div>
       </div>
