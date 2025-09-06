@@ -1,18 +1,18 @@
 // Activity type constants from contract
 export const ACTIVITY_TYPES = {
-  1: { type: 'dao_created', title: 'DAO Created', icon: '🏛️' },
-  2: { type: 'member_joined', title: 'Member Joined', icon: '👥' },
-  3: { type: 'member_left', title: 'Member Left', icon: '👋' },
-  4: { type: 'proposal_created', title: 'Proposal Created', icon: '📝' },
-  5: { type: 'proposal_voted', title: 'Proposal Voted', icon: '🗳️' },
-  6: { type: 'proposal_executed', title: 'Proposal Executed', icon: '✅' },
-  7: { type: 'stake', title: 'Tokens Staked', icon: '🔒' },
-  8: { type: 'unstake', title: 'Tokens Unstaked', icon: '🔓' },
-  9: { type: 'treasury_deposit', title: 'Treasury Deposit', icon: '💰' },
-  10: { type: 'treasury_withdrawal', title: 'Treasury Withdrawal', icon: '💸' },
-  11: { type: 'reward_claimed', title: 'Rewards Claimed', icon: '🏆' },
-  12: { type: 'launchpad_created', title: 'Launchpad Created', icon: '🚀' },
-  13: { type: 'launchpad_investment', title: 'Launchpad Investment', icon: '💎' },
+  1: { type: 'dao_created', title: 'DAO Created', icon: '' },
+  2: { type: 'member_joined', title: 'Member Joined', icon: '' },
+  3: { type: 'member_left', title: 'Member Left', icon: '' },
+  4: { type: 'proposal_created', title: 'Proposal Created', icon: '' },
+  5: { type: 'proposal_voted', title: 'Proposal Voted', icon: '' },
+  6: { type: 'proposal_executed', title: 'Proposal Executed', icon: '' },
+  7: { type: 'stake', title: 'Tokens Staked', icon: '' },
+  8: { type: 'unstake', title: 'Tokens Unstaked', icon: '' },
+  9: { type: 'treasury_deposit', title: 'Treasury Deposit', icon: '' },
+  10: { type: 'treasury_withdrawal', title: 'Treasury Withdrawal', icon: '' },
+  11: { type: 'reward_claimed', title: 'Rewards Claimed', icon: '' },
+  12: { type: 'launchpad_created', title: 'Launchpad Created', icon: '' },
+  13: { type: 'launchpad_investment', title: 'Launchpad Investment', icon: '' },
 } as const;
 
 // Activity type enum for type safety
@@ -85,7 +85,7 @@ export const getActivityInfo = (typeId: number) => {
   return ACTIVITY_TYPES[typeId as ActivityTypeKey] || {
     type: 'unknown',
     title: 'Unknown Activity',
-    icon: '❓'
+    icon: ''
   };
 };
 

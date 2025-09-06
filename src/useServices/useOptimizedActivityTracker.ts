@@ -453,7 +453,7 @@ export class OptimizedActivityTracker {
     // Use centralized activity styles
 
     return {
-      icon: activityType?.icon || '📄',
+      icon: activityType?.icon || '',
       color: getActivityStyles(activity.type),
       displayType: activity.type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
     };

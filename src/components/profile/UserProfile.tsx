@@ -446,15 +446,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
               </svg>
             </div>
             <h3 className="text-lg font-medium text-white mb-2">No DAOs Found</h3>
-            <p className="text-gray-400 text-sm mb-4">
+            <p className="text-gray-400 text-sm">
               You haven't created or joined any DAOs yet.
             </p>
-            <button 
-              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'create' }))}
-              className="btn-primary px-4 py-2 text-sm rounded-lg"
-            >
-              Create Your First DAO
-            </button>
           </div>
         )}
 

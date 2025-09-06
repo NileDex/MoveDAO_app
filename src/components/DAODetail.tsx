@@ -222,8 +222,8 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack }) => {
               </div>
               <div className="text-center sm:text-left w-full sm:max-w-xl">
                 <h1 className="text-3xl font-bold text-white mb-2">{dao.name}</h1>
-                <p className="text-gray-400 text-lg max-w-xl mx-auto sm:mx-0">{dao.description}</p>
-                <div className="flex flex-wrap justify-center sm:justify-start items-center space-x-2 sm:space-x-4 mt-3 text-sm text-gray-400">
+                <p className="text-white text-lg max-w-xl mx-auto sm:mx-0">{dao.description}</p>
+                <div className="flex flex-wrap justify-center sm:justify-start items-center space-x-2 sm:space-x-4 mt-3 text-base text-gray-400">
                   <span>Established {dao.established}</span>
                   <span>•</span>
                   <span>{dao.members} members</span>

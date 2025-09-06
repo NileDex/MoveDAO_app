@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Activity, OptimizedActivityTracker } from '../useServices/useOptimizedActivityTracker';
 import { Clock, ExternalLink, RefreshCw, AlertCircle, Activity as ActivityIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { getActivityColor } from '../constants/activityConstants';
+import { useGetProfile, getDisplayNameOrAddress, getAvatarUrlOrDefault } from '../useServices/useProfile';
 
 interface OptimizedActivityTableProps {
   activities: Activity[];
@@ -16,6 +17,62 @@ interface OptimizedActivityTableProps {
   className?: string;
   title?: string;
 }
+
+// User Display Component with Profile
+const UserDisplay: React.FC<{ address: string; isCompact?: boolean }> = ({ address, isCompact = false }) => {
+  const { data: profileData, isLoading } = useGetProfile(address || null);
+  
+  const truncateAddress = (addr: string) => {
+    if (!addr) return 'Unknown';
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center space-x-2">
+        <div className="w-6 h-6 bg-gray-600/50 rounded-full animate-pulse"></div>
+        <span className="text-sm text-gray-400">...</span>
+      </div>
+    );
+  }
+
+  if (profileData) {
+    return (
+      <div className={`flex items-center space-x-2 ${isCompact ? 'max-w-[120px]' : ''}`}>
+        {profileData.avatarUrl ? (
+          <img 
+            src={profileData.avatarUrl} 
+            alt={profileData.displayName}
+            className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+              if (fallback) fallback.classList.remove('hidden');
+            }}
+          />
+        ) : null}
+        <div className={`w-6 h-6 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${profileData.avatarUrl ? 'hidden' : ''}`}>
+          {profileData.displayName.charAt(0).toUpperCase()}
+        </div>
+        <div className="flex flex-col min-w-0">
+          <span className="text-xs font-semibold text-white truncate">
+            {profileData.displayName}
+          </span>
+          {!isCompact && (
+            <span className="text-[10px] text-gray-400 font-mono truncate">
+              {truncateAddress(address)}
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // No profile - show address only
+  return (
+    <span className="text-sm text-gray-300 font-mono">{truncateAddress(address)}</span>
+  );
+};
 
 const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
   activities,
@@ -38,8 +95,27 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
   };
 
   const formatAmount = (amount?: number) => {
-    if (!amount) return '-';
-    return `${amount.toFixed(4)} MOVE`;
+    if (!amount) return null;
+    
+    // Remove trailing zeros and unnecessary decimal points
+    const formattedNumber = amount % 1 === 0 ? amount.toString() : parseFloat(amount.toFixed(4)).toString();
+    
+    return (
+      <div className="flex items-center space-x-1">
+        <span>{formattedNumber}</span>
+        <img 
+          src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27" 
+          alt="MOVE"
+          className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+            if (fallback) fallback.classList.remove('hidden');
+          }}
+        />
+        <span className="hidden">MOVE</span>
+      </div>
+    );
   };
 
   const getExplorerUrl = (activity: Activity) => {
@@ -166,14 +242,9 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
                   <tr key={activity.id || index} className="border-b border-white/5 hover:bg-white/5 transition-all">
                     {/* Activity */}
                     <td className="py-4 px-4">
-                      <div className="flex items-center space-x-3">
-                        <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm border ${display.color}`}>
-                          {display.icon}
-                        </div>
-                        <div className="min-w-0">
-                          <h4 className="text-white font-medium text-sm leading-tight truncate">{activity.title}</h4>
-                          <p className="text-gray-400 text-xs leading-tight truncate">{activity.description}</p>
-                        </div>
+                      <div className="min-w-0">
+                        <h4 className="text-white font-medium text-sm leading-tight truncate">{activity.title}</h4>
+                        <p className="text-gray-400 text-xs leading-tight truncate">{activity.description}</p>
                       </div>
                     </td>
                     
@@ -187,7 +258,7 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
                     {/* User */}
                     {showUserColumn && (
                       <td className="py-4 px-4">
-                        <span className="text-sm text-gray-300 font-mono">{truncateAddress(activity.user)}</span>
+                        <UserDisplay address={activity.user} />
                       </td>
                     )}
                     
@@ -195,7 +266,7 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
                     {showAmountColumn && (
                       <td className="py-4 px-4">
                         {activity.amount ? (
-                          <span className="text-sm text-green-400 font-medium">{formatAmount(activity.amount)}</span>
+                          <div className="text-sm text-green-400 font-medium">{formatAmount(activity.amount)}</div>
                         ) : (
                           <span className="text-sm text-gray-500">-</span>
                         )}
@@ -266,9 +337,6 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
                   <div className="flex items-center justify-between">
                     {/* Left Side */}
                     <div className="flex items-center space-x-2 flex-1 min-w-0">
-                      <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs border ${display.color}`}>
-                        {display.icon}
-                      </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center space-x-2 mb-1">
                           <h4 className="text-white font-medium text-sm leading-tight truncate">{activity.title}</h4>
@@ -278,10 +346,10 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
                         </div>
                         <div className="flex items-center space-x-3 text-xs text-gray-400">
                           {showUserColumn && (
-                            <span className="font-mono">{truncateAddress(activity.user)}</span>
+                            <UserDisplay address={activity.user} isCompact={true} />
                           )}
                           {showAmountColumn && activity.amount && (
-                            <span className="text-green-400 font-medium">{formatAmount(activity.amount)}</span>
+                            <div className="text-green-400 font-medium">{formatAmount(activity.amount)}</div>
                           )}
                         </div>
                       </div>

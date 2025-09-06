@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useWallet } from '@razorlabs/razorkit'
 import { aptosClient } from '../movement_service/movement-client'
 import { ABI } from '../Userprofileabi/profile'
+import { managedApiCall } from '../services/apiRequestManager'
 
 // Profile types based on the contract
 export interface UserProfile {
@@ -247,22 +248,41 @@ export function useGetProfile(userAddress: string | null) {
   const [data, setData] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [lastFetchTime, setLastFetchTime] = useState(0)
+  
+  // Debounce profile fetching to prevent excessive API calls
+  const FETCH_COOLDOWN = 5000 // 5 seconds between fetches
 
   const fetchProfile = async () => {
     if (!userAddress) return
 
+    // Check cooldown to prevent excessive API calls
+    const now = Date.now()
+    if (now - lastFetchTime < FETCH_COOLDOWN) {
+      console.log('⏱️ Profile fetch on cooldown')
+      return
+    }
+
     setIsLoading(true)
     setError(null)
+    setLastFetchTime(now)
 
     try {
       console.log('🔍 Fetching profile for:', userAddress)
 
-      const result = await aptosClient.view({
-        payload: {
-          function: `${ABI.address}::profile::get_profile`,
-          functionArguments: [userAddress],
-        },
-      })
+      const result = await managedApiCall(
+        () => aptosClient.view({
+          payload: {
+            function: `${ABI.address}::profile::get_profile`,
+            functionArguments: [userAddress],
+          },
+        }),
+        {
+          cacheKey: `profile_${userAddress}`,
+          cacheTtl: 15000, // Cache profile for 15 seconds
+          priority: 3 // High priority for profile data
+        }
+      )
 
       // Contract returns: (display_name, avatar_url, wallet_address, created_at, updated_at)
       const [displayName, avatarUrl, walletAddress, createdAt, updatedAt] = result
@@ -277,18 +297,27 @@ export function useGetProfile(userAddress: string | null) {
 
       console.log('✅ Profile fetched successfully')
     } catch (err: any) {
-      console.error('❌ Failed to fetch profile:', err)
-      
       // Check for various ways the profile not found error can manifest
       if (err.message?.includes('PROFILE_NOT_FOUND') || 
           err.message?.includes('resource') || 
           err.message?.includes('ABORTED') ||
           err.message?.includes('sub_status: Some(2)') ||
           err.status === 400) {
-        // Profile doesn't exist - this is expected for new users, so don't set error
+        // Profile doesn't exist - this is expected for new users, so don't log as error
+        console.log('ℹ️ No profile found for user:', userAddress)
+        setData(null)
+        setError(null)
+      } else if (err.code === 'ERR_NETWORK' || 
+                err.message?.includes('CORS') ||
+                err.message?.includes('429') ||
+                err.message?.includes('Too Many Requests') ||
+                err.status === 429) {
+        // Network/CORS/Rate limit issues - don't spam logs
+        console.log('⚠️ Network issue, skipping profile fetch')
         setData(null)
         setError(null)
       } else {
+        console.error('❌ Failed to fetch profile:', err)
         setError(err.message || 'Failed to fetch profile')
       }
     } finally {

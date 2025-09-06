@@ -79,15 +79,7 @@ const FeaturedDAOs: React.FC<FeaturedDAOsProps> = ({ onDAOSelect, onCreateDAO })
             <Search className="w-8 h-8 text-gray-400" />
           </div>
           <h3 className="text-lg font-semibold text-white mb-2">No DAOs Found</h3>
-          <p className="text-gray-400 mb-4">Be the first to create a DAO on Movement Network!</p>
-          {onCreateDAO && (
-            <button
-              onClick={onCreateDAO}
-              className="px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-all"
-            >
-              Create First DAO
-            </button>
-          )}
+          <p className="text-gray-400">Be the first to create a DAO on Movement Network!</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-sm sm:max-w-none mx-auto sm:mx-0" style={{ paddingLeft: '0.8rem', paddingRight: '0.8rem' }}>

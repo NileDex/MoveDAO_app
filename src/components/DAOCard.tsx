@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FileText, Users, DollarSign, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { DAO } from '../types/dao';
 
 interface DAOCardProps {
@@ -79,7 +79,7 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
       
       {/* Content with overlay */}
       <div className="relative z-10 p-6">
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-4 mt-4">
           <div className="relative">
             {/* Loading placeholder - show when image is loading */}
             {dao.image && !imageLoaded && !imageError && (
@@ -108,12 +108,6 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
               </div>
             )}
             
-            {/* Subname badge */}
-            {dao.subname && dao.subname.trim() && (
-              <div className="absolute -bottom-1 -right-1 bg-green-400 text-black px-1.5 py-0.5 rounded text-[10px] font-bold shadow-sm">
-                {dao.subname}
-              </div>
-            )}
           </div>
         
           {dao.category !== 'featured' && (
@@ -135,44 +129,41 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
         </div>
         
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 text-gray-300 text-sm drop-shadow-sm">
-              <FileText className="w-4 h-4" />
-              <span>{dao.proposals} proposals</span>
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="text-white text-xl font-bold drop-shadow-sm">
+                {dao.proposals}
+              </div>
+              <div className="text-gray-300 text-sm drop-shadow-sm">
+                Proposals
+              </div>
             </div>
-            <div className="flex items-center space-x-2 text-gray-300 text-sm drop-shadow-sm">
-              <Users className="w-4 h-4" />
-              <span>{dao.members} members</span>
+            <div>
+              <div className="text-white text-xl font-bold drop-shadow-sm">
+                {dao.members}
+              </div>
+              <div className="text-gray-300 text-sm drop-shadow-sm">
+                Members
+              </div>
             </div>
           </div>
           
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2 text-gray-300 text-sm drop-shadow-sm">
-              <Calendar className="w-4 h-4" />
-              <span>{dao.established}</span>
-            </div>
-            <div className="flex items-center space-x-2 text-gray-300 text-sm drop-shadow-sm">
-              <DollarSign className="w-4 h-4" />
-              <span>{dao.chain}</span>
-            </div>
+          <div className="flex items-center text-gray-300 text-xs drop-shadow-sm">
+            <Calendar className="w-3 h-3 mr-2" />
+            <span>{dao.established}</span>
           </div>
         </div>
         
-        <div className="mt-4 pt-4 border-t border-white/20">
-          <div className="flex items-center justify-between">
-            {dao.category !== 'featured' && (
-              <span className={`px-2 py-1 text-xs rounded-full backdrop-blur-sm ${
-                dao.category === 'chain' ? 'bg-blue-500/30 text-blue-200 border border-blue-400/50' :
-                'bg-purple-500/30 text-purple-200 border border-purple-400/50'
-              }`}>
-                {dao.category}
-              </span>
-            )}
-            <button className="text-gray-300 hover:text-white text-sm font-medium transition-colors drop-shadow-sm">
-              View Details →
-            </button>
+        {dao.category !== 'featured' && (
+          <div className="mt-4">
+            <span className={`px-2 py-1 text-xs rounded-full backdrop-blur-sm ${
+              dao.category === 'chain' ? 'bg-blue-500/30 text-blue-200 border border-blue-400/50' :
+              'bg-purple-500/30 text-purple-200 border border-purple-400/50'
+            }`}>
+              {dao.category}
+            </span>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
