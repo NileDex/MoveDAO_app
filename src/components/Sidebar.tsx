@@ -39,20 +39,29 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
 
   // Desktop Sidebar (responsive)
   const desktopSidebar = (
-    <div className={`fixed top-16 left-0 backdrop-blur-md flex flex-col py-6 space-y-4 hidden md:flex border-r border-white/10 h-[calc(100vh-4rem)] transition-all duration-300 z-40 ${
+    <div className={`fixed top-16 left-0 backdrop-blur-md flex flex-col py-6 space-y-4 hidden md:flex h-[calc(100vh-4rem)] transition-all duration-300 z-40 ${
       isCollapsed ? 'w-16' : 'w-48'
-    }`}>
+    }`}
+         style={{ 
+           background: 'var(--card-bg)', 
+           borderRight: '1px solid var(--border)' 
+         }}>
       {/* Toggle Button */}
       <div className="flex justify-end px-4 mb-2">
         <button
           onClick={handleToggle}
-          className="p-1 rounded-lg hover:bg-white/10 transition-colors"
+          className="p-1 rounded-lg transition-colors"
+          style={{ 
+            color: 'var(--text-dim)'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
           title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (
-            <ChevronRight className="w-4 h-4 text-gray-400" />
+            <ChevronRight className="w-4 h-4" style={{ color: 'var(--text-dim)' }} />
           ) : (
-            <ChevronLeft className="w-4 h-4 text-gray-400" />
+            <ChevronLeft className="w-4 h-4" style={{ color: 'var(--text-dim)' }} />
           )}
         </button>
       </div>
@@ -66,11 +75,23 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
             <button
               key={item.id}
               onClick={() => onViewChange(item.id)}
-              className={`group relative transition-all duration-300 flex items-center space-x-3 px-3 py-2 rounded-lg ${
-                isActive 
-                  ? 'bg-white/10 text-white' 
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
+              className="group relative transition-all duration-300 flex items-center space-x-3 px-3 py-2 rounded-lg"
+              style={{
+                background: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
+                color: isActive ? 'var(--text)' : 'var(--text-dim)'
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                  e.currentTarget.style.color = 'var(--text)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.background = 'transparent';
+                  e.currentTarget.style.color = 'var(--text-dim)';
+                }
+              }}
               title={isCollapsed ? item.label : ''}
             >
               <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? item.color : ''}`} />
@@ -89,11 +110,23 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
       <div className="px-2">
         <button
           onClick={() => onViewChange('trending')}
-          className={`group relative transition-all duration-300 flex items-center space-x-3 px-3 py-2 rounded-lg w-full ${
-            currentView === 'trending' 
-              ? 'bg-white/10 text-yellow-400' 
-              : 'text-gray-400 hover:text-white hover:bg-white/5'
-          }`}
+          className="group relative transition-all duration-300 flex items-center space-x-3 px-3 py-2 rounded-lg w-full"
+          style={{
+            background: currentView === 'trending' ? 'rgba(255,255,255,0.1)' : 'transparent',
+            color: currentView === 'trending' ? '#fbbf24' : 'var(--text-dim)'
+          }}
+          onMouseEnter={(e) => {
+            if (currentView !== 'trending') {
+              e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+              e.currentTarget.style.color = 'var(--text)';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (currentView !== 'trending') {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--text-dim)';
+            }
+          }}
           title={isCollapsed ? 'Trending' : ''}
         >
           <TrendingUp className="w-5 h-5 flex-shrink-0" />
@@ -111,9 +144,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
       {/* Backdrop */}
       <div className="fixed inset-0 z-50 bg-black/60 sm:hidden" onClick={onClose} />
       {/* Sidebar Modal */}
-      <div className="fixed inset-y-0 left-0 z-[60] w-4/5 max-w-xs bg-black/95 backdrop-blur-md flex flex-col py-8 px-6 space-y-6 animate-slide-in sm:hidden">
+      <div className="fixed inset-y-0 left-0 z-[60] w-4/5 max-w-xs backdrop-blur-md flex flex-col py-8 px-6 space-y-6 animate-slide-in sm:hidden" 
+           style={{ background: 'var(--card-bg)' }}>
         <button
-          className="absolute top-4 right-4 text-white bg-black/60 rounded-full p-2 z-[1100]"
+          className="absolute top-4 right-4 rounded-full p-2 z-[1100]"
+          style={{ color: 'var(--text)', background: 'var(--card-bg)' }}
           onClick={onClose}
           aria-label="Close Sidebar"
         >
@@ -129,13 +164,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
               <button
                 key={item.id}
                 onClick={() => onViewChange(item.id)}
-                className={`flex items-center gap-4 text-lg font-semibold transition-all duration-200 ${
-                  isActive
-                    ? 'text-white'
-                    : 'text-gray-300'
-                }`}
+                className={`flex items-center gap-4 text-lg font-semibold transition-all duration-200`}
+                style={{ color: isActive ? 'var(--text)' : 'var(--text-dim)' }}
               >
-                <Icon className={`w-7 h-7 ${isActive ? item.color : 'text-gray-400'}`} />
+                <Icon className={`w-7 h-7 ${isActive ? item.color : ''}`} 
+                      style={{ color: !isActive ? 'var(--text-dim)' : undefined }} />
                 {item.label}
               </button>
             );
@@ -146,9 +179,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
         <div className="flex justify-center pt-4">
           <button
             onClick={() => onViewChange('trending')}
-            className={`transition-all duration-200 ${
-              currentView === 'trending' ? 'text-yellow-400' : 'text-gray-300'
-            }`}
+            className="transition-all duration-200"
+            style={{ color: currentView === 'trending' ? '#fbbf24' : 'var(--text-dim)' }}
             title="Trending"
           >
             <TrendingUp className="w-5 h-5" />

@@ -641,27 +641,8 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
       <button
         aria-label="Toggle theme"
         title={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
-        style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          padding: '8px', border: 'none', 
-          background: 'var(--card-bg)', 
-          borderRadius: 12, 
-          color: 'var(--text)', 
-          cursor: 'pointer', 
-          fontWeight: 600,
-          transition: 'all 0.2s ease',
-          width: 36,
-          height: 36
-        }}
+        className="theme-toggle-btn"
         onClick={cycleTheme}
-        onMouseEnter={(e) => { 
-          e.currentTarget.style.background = theme === 'dark' ? '#2a2a2c' : 'rgba(0,0,0,0.1)'; 
-          e.currentTarget.style.transform = 'translateY(-1px)'; 
-        }}
-        onMouseLeave={(e) => { 
-          e.currentTarget.style.background = 'var(--card-bg)'; 
-          e.currentTarget.style.transform = 'translateY(0)'; 
-        }}
       >
         {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
       </button>
