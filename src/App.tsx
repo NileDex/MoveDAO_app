@@ -12,7 +12,13 @@ function App() {
   const [currentView, setCurrentView] = useState('home');
   const [selectedDAO, setSelectedDAO] = useState<DAO | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('sidebar_collapsed');
+      if (saved !== null) return saved === 'true';
+    } catch {}
+    return true; // default collapsed
+  });
 
   const handleDAOSelect = (dao: DAO) => {
     setSelectedDAO(dao);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Home, Plus, Search, Users, Settings, TrendingUp, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SidebarProps {
@@ -10,13 +10,25 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = false, onClose, onCollapseChange }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('sidebar_collapsed');
+      if (saved !== null) return saved === 'true';
+    } catch {}
+    return true; // Default collapsed on first load
+  });
   
   const handleToggle = () => {
     const newState = !isCollapsed;
     setIsCollapsed(newState);
     onCollapseChange?.(newState);
+    try { localStorage.setItem('sidebar_collapsed', String(newState)); } catch {}
   };
+
+  // Notify parent on mount and when state changes to keep layout in sync
+  useEffect(() => {
+    onCollapseChange?.(isCollapsed);
+  }, [isCollapsed, onCollapseChange]);
   
   const menuItems = [
     { id: 'home', icon: Home, label: 'Dashboard', color: 'text-blue-400' },
