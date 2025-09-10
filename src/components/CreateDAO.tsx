@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ArrowLeft, Upload, Plus, X, Sparkles, Shield, Settings, DollarSign, Clock, Users } from 'lucide-react';
 import { useWallet } from '@razorlabs/razorkit';
 import { useCreateDAO, useCheckSubnameAvailability } from '../useServices/useDAOCore';
+import { useAlert } from './alert/AlertContext';
 
 interface CreateDAOProps {
   onBack: () => void;
@@ -26,7 +27,7 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [transactionHash, setTransactionHash] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+  const { showAlert } = useAlert();
 
   // Wallet and blockchain integration
   const { account } = useWallet();
@@ -317,6 +318,7 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
   // Test function for debugging serialization issues
   const handleTestTransaction = async () => {
     if (!account) {
+      showAlert('Please connect your wallet to test transaction', 'error');
       setErrors({...errors, submit: 'Please connect your wallet to test transaction'});
       return;
     }
@@ -324,16 +326,16 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
     setIsSubmitting(true);
     setErrors({});
     setTransactionHash('');
-    setSuccessMessage('');
     
     try {
       console.log('🧪 Testing minimal transaction...');
       const result = await testMinimalTransaction();
       console.log('✅ Test transaction completed:', result);
       
-      setSuccessMessage('✅ Test transaction successful! Serialization is working.');
+      showAlert('✅ Test transaction successful! Serialization is working.', 'success');
     } catch (error) {
       console.error('❌ Test transaction failed:', error);
+      showAlert(`Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
       setErrors({
         ...errors, 
         submit: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
@@ -349,6 +351,7 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
     if (!validateStep(4)) return;
     
     if (!account) {
+      showAlert('Please connect your wallet to create a DAO', 'error');
       setErrors({...errors, submit: 'Please connect your wallet to create a DAO'});
       return;
     }
@@ -356,7 +359,6 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
     setIsSubmitting(true);
     setErrors({});
     setTransactionHash('');
-    setSuccessMessage('');
     
     try {
       // Check if using URL mode or binary mode
@@ -393,11 +395,9 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
           setTransactionHash(txHash)
         }
         
-        setSuccessMessage(
-          `✅ DAO "${formData.name}" created successfully with URLs!\n` +
-          `🏛️ Your DAO is now live with ${validCouncils.length} council members.\n` +
-          `💰 Minimum stake: ${parseFloat(formData.minimumStake || '6').toFixed(1)} Move tokens\n` +
-          `⚡ Created using URL mode for optimal speed!`
+        showAlert(
+          `✅ DAO "${formData.name}" created successfully with URLs! 🏛️ Your DAO is now live with ${validCouncils.length} council members. 💰 Minimum stake: ${parseFloat(formData.minimumStake || '6').toFixed(1)} Move tokens ⚡ Created using URL mode for optimal speed!`,
+          'success'
         );
 
         // Optimistically broadcast a lightweight DAO object so list updates instantly
@@ -503,10 +503,9 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
         console.log('📋 Transaction hash extracted:', txHash)
       }
       
-        setSuccessMessage(
-          `✅ DAO "${formData.name}" created successfully on Movement Network!\n` +
-          `🏛️ Your DAO is now live with ${validCouncils.length} council members.\n` +
-          `💰 Minimum stake: ${parseFloat(formData.minimumStake || '6').toFixed(1)} Move tokens`
+        showAlert(
+          `✅ DAO "${formData.name}" created successfully on Movement Network! 🏛️ Your DAO is now live with ${validCouncils.length} council members. 💰 Minimum stake: ${parseFloat(formData.minimumStake || '6').toFixed(1)} Move tokens`,
+          'success'
         );
 
         // Optimistic broadcast for binary mode as well (no URLs available; images will resolve after refetch)
@@ -552,9 +551,11 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
       
     } catch (error) {
       console.error('❌ Failed to create DAO:', error);
+      const errorMsg = `Failed to create DAO: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      showAlert(errorMsg, 'error');
       setErrors({
         ...errors, 
-        submit: `Failed to create DAO: ${error instanceof Error ? error.message : 'Unknown error'}`
+        submit: errorMsg
       });
     } finally {
       setIsSubmitting(false);
@@ -1040,28 +1041,21 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
         </div>
       )}
 
-      {/* Success Message */}
-      {successMessage && (
-        <div className="mb-6 p-4 bg-green-500/10 border border-green-500/30 rounded-xl">
-          <div className="text-green-300">
-            <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>{successMessage}</pre>
-          </div>
-          {transactionHash && (
-            <div className="mt-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-              <p className="text-blue-300 text-sm font-medium mb-2">Transaction Hash:</p>
-              <code className="text-blue-200 text-xs break-all block bg-blue-500/10 p-2 rounded">
-                {transactionHash}
-              </code>
-              <a 
-                href={`https://explorer.movementnetwork.xyz/?network=bardock+testnet/txn/${transactionHash}`}
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 text-sm underline mt-2 inline-block"
-              >
-                View on Movement Explorer →
-              </a>
-            </div>
-          )}
+      {/* Transaction Hash (if available) */}
+      {transactionHash && (
+        <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+          <p className="text-blue-300 text-sm font-medium mb-2">Transaction Hash:</p>
+          <code className="text-blue-200 text-xs break-all block bg-blue-500/10 p-2 rounded">
+            {transactionHash}
+          </code>
+          <a 
+            href={`https://explorer.movementnetwork.xyz/?network=bardock+testnet/txn/${transactionHash}`}
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="text-blue-400 hover:text-blue-300 text-sm underline mt-2 inline-block"
+          >
+            View on Movement Explorer →
+          </a>
         </div>
       )}
 
@@ -1128,12 +1122,6 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
           </button>
           
           {currentStep < 4 ? (
-            <div style={{
-              background: 'linear-gradient(45deg, #ffc30d, #b80af7)',
-              borderRadius: '13px',
-              padding: '2px',
-              display: 'inline-block',
-            }} className="order-1 sm:order-2">
             <button
               type="button"
               onClick={() => {
@@ -1142,19 +1130,30 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
                 }
               }}
               disabled={isSubmitting}
-                className="px-6 py-3 font-medium disabled:opacity-50"
-                style={{
-                  background: '#121212',
-                  borderRadius: '13px',
-                  border: 'none',
-                  color: 'inherit',
-                  width: '100%',
-                  height: '100%',
-                }}
+              className="px-6 py-3 font-medium disabled:opacity-50 order-1 sm:order-2"
+              style={{
+                background: '#1e1e20',
+                borderRadius: '12px',
+                border: 'none',
+                color: '#fff',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (!isSubmitting) {
+                  e.currentTarget.style.background = '#2a2a2c';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isSubmitting) {
+                  e.currentTarget.style.background = '#1e1e20';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }
+              }}
             >
               Continue
             </button>
-            </div>
           ) : (
             <div className="flex gap-3 order-1 sm:order-2">
               {/* Test button for debugging serialization */}
@@ -1168,35 +1167,40 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
               </button>
               
               {/* Main Create DAO button */}
-              <div style={{
-                background: 'linear-gradient(45deg, #ffc30d, #b80af7)',
-                borderRadius: '13px',
-                padding: '2px',
-                display: 'inline-block',
-              }}>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-8 py-3 font-medium disabled:opacity-50 flex items-center space-x-2"
-                  style={{
-                    background: '#121212',
-                    borderRadius: '13px',
-                    border: 'none',
-                    color: 'inherit',
-                    width: '100%',
-                    height: '100%',
-                  }}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>Creating DAO...</span>
-                    </>
-                  ) : (
-                    <span>Create DAO</span>
-                  )}
-                </button>
-              </div>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-8 py-3 font-medium disabled:opacity-50 flex items-center space-x-2"
+                style={{
+                  background: '#1e1e20',
+                  borderRadius: '12px',
+                  border: 'none',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSubmitting) {
+                    e.currentTarget.style.background = '#2a2a2c';
+                    e.currentTarget.style.transform = 'translateY(-1px)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSubmitting) {
+                    e.currentTarget.style.background = '#1e1e20';
+                    e.currentTarget.style.transform = 'translateY(0)';
+                  }
+                }}
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Creating DAO...</span>
+                  </>
+                ) : (
+                  <span>Create DAO</span>
+                )}
+              </button>
             </div>
           )}
         </div>

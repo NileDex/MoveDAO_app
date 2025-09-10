@@ -296,7 +296,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
             <div className="absolute left-0 right-0 top-0 h-32 sm:h-40 md:h-48 bg-gradient-to-r from-indigo-600/30 to-purple-600/30 pointer-events-none" />
           )}
           
-          <div className="relative z-10 max-w-7xl mx-auto px-6 py-6">
+          <div className="relative z-10 max-w-7xl 2xl:mx-auto px-6 no-px-override py-6">
             {/* Breadcrumb */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3 text-sm">
@@ -356,8 +356,8 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                 </div>
                 <div className="text-left w-full sm:max-w-xl">
                   <h1 className="text-3xl font-bold text-white mb-2">{dao.name}</h1>
-                  <p className="text-white text-lg max-w-xl mx-0">{dao.description}</p>
-                  <div className="flex flex-wrap justify-start items-center space-x-2 sm:space-x-4 mt-3 text-lg text-gray-400">
+                  <p className="text-white text-sm sm:text-base max-w-xl mx-0">{dao.description}</p>
+                  <div className="flex flex-wrap justify-start items-center space-x-2 sm:space-x-4 mt-3 text-sm sm:text-base text-gray-400">
                     <span>Established {dao.established}</span>
                     <span>|</span>
                     <span className="text-white">{dao.members} members</span>
@@ -380,9 +380,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
 
             {/* Navigation Tabs */}
             {/* Desktop Navigation - Hidden on Mobile */}
-            <nav className={`hidden md:flex flex-row mt-8 ${
-              sidebarCollapsed ? 'space-x-0.5' : 'space-x-0'
-            }`}>
+            <nav className={`hidden md:flex flex-row flex-wrap gap-2 mt-8`}>
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -390,14 +388,14 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id)}
-                    className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg font-medium justify-center ${
+                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-medium justify-center ${
                       isActive
                         ? 'bg-white/10 text-white shadow-lg'
                         : 'text-gray-400'
                     }`}
                   >
-                    <Icon className={`w-4 h-4 ${isActive ? tab.color : ''}`} />
-                    <span>{tab.label}</span>
+                    <Icon className={`w-3.5 h-3.5 ${isActive ? tab.color : ''}`} />
+                    <span className="text-xs">{tab.label}</span>
                   </button>
                 );
               })}
@@ -428,7 +426,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
         </div>
 
         {/* Content */}
-        <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="max-w-7xl 2xl:mx-auto px-6 py-8">
           {renderContent()}
         </div>
       </div>
@@ -436,7 +434,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
       {/* Right Test Panel - From Top */}
       <div
         className={`hidden md:block flex-shrink-0 border-l border-white/10 min-h-screen overflow-auto transition-all duration-300 ease-in-out ${
-          sidebarCollapsed ? 'md:w-72 lg:w-80 xl:w-[300px] 2xl:w-96' : 'md:w-64 lg:w-[300px] xl:w-[300px] 2xl:w-80'
+          sidebarCollapsed ? 'md:w-64 lg:w-72 xl:w-80 2xl:w-96' : 'md:w-56 lg:w-64 xl:w-72 2xl:w-80'
         }`}
         style={{ willChange: 'width' }}
       >
@@ -525,11 +523,15 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
             <div className="mb-4">
               <div className="text-3xl font-bold text-white mb-1">
                 {movePrice !== null 
-                  ? `$${(treasuryData.balance * movePrice).toLocaleString(undefined, {maximumFractionDigits: 0})}` 
-                  : `$${(treasuryData.balance * 1).toLocaleString(undefined, {maximumFractionDigits: 0})}`
+                  ? `$${(treasuryData.balance * movePrice).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` 
+                  : `$${(treasuryData.balance * 1).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
                 }
               </div>
               <div className="text-sm text-gray-400">Treasury Balance</div>
+              <div className="flex items-center gap-2 mt-1">
+                <span className={`w-2 h-2 rounded-full ${account ? 'bg-green-400' : 'bg-red-400'}`}></span>
+                <span className="text-xs text-gray-400">{account ? 'Wallet connected' : 'Wallet not connected'}</span>
+              </div>
             </div>
 
             {/* Top Holdings */}

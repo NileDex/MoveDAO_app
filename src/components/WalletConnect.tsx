@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Wallet, X, ChevronDown, ArrowLeft, User } from 'lucide-react';
+import { Wallet, X, ChevronDown, ArrowLeft, User, Moon, Sun } from 'lucide-react';
 import ReactDOM from 'react-dom';
 import { useWallet } from '@razorlabs/razorkit';
 import { useAlert } from './alert/AlertContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { truncateAddress } from '../utils/addressUtils';
 
 
@@ -141,8 +142,8 @@ const WalletModal = ({
         backdropFilter: 'blur(8px)'
       }}>
         <div className="modal-container" style={{
-          background: 'linear-gradient(135deg, rgba(25, 25, 28, 0.95) 0%, rgba(35, 35, 38, 0.9) 100%)',
-          color: '#fff', 
+          background: 'var(--card-bg)',
+          color: 'var(--text)', 
           borderRadius: 20, 
           minWidth: 360, 
           maxWidth: 400, 
@@ -151,7 +152,7 @@ const WalletModal = ({
           display: 'flex', 
           flexDirection: 'column', 
           alignItems: 'center',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          border: '1px solid var(--border)',
           backdropFilter: 'blur(20px)'
         }}>
           {/* Back button (top left) */}
@@ -172,7 +173,7 @@ const WalletModal = ({
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: '#fff',
+              color: 'var(--text)',
               opacity: 0.7,
               transition: 'opacity 0.2s'
             }}
@@ -192,7 +193,7 @@ const WalletModal = ({
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: '#fff',
+              color: 'var(--text)',
               opacity: 0.7,
               transition: 'opacity 0.2s'
             }}
@@ -254,7 +255,7 @@ const WalletModal = ({
               <h3 style={{ 
                 fontSize: 24, 
                 fontWeight: 600, 
-                color: '#fff', 
+                color: 'var(--text)', 
                 margin: '0 0 8px 0',
                 letterSpacing: '-0.02em'
               }}>
@@ -262,7 +263,7 @@ const WalletModal = ({
               </h3>
               <p style={{ 
                 fontSize: 16, 
-                color: '#b0b0b0', 
+                color: 'var(--text-dim)', 
                 margin: 0,
                 lineHeight: 1.4
               }}>
@@ -296,7 +297,7 @@ const WalletModal = ({
                     ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
                     : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
                   border: 'none',
-                  color: '#fff',
+                  color: 'var(--text)',
                   padding: '14px 32px',
                   borderRadius: 12,
                   fontSize: 16,
@@ -341,8 +342,8 @@ const WalletModal = ({
       backdropFilter: 'blur(8px)'
     }}>
               <div className="modal-container" style={{
-          background: 'linear-gradient(135deg, rgba(25, 25, 28, 0.95) 0%, rgba(35, 35, 38, 0.9) 100%)',
-          color: '#fff', 
+          background: 'var(--card-bg)',
+          color: 'var(--text)', 
           borderRadius: 20, 
           minWidth: 360, 
           maxWidth: 420, 
@@ -350,7 +351,7 @@ const WalletModal = ({
           padding: '24px 20px', 
           display: 'flex', 
           flexDirection: 'column',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          border: '1px solid var(--border)',
           backdropFilter: 'blur(20px)'
         }}>
         <div className="modal-header" style={{
@@ -363,7 +364,7 @@ const WalletModal = ({
           <h3 style={{
             fontSize: 24, 
             fontWeight: 600, 
-            color: '#fff',
+            color: 'var(--text)',
             margin: 0,
             letterSpacing: '-0.02em'
           }}>
@@ -375,7 +376,7 @@ const WalletModal = ({
               background: 'none',
               border: 'none',
               cursor: 'pointer',
-              color: '#fff',
+              color: 'var(--text)',
               opacity: 0.7,
               transition: 'opacity 0.2s'
             }}
@@ -453,7 +454,7 @@ const WalletModal = ({
                       <div>
                         <span style={{ 
                           fontWeight: 600, 
-                          color: '#fff',
+                          color: 'var(--text)',
                           fontSize: 16,
                           display: 'block'
                         }}>
@@ -461,7 +462,7 @@ const WalletModal = ({
                         </span>
                         <span style={{
                           fontSize: 14,
-                          color: '#b0b0b0',
+                          color: 'var(--text-dim)',
                           display: 'block'
                         }}>
                           {isWalletReady ? 'Ready to connect' : 'Installation required'}
@@ -476,7 +477,7 @@ const WalletModal = ({
                       background: isWalletReady 
                         ? 'transparent'
                         : '#f59e0b',
-                      color: '#fff',
+                      color: 'var(--text)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.5px'
                     }}>
@@ -536,36 +537,23 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
   const [modalKey, setModalKey] = useState(0);
   const { showAlert } = useAlert();
 
-  // Button style with gradient border
+  // Button style with theme variables
   const buttonStyle = {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
-    padding: '2px',
+    padding: '8px 16px',
     border: 'none',
-    background: 'linear-gradient(45deg, #ffc30d, #b80af7)',
-    borderRadius: '16px',
-    height: 36,
-    minWidth: 0,
+    background: 'var(--card-bg)',
+    borderRadius: '12px',
+    height: 'auto',
+    minWidth: 120,
     cursor: 'pointer',
     fontWeight: 600,
     fontSize: 14,
-    color: '#fff',
+    color: 'var(--text)',
     overflow: 'hidden',
-    maxWidth: 180,
-  };
-  // Inner content style
-  const innerStyle = {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    background: '#121212',
-    borderRadius: '14px',
-    padding: '0 10px',
-    height: 32,
-    minWidth: 0,
-    overflow: 'hidden',
-    width: '100%',
+    transition: 'all 0.2s ease',
   };
   // Get icon for connected wallet
   const getWalletIcon = () => {
@@ -644,50 +632,86 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
   }, []);
   // Use utility function for address truncation
 
+  const { theme, cycleTheme } = useTheme();
+
   // Render button and modal
   return (
-    <div style={{ position: 'relative', display: 'inline-block' }}>
+    <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+      {/* Theme toggle button in front of Connect */}
+      <button
+        aria-label="Toggle theme"
+        title={theme === 'dark' ? 'Switch to Light mode' : 'Switch to Dark mode'}
+        style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '8px', border: 'none', 
+          background: 'var(--card-bg)', 
+          borderRadius: 12, 
+          color: 'var(--text)', 
+          cursor: 'pointer', 
+          fontWeight: 600,
+          transition: 'all 0.2s ease',
+          width: 36,
+          height: 36
+        }}
+        onClick={cycleTheme}
+        onMouseEnter={(e) => { 
+          e.currentTarget.style.background = theme === 'dark' ? '#2a2a2c' : 'rgba(0,0,0,0.1)'; 
+          e.currentTarget.style.transform = 'translateY(-1px)'; 
+        }}
+        onMouseLeave={(e) => { 
+          e.currentTarget.style.background = 'var(--card-bg)'; 
+          e.currentTarget.style.transform = 'translateY(0)'; 
+        }}
+      >
+        {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+      </button>
+      <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
       <button
         className="header-wallet-btn"
-        style={buttonStyle}
+        style={{
+          ...buttonStyle,
+        }}
         onClick={handleButtonClick}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = theme === 'dark' ? '#2a2a2c' : 'rgba(0,0,0,0.1)';
+          e.currentTarget.style.transform = 'translateY(-1px)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = 'var(--card-bg)';
+          e.currentTarget.style.transform = 'translateY(0)';
+        }}
         tabIndex={0}
       >
-        <div style={innerStyle}>
-          {connected && account ? (
-            <>
-              {getWalletIcon()}
-              <span style={{
-                fontFamily: 'monospace',
-                fontSize: 13,
-                color: '#fff',
-                background: 'none',
-                borderRadius: 6,
-                padding: '1px 6px',
-                fontWeight: 600,
-                letterSpacing: 1,
-                minWidth: 0,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}>{truncateAddress(account.address)}</span>
-              <ChevronDown 
-                size={16} 
-                style={{
-                  marginLeft: 4,
-                  color: '#fff',
-                  transition: 'transform 0.2s',
-                  transform: showDropdown ? 'rotate(180deg)' : 'rotate(0deg)'
-                }}
-              />
-            </>
-          ) : (
-            <>
-              <Wallet className="w-4 h-4" />
-              <span>Connect Wallet</span>
-            </>
-          )}
-        </div>
+        {connected && account ? (
+          <>
+            {getWalletIcon()}
+            <span style={{
+              fontFamily: 'monospace',
+              fontSize: 13,
+              color: 'var(--text)',
+              fontWeight: 600,
+              letterSpacing: 1,
+              minWidth: 0,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}>{truncateAddress(account.address)}</span>
+            <ChevronDown 
+              size={16} 
+              style={{
+                marginLeft: 4,
+                color: 'var(--text)',
+                transition: 'transform 0.2s',
+                transform: showDropdown ? 'rotate(180deg)' : 'rotate(0deg)'
+              }}
+            />
+          </>
+        ) : (
+          <>
+            <Wallet className="w-4 h-4" />
+            <span>Connect</span>
+          </>
+        )}
       </button>
       {typeof window !== 'undefined' && ReactDOM.createPortal(
         <WalletModal
@@ -708,8 +732,8 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
               top: '100%',
               right: 0,
               marginTop: 4,
-              background: 'linear-gradient(135deg, rgba(25, 25, 28, 0.95) 0%, rgba(35, 35, 38, 0.9) 100%)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
+              background: 'var(--card-bg)',
+              border: '1px solid var(--border)',
               borderRadius: 12,
               padding: 8,
               minWidth: 160,
@@ -731,7 +755,7 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
                 padding: '8px 12px',
                 background: 'none',
                 border: 'none',
-                color: '#fff',
+                color: 'var(--text)',
                 fontSize: 14,
                 cursor: 'pointer',
                 borderRadius: 8,
@@ -758,7 +782,7 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
                 padding: '8px 12px',
                 background: 'none',
                 border: 'none',
-                color: '#fff',
+                color: 'var(--text)',
                 fontSize: 14,
                 cursor: 'pointer',
                 borderRadius: 8,
@@ -777,6 +801,7 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
           </div>
         )}
       </div>
+    </div>
   );
 };
 

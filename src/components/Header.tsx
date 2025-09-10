@@ -4,6 +4,7 @@ import './styles/Header.css';
 import '@razorlabs/razorkit/style.css';
 import WalletConnectButton from './WalletConnect';
 import mainLogo from '../assets/mainlogo.png';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface HeaderProps {
   onMenuClick?: () => void;
@@ -11,6 +12,8 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onMenuClick, onProfileClick }) => {
+  const { theme } = useTheme();
+  
   return (
     <header className="header">
       <div className="header-inner">

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useWallet } from '@razorlabs/razorkit';
 import { aptosClient } from '../movement_service/movement-client';
+import { safeView } from '../utils/rpcUtils';
 import { MODULE_ADDRESS } from '../movement_service/constants';
 
 interface TreasuryData {
@@ -225,37 +226,11 @@ export const useTreasury = (daoId: string) => {
 
     try {
       setTreasuryData(prev => ({ ...prev, isLoading: true, error: null }));
-
-      // Try to get treasury object address first
-      console.log('Fetching treasury object for DAO:', daoId);
-      let treasuryObjectRes = { status: 'rejected' as const, value: null };
-      try {
-        const objectResult = await aptosClient.view({
-          payload: {
-            function: `${MODULE_ADDRESS}::dao_core_file::get_treasury_object`,
-            functionArguments: [daoId]
-          }
-        });
-        console.log('Treasury object fetch result:', objectResult);
-        treasuryObjectRes = { status: 'fulfilled' as const, value: objectResult };
-      } catch (error) {
-        console.log('Treasury object fetch failed:', error);
-      }
-
-      // Try legacy balance as fallback
-      let legacyBalanceRes = { status: 'rejected' as const, value: null };
-      try {
-        const balanceResult = await aptosClient.view({
-          payload: {
-            function: `${MODULE_ADDRESS}::treasury::get_balance`,
-            functionArguments: [daoId]
-          }
-        });
-        console.log('Legacy balance fetch result:', balanceResult);
-        legacyBalanceRes = { status: 'fulfilled' as const, value: balanceResult };
-      } catch (error) {
-        console.log('Legacy balance fetch failed:', error);
-      }
+      // Fire object lookup and legacy balance in parallel for fastest first paint
+      const [treasuryObjectRes, legacyBalanceRes] = await Promise.allSettled([
+        safeView({ function: `${MODULE_ADDRESS}::dao_core_file::get_treasury_object`, functionArguments: [daoId] }, `treasury_obj_${daoId}`),
+        safeView({ function: `${MODULE_ADDRESS}::treasury::get_balance`, functionArguments: [daoId] }, `treasury_legacy_${daoId}`),
+      ]);
 
       let balance = 0;
       let treasuryObject: any = null;
@@ -264,9 +239,22 @@ export const useTreasury = (daoId: string) => {
       let dailyWithdrawn = 0;
       let allowsPublicDeposits = false;
       
+      // If legacy balance is available, paint it immediately for faster UI feedback
+      if (legacyBalanceRes.status === 'fulfilled') {
+        const quickBalance = Number((legacyBalanceRes as any).value?.[0] || 0) / 1e8;
+        if (quickBalance !== undefined) {
+          setTreasuryData(prev => ({
+            ...prev,
+            balance: quickBalance,
+            isLoading: false,
+            error: null,
+          }));
+        }
+      }
+
       // Use treasury object if available
-      if (treasuryObjectRes.status === 'fulfilled' && treasuryObjectRes.value) {
-        const rawObj = (treasuryObjectRes.value as any)?.[0];
+      if (treasuryObjectRes.status === 'fulfilled' && (treasuryObjectRes as any).value) {
+        const rawObj = ((treasuryObjectRes as any).value as any)?.[0];
         console.log('Raw treasury object:', rawObj);
         // Store the raw object for Move function calls, but extract address for view calls
         treasuryObject = rawObj;
@@ -274,12 +262,7 @@ export const useTreasury = (daoId: string) => {
         console.log('Extracted treasury object address:', objectAddress);
         try {
           // Prefer full info when object is known
-          const infoRes = await aptosClient.view({
-            payload: {
-              function: `${MODULE_ADDRESS}::treasury::get_treasury_info`,
-              functionArguments: [objectAddress]
-            }
-          });
+          const infoRes = await safeView({ function: `${MODULE_ADDRESS}::treasury::get_treasury_info`, functionArguments: [objectAddress] }, `treasury_info_${objectAddress}`);
           if (Array.isArray(infoRes) && infoRes.length >= 6) {
             balance = Number(infoRes[0] || 0) / 1e8;
             dailyWithdrawalLimit = Number(infoRes[1] || 0) / 1e8;
@@ -288,12 +271,7 @@ export const useTreasury = (daoId: string) => {
             allowsPublicDeposits = Boolean(infoRes[5]);
           } else {
             // Fallback to balance-only view if needed
-            const balanceResult = await aptosClient.view({
-              payload: {
-                function: `${MODULE_ADDRESS}::treasury::get_balance_from_object`,
-                functionArguments: [treasuryObject]
-              }
-            });
+            const balanceResult = await safeView({ function: `${MODULE_ADDRESS}::treasury::get_balance_from_object`, functionArguments: [treasuryObject] }, `treasury_obj_balance_${daoId}`);
             balance = Number(balanceResult[0] || 0) / 1e8;
           }
         } catch (error) {
@@ -303,7 +281,8 @@ export const useTreasury = (daoId: string) => {
       
       // Use legacy balance if object approach failed or unavailable
       if (balance === 0 && legacyBalanceRes.status === 'fulfilled') {
-        balance = Number(legacyBalanceRes.value[0] || 0) / 1e8;
+        // @ts-ignore
+        balance = Number((legacyBalanceRes as any).value?.[0] || 0) / 1e8;
       }
 
       // Fallbacks if object path unavailable
@@ -325,7 +304,7 @@ export const useTreasury = (daoId: string) => {
         allowsPublicDeposits
       };
       console.log('Setting treasury data with object:', newTreasuryData.treasuryObject);
-      setTreasuryData(newTreasuryData);
+      setTreasuryData(prev => ({ ...prev, ...newTreasuryData }));
 
     } catch (error: any) {
       console.warn('Treasury data fetch failed, using defaults:', error.message);

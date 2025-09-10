@@ -13,6 +13,7 @@ import { MODULE_ADDRESS } from '../../movement_service/constants';
 import { useDAOMembership, useDAOPortfolio } from '../../hooks/useDAOMembership';
 import { BalanceService } from '../../useServices/useBalance';
 import { useWalletBalance } from '../../hooks/useWalletBalance';
+import { useAlert } from '../alert/AlertContext';
 
 interface DAOStakingProps {
   dao: DAO;
@@ -28,6 +29,7 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
   const [showStakeForm, setShowStakeForm] = useState(false);
   const [showUnstakeForm, setShowUnstakeForm] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const { showAlert } = useAlert();
   const [rewardsState, setRewardsState] = useState({ totalClaimable: 0, totalClaimed: 0, lastDistribution: '' });
   const [stakingReady, setStakingReady] = useState(true);
   const [totalStakedInDAO, setTotalStakedInDAO] = useState(0);
@@ -390,6 +392,9 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
       setShowStakeForm(false);
       setStakeAmount('');
       
+      // Show success alert
+      showAlert(`✅ Successfully staked ${stakeAmountNumber.toFixed(2)} MOVE in ${dao.name}!`, 'success');
+      
       // Refresh to get accurate on-chain state
       await Promise.all([
         refreshOnChain(),
@@ -469,6 +474,9 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
       setShowUnstakeForm(false);
       setUnstakeAmount('');
       
+      // Show success alert
+      showAlert(`✅ Successfully unstaked ${unstakeAmountNumber.toFixed(2)} MOVE from ${dao.name}!`, 'success');
+      
       // Refresh to get accurate on-chain state
       await Promise.all([
         refreshOnChain(),
@@ -506,6 +514,7 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
         await aptosClient.waitForTransaction({ transactionHash: (tx as any).hash, options: { checkSuccess: true } });
       }
       await refreshOnChain();
+      showAlert('✅ Rewards claimed successfully!', 'success');
       
     } catch (error) {
       console.error('Claiming rewards failed:', error);

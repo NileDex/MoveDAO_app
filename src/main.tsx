@@ -6,15 +6,18 @@ import { WalletProvider, RazorWallet } from '@razorlabs/razorkit';
 import '@razorlabs/razorkit/style.css';
 import { AlertProvider } from './components/alert/AlertContext';
 import { DAOStateProvider } from './contexts/DAOStateContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AlertProvider>
-      <WalletProvider defaultWallets={[RazorWallet]} autoConnect={false}>
-        <DAOStateProvider>
-          <App />
-        </DAOStateProvider>
-      </WalletProvider>
+      <ThemeProvider>
+        <WalletProvider defaultWallets={[RazorWallet]} autoConnect={false}>
+          <DAOStateProvider>
+            <App />
+          </DAOStateProvider>
+        </WalletProvider>
+      </ThemeProvider>
     </AlertProvider>
   </StrictMode>
 );

@@ -197,46 +197,20 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
       
       {/* About Section */}
       <div className="space-y-6">
-        <h2 className="text-2xl font-bold text-white flex items-center space-x-3">
-          <Info className="w-6 h-6 text-blue-400" />
+        <h2 className="text-base sm:text-lg md:text-lg lg:text-xl xl:text-xl 2xl:text-xl font-bold text-white flex items-center space-x-3">
+          <Info className="w-5 h-5 text-blue-400 ml-4" />
           <span>About {dao.name}</span>
         </h2>
         
-        {/* Key Stats */}
-        <div className="grid grid-cols-2 gap-6">
-          <div className="text-center md:text-left">
-            <div className="flex flex-col space-y-1">
-              <span className="text-sm font-medium text-gray-400">Treasury Balance</span>
-              <div className="flex items-center justify-center md:justify-start space-x-2">
-                {isLoadingTreasury ? (
-                  <span className="text-xl font-bold text-white">Loading...</span>
-                ) : (
-                  <>
-                    <span className="text-xl font-bold text-white font-mono">{treasuryBalance}</span>
-                    <img 
-                      src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27" 
-                      alt="MOVE"
-                      className="w-6 h-6"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.classList.remove('hidden');
-                      }}
-                    />
-                    <span className="text-xl font-bold text-white font-mono hidden">MOVE</span>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <div className="text-center md:text-left">
+        {/* Key Stats (Admin only – Treasury removed) */}
+        <div className="grid grid-cols-1 gap-6">
+          <div className="text-left pl-12 sm:pl-0">
             <div className="flex flex-col space-y-2">
               <span className="text-sm font-medium text-gray-400">Admin</span>
               {isLoadingAdmin || adminProfileLoading ? (
                 <span className="text-sm text-gray-300">Loading...</span>
               ) : adminProfile ? (
-                <div className="flex items-center justify-center md:justify-start space-x-3">
+                <div className="flex items-center justify-start space-x-3">
                   {adminProfile.avatarUrl ? (
                     <img 
                       src={adminProfile.avatarUrl} 

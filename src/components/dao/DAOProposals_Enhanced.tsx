@@ -274,7 +274,7 @@ const DAOProposalsEnhanced: React.FC<DAOProposalsProps> = ({ dao }) => {
           <p className="text-gray-400">Participate in {dao?.name || 'DAO'} decision-making</p>
         </div>
         <div style={{
-          background: 'linear-gradient(45deg, #ffc30d, #b80af7)',
+          background: '#1e1e20',
           borderRadius: '13px',
           padding: '2px',
           display: 'inline-block',
@@ -488,7 +488,7 @@ const DAOProposalsEnhanced: React.FC<DAOProposalsProps> = ({ dao }) => {
             
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <div style={{
-                background: 'linear-gradient(45deg, #ffc30d, #b80af7)',
+                background: '#1e1e20',
                 borderRadius: '13px',
                 padding: '2px',
                 display: 'inline-block',

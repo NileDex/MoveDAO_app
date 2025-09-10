@@ -75,7 +75,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f11] flex flex-col">
+    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--bg)' }}>
       {/* Header: always at the top */}
       <Header
         currentDAO={selectedDAO?.name}

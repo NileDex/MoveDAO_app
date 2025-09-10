@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Shield, Users, Clock, Plus, Trash2, Settings, AlertTriangle, XCircle, UserCheck, Crown, UserMinus, UserPlus, DollarSign, Edit, RefreshCw } from 'lucide-react';
 import { FaCheckCircle } from 'react-icons/fa';
 import { useWallet } from '@razorlabs/razorkit';
+import { useAlert } from '../alert/AlertContext';
 import { aptosClient } from '../../movement_service/movement-client';
 import { MODULE_ADDRESS } from '../../movement_service/constants';
 import { safeView } from '../../utils/rpcUtils';
@@ -54,6 +55,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
   const [newMinStake, setNewMinStake] = useState<string>('');
   const [newMinProposalStake, setNewMinProposalStake] = useState<string>('');
   const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const { showAlert } = useAlert();
 
   const { account, signAndSubmitTransaction } = useWallet();
   // Membership and staking use 6 decimals (1e6), not 8 decimals (1e8) like Aptos coins
@@ -182,8 +184,8 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
                       knownMembers.push({
                         address: memberAddress,
                         addedAt: `Initial Council Member #${index + 1}`,
-            status: 'active'
-          });
+                        status: 'active'
+                      });
                     }
                   });
                 } else {
@@ -261,136 +263,162 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
 
   const fetchAdminData = async () => {
     if (!dao?.id) return;
-    
     try {
       setIsRefreshingAdmins(true);
       
-      // Determine current user's admin status and role using is_admin function
+      // First check if admin system is initialized
+      const adminListExistsRes = await safeView({
+        function: `${MODULE_ADDRESS}::admin::exists_admin_list`,
+        functionArguments: [dao.id]
+      });
+      
+      const adminListExists = adminListExistsRes?.[0] || false;
+      
+      if (!adminListExists) {
+        // Admin system should be automatically initialized during DAO creation
+        // If it's missing, this might be an older DAO or there was an issue during creation
+        console.log('Admin system not initialized for DAO:', dao.id);
+        console.warn('⚠️ Admin system missing - this should be automatically initialized during DAO creation');
+        
+        // Check if user is DAO creator - they should have automatic admin access
+        const creator = await getDaoCreatorFromEvents(dao.id) || '';
+        if (creator.toLowerCase() === account?.address?.toLowerCase()) {
+          // DAO creator should automatically be admin, but system isn't initialized
+          // This suggests the DAO was created with an older contract version
+          console.log('🔧 DAO creator detected - admin system needs manual initialization');
+          
+          const shouldInitialize = confirm(
+            'This DAO was created before automatic admin initialization was implemented. Would you like to initialize the admin system now? (This will make you the first admin)'
+          );
+          if (shouldInitialize && signAndSubmitTransaction) {
+            try {
+              const payload = {
+                function: `${MODULE_ADDRESS}::admin::init_admin`,
+                typeArguments: [],
+                functionArguments: ['1'], // min_super_admins = 1
+              };
+              const tx = await signAndSubmitTransaction({ payload } as any);
+              if (tx && (tx as any).hash) {
+                await aptosClient.waitForTransaction({ 
+                  transactionHash: (tx as any).hash, 
+                  options: { checkSuccess: true } 
+                });
+                showAlert('✅ Admin system initialized successfully! You are now the first admin of this DAO.', 'success');
+                // Retry fetching admin data
+                return fetchAdminData();
+              }
+            } catch (error) {
+              console.error('Failed to initialize admin system:', error);
+              showAlert('❌ Failed to initialize admin system: ' + (error as any).message, 'error');
+            }
+          } else {
+            // User declined to initialize
+            setAdmins([]);
+            setIsAdmin(false);
+            setCurrentRole('none');
+            return;
+          }
+        } else {
+          // User is not creator and admin system isn't initialized
+          console.log('❌ Not DAO creator and admin system not initialized');
+          setAdmins([]);
+          setIsAdmin(false);
+          setCurrentRole('none');
+          return;
+        }
+      }
+      
+      // Determine current user's admin status and role
       if (account?.address) {
         try {
-          // Use is_admin function first (same as treasury)
-          const adminResult = await safeView({
-            function: `${MODULE_ADDRESS}::admin::is_admin`,
-            functionArguments: [dao.id, account?.address]
-          }, `is_admin_debug_${dao.id}_${account?.address}`);
+          const [isAdmRes, roleRes] = await Promise.allSettled([
+            aptosClient.view({ payload: { function: `${MODULE_ADDRESS}::admin::is_admin`, functionArguments: [dao.id, account.address] } }),
+            aptosClient.view({ payload: { function: `${MODULE_ADDRESS}::admin::get_admin_role`, functionArguments: [dao.id, account.address] } })
+          ]);
+          let adminNow = isAdmRes.status === 'fulfilled' ? Boolean(isAdmRes.value?.[0]) : false;
           
-          console.log('Admin check result:', adminResult);
-          
-          let adminNow = Boolean(adminResult?.[0]);
-          let adminRole: 'super' | 'standard' | 'temporary' = 'standard';
-          
-          if (adminNow) {
-            // Get role if user is admin
-            try {
-              const roleResult = await safeView({
-                function: `${MODULE_ADDRESS}::admin::get_admin_role`,
-                functionArguments: [dao.id, account.address]
-              }, `get_role_debug_${dao.id}_${account?.address}`);
-              
-              if (roleResult?.[0] !== undefined) {
-                adminRole = mapRole(Number(roleResult[0]));
-              }
-            } catch (roleError) {
-              console.warn('Failed to get admin role:', roleError);
-              // Default to standard role if role fetch fails but is_admin succeeds
-            }
-      } else {
-            // Fallback: Check if user is DAO creator (should have admin privileges)
-            try {
-              const creator = await getDaoCreatorFromEvents(dao.id) || '';
-              if (creator.toLowerCase() === account.address.toLowerCase()) {
-                adminNow = true;
-                adminRole = 'super';
-                console.log('Admin access granted: User is DAO creator');
-              }
-            } catch (creatorError) {
-              console.warn('Failed to check DAO creator status:', creatorError);
+          // Fallback: Check if user is DAO creator (should have admin privileges)
+          if (!adminNow) {
+            const creator = await getDaoCreatorFromEvents(dao.id) || '';
+            if (creator.toLowerCase() === account.address.toLowerCase()) {
+              adminNow = true;
+              console.log('Admin access granted: User is DAO creator');
             }
           }
           
           setIsAdmin(adminNow);
-          setCurrentRole(adminNow ? adminRole : 'none');
-          
+          if (adminNow && roleRes.status === 'fulfilled') {
+            setCurrentRole(mapRole(Number(roleRes.value?.[0] || ROLE_SUPER_ADMIN)));
+          } else if (adminNow) {
+            // DAO creator gets super admin role by default
+            setCurrentRole('super');
+          } else {
+            setCurrentRole('none');
+          }
         } catch (error) {
-          console.warn('Admin detection failed:', error);
-          setIsAdmin(false);
-          setCurrentRole('none');
+          console.warn('Admin detection failed, checking creator fallback:', error);
+          // Even if admin check fails, try DAO creator as fallback
+          try {
+            const creator = await getDaoCreatorFromEvents(dao.id) || '';
+            if (creator.toLowerCase() === account.address.toLowerCase()) {
+              setIsAdmin(true);
+              setCurrentRole('super');
+              console.log('Admin access granted via fallback: User is DAO creator');
+            } else {
+              setIsAdmin(false);
+              setCurrentRole('none');
+            }
+          } catch {
+            setIsAdmin(false);
+            setCurrentRole('none');
+          }
         }
       } else {
         setIsAdmin(false);
         setCurrentRole('none');
       }
 
-      // Fetch admin list (only if admin system exists)
-      try {
-        const addrRes = await safeView({
-          function: `${MODULE_ADDRESS}::admin::get_admins`,
-        functionArguments: [dao.id]
-        }, `get_admins_debug_${dao.id}`);
-        
-        const addrs: string[] = Array.isArray(addrRes?.[0]) ? addrRes[0] : [];
-        console.log('Admin addresses from contract:', addrs);
+      // Fetch admin list
+      const addrRes = await aptosClient.view({
+        payload: { function: `${MODULE_ADDRESS}::admin::get_admins`, functionArguments: [dao.id] },
+      });
+      const addrs: string[] = Array.isArray(addrRes?.[0]) ? addrRes[0] : (addrRes as any) || [];
 
-        const collected: Admin[] = [];
-        
-        // Process admins sequentially to avoid circuit breaker
-        for (let i = 0; i < addrs.length; i++) {
-          const addr = addrs[i];
+      const collected: Admin[] = [];
+      const batchSize = 8;
+      for (let i = 0; i < addrs.length; i += batchSize) {
+        const slice = addrs.slice(i, i + batchSize);
+        const batch = slice.map(async (a) => {
           try {
-            // Add delay between requests to avoid circuit breaker
-            if (i > 0) {
-              await new Promise(resolve => setTimeout(resolve, 100));
-            }
-            
-            const [roleResult, activeResult] = await Promise.allSettled([
-              safeView({
-                function: `${MODULE_ADDRESS}::admin::get_admin_role`,
-                functionArguments: [dao.id, addr]
-              }, `admin_role_${dao.id}_${addr}_${i}`),
-              safeView({
-                function: `${MODULE_ADDRESS}::admin::is_admin`,
-                functionArguments: [dao.id, addr]  
-              }, `admin_active_${dao.id}_${addr}_${i}`)
+            const [roleR, activeR] = await Promise.allSettled([
+              aptosClient.view({ payload: { function: `${MODULE_ADDRESS}::admin::get_admin_role`, functionArguments: [dao.id, a] } }),
+              aptosClient.view({ payload: { function: `${MODULE_ADDRESS}::admin::is_admin`, functionArguments: [dao.id, a] } }),
             ]);
-            
-            const roleNum = roleResult.status === 'fulfilled' ? Number(roleResult.value?.[0] || ROLE_STANDARD) : ROLE_STANDARD;
+            const roleNum = roleR.status === 'fulfilled' ? Number(roleR.value?.[0] || ROLE_STANDARD) : ROLE_STANDARD;
             const role = mapRole(roleNum);
-            const active = activeResult.status === 'fulfilled' ? Boolean(activeResult.value?.[0]) : true;
-            
+            const active = activeR.status === 'fulfilled' ? Boolean(activeR.value?.[0]) : true;
             const entry: Admin = {
-              address: addr,
+              address: a,
               role,
-              addedAt: new Date().toLocaleDateString(),
-              expiresAt: role === 'temporary' ? 'Varies' : undefined,
+              addedAt: new Date().toLocaleDateString(), // Set current date as fallback
+              expiresAt: role === 'temporary' ? 'Varies' : undefined, // Temporary roles have expiration
               status: active ? 'active' : 'expired',
             };
             collected.push(entry);
-          } catch (adminError) {
-            console.warn(`Failed to fetch data for admin ${addr}:`, adminError);
-          }
-        }
-
-        setAdmins(collected);
-      } catch (adminsError) {
-        console.warn('Failed to fetch admin list:', adminsError);
-        setAdmins([]);
+          } catch {}
+        });
+        await Promise.allSettled(batch);
       }
-      
-    } catch (error) {
-      console.error('Failed to fetch admin data:', error);
+
+      setAdmins(collected);
     } finally {
       setIsRefreshingAdmins(false);
     }
   };
 
   useEffect(() => {
-    const fetchData = async () => {
-      await fetchAdminData();
-      await new Promise(resolve => setTimeout(resolve, 500)); // Debounce between calls
-      await fetchCouncilData();
-    };
-    
-    fetchData();
+    fetchAdminData();
+    fetchCouncilData();
   }, [dao.id, account?.address]);
 
   const sections = [
@@ -414,7 +442,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
       if (!account || !signAndSubmitTransaction) throw new Error('Wallet not connected');
       const addr = newAdminForm.address.trim();
       if (!addr.startsWith('0x') || addr.length < 6) {
-        alert('Enter a valid admin address');
+        showAlert('Enter a valid admin address', 'error');
         return;
       }
       const roleNum = newAdminForm.role === 'super' ? ROLE_SUPER_ADMIN : newAdminForm.role === 'temporary' ? ROLE_TEMPORARY : ROLE_STANDARD;
@@ -431,7 +459,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
     setShowAddAdmin(false);
     setNewAdminForm({ address: '', role: 'standard', expiresInDays: 0 });
       await fetchAdminData();
-      alert('Admin added');
+      showAlert('Admin added', 'success');
     } catch (e: any) {
       console.error('Add admin failed:', e);
       let errorMessage = 'Failed to add admin.';
@@ -449,7 +477,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         }
       }
       
-      alert(errorMessage);
+      showAlert(errorMessage, 'error');
     }
   };
 
@@ -466,7 +494,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         await aptosClient.waitForTransaction({ transactionHash: (tx as any).hash, options: { checkSuccess: true } });
       }
       await fetchAdminData();
-      alert('Admin removed');
+      showAlert('Admin removed', 'success');
     } catch (e: any) {
       console.error('Remove admin failed:', e);
       let errorMessage = 'Failed to remove admin.';
@@ -484,7 +512,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         }
       }
       
-      alert(errorMessage);
+      showAlert(errorMessage, 'error');
     }
   };
 
@@ -527,17 +555,17 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         }
       } catch (e) {
         console.log('Failed to get council object:', e);
-        alert('Council system is not initialized for this DAO. An admin needs to call init_council() first.');
+        showAlert('Council system is not initialized for this DAO. An admin needs to call init_council() first.', 'error');
         return;
       }
-      } catch (error) {
+    } catch (error) {
       console.log('Debug failed:', error);
     }
   };
 
   const handleAddCouncilMember = async () => {
     if (!account || !signAndSubmitTransaction) {
-      alert('Please connect your wallet first');
+      showAlert('Please connect your wallet first', 'error');
       return;
     }
 
@@ -693,13 +721,13 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         }
       }
       
-      alert(errorMessage);
+      showAlert(errorMessage, 'error');
     }
   };
 
   const handleRemoveCouncilMember = async (memberAddress: string) => {
     if (!account || !signAndSubmitTransaction) {
-      alert('Please connect your wallet first');
+      showAlert('Please connect your wallet first', 'error');
       return;
     }
 
@@ -768,7 +796,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         }
       }
       
-      alert(errorMessage);
+      showAlert(errorMessage, 'error');
     }
   };
 
@@ -862,15 +890,15 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
       }
       if (raw > 10000) {
         setErrors({ ...errors, minStake: 'Maximum stake cannot exceed 10,000 MOVE' });
-      return;
-    }
-
+        return;
+      }
+      
       const amountOctas = fromMOVE(raw);
       if (amountOctas === 0) {
         setErrors({ ...errors, minStake: 'Amount too small' });
-      return;
-    }
-
+        return;
+      }
+      
       const payload = {
         function: `${MODULE_ADDRESS}::membership::update_min_stake`,
         typeArguments: [],
@@ -1044,7 +1072,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         }
       }
       
-      alert(errorMessage);
+      showAlert(errorMessage, 'error');
     }
   };
 
@@ -1056,7 +1084,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
   const renderOverview = () => {
     // Check if admin system is initialized
     if (admins.length === 0 && !isAdmin) {
-    return (
+      return (
         <div className="space-y-6">
           <div className="professional-card rounded-xl p-6 text-center">
             <div className="w-16 h-16 bg-yellow-500/20 rounded-xl flex items-center justify-center mx-auto mb-4">
@@ -1076,11 +1104,11 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
               </button>
             )}
           </div>
-      </div>
-    );
-  }
+        </div>
+      );
+    }
 
-  return (
+    return (
     <div className="space-y-6">
       {/* Admin Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1341,14 +1369,14 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
           <p className="text-sm text-gray-400">Manage trusted DAO members with special governance roles</p>
         </div>
         <div className="flex space-x-2">
-              <button
+          <button
             onClick={debugCouncilSystem}
             className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-xl transition-all flex items-center space-x-2"
           >
             <AlertTriangle className="w-4 h-4" />
             <span>Debug</span>
-              </button>
-                <button
+          </button>
+          <button
             onClick={() => setShowAddCouncilMember(true)}
             className="flex items-center justify-center space-x-2 w-full sm:w-auto"
             style={{
@@ -1357,8 +1385,8 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
               gap: '8px',
               padding: '2px',
               border: 'none',
-              background: 'linear-gradient(45deg, #ffc30d, #b80af7)',
-              borderRadius: '16px',
+              background: '#1e1e20',
+              borderRadius: '12px',
               height: '36px',
               minWidth: '0',
               cursor: 'pointer',
@@ -1385,9 +1413,9 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
               <UserPlus className="w-4 h-4" />
               <span>Add Council Member</span>
             </div>
-                </button>
-            </div>
-          </div>
+          </button>
+        </div>
+        </div>
 
       {/* Council Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -1396,7 +1424,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             <div>
               <p className="text-sm text-gray-400">Total Members</p>
               <p className="text-2xl font-bold text-white">{councilData.totalMembers}</p>
-        </div>
+            </div>
             <Crown className="w-8 h-8 text-yellow-400" />
           </div>
         </div>
@@ -1415,10 +1443,10 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         
         <div className="professional-card rounded-xl p-4">
           <div className="flex items-center justify-between">
-              <div>
+            <div>
               <p className="text-sm text-gray-400">Min Required</p>
               <p className="text-2xl font-bold text-white">{councilData.minMembers}</p>
-              </div>
+            </div>
             <div className="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center">
               <Shield className="w-5 h-5 text-blue-400" />
             </div>
@@ -1443,7 +1471,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             </div>
             
             <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-            <button
+              <button
                 onClick={handleAddCouncilMember}
                 className="btn-primary flex-1 w-full sm:w-auto"
               >
@@ -1454,8 +1482,8 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
                 className="px-6 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl transition-all w-full sm:w-auto"
               >
                 Cancel
-            </button>
-          </div>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1464,10 +1492,10 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
       <div className="professional-card rounded-xl p-4 sm:p-6">
         <div className="flex items-center justify-between mb-6">
           <h4 className="text-lg font-semibold text-white">Council Members</h4>
-              <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3">
           <div className="text-sm text-gray-400">
               {councilData.totalMembers} members
-                </div>
+            </div>
             <button 
               onClick={fetchCouncilData} 
               title="Refresh Council Data" 
@@ -1475,14 +1503,14 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             >
               <RefreshCw className="w-4 h-4" />
             </button>
-              </div>
-            </div>
+          </div>
+        </div>
 
         {councilData.totalMembers > 0 ? (
           <div className="space-y-6">
             {/* Known Members List */}
             {councilData.members.length > 0 && (
-          <div className="space-y-4">
+              <div className="space-y-4">
                 <h4 className="text-md font-semibold text-white">Known Council Members</h4>
                 <div className="space-y-2">
               {councilData.members.map((member, index) => (
@@ -1507,15 +1535,15 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
                           Active
                       </span>
                         {isAdmin && member.address !== councilData.daoCreator && (
-                <button
+                      <button
                         onClick={() => handleRemoveCouncilMember(member.address)}
                             className="p-1 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded"
                         title="Remove Council Member"
-                >
+                      >
                         <UserMinus className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+                      </button>
+                    )}
+                      </div>
                     </div>
               ))}
         </div>
@@ -1553,9 +1581,9 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
                     ✅ Found {councilData.members.length} council members from DAO creation records.
                   </p>
                 )}
+                </div>
               </div>
-                      </div>
-                    </div>
+          </div>
         ) : (
           <div className="text-center py-12">
             <div className="w-16 h-16 bg-gradient-to-br from-gray-500/20 to-gray-600/20 rounded-xl flex items-center justify-center mx-auto mb-4">
@@ -1565,16 +1593,16 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             <p className="text-gray-400 mb-4">
               This DAO currently has no council members. Add trusted members to help with governance decisions.
             </p>
-                      <button
+                  <button
               onClick={() => setShowAddCouncilMember(true)}
               className="btn-primary flex items-center justify-center space-x-2 mx-auto"
                   >
               <UserPlus className="w-4 h-4" />
               <span>Add First Council Member</span>
-                      </button>
+                  </button>
           </div>
-                    )}
-                  </div>
+                )}
+      </div>
 
       {/* Council Info */}
       <div className="professional-card rounded-xl p-4 sm:p-6">
@@ -1589,9 +1617,9 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             <div>
               <p className="text-white font-medium">Object-Based System</p>
               <p className="text-sm text-gray-400">Council management uses Aptos Objects for enhanced security and efficiency</p>
-              </div>
+            </div>
           </div>
-
+          
           <div className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
             <UserCheck className="w-5 h-5 text-green-400 mt-0.5" />
             <div>
@@ -1615,7 +1643,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
           <AlertTriangle className="w-5 h-5 text-yellow-400" />
           <span>Council System Information</span>
-              </h3>
+        </h3>
         
         <div className="space-y-4">
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
@@ -1690,8 +1718,8 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
                 gap: '8px',
                 padding: '2px',
                 border: 'none',
-                background: 'linear-gradient(45deg, #ffc30d, #b80af7)',
-                borderRadius: '16px',
+                background: '#1e1e20',
+                borderRadius: '12px',
                 height: '36px',
                 minWidth: '0',
                 cursor: 'pointer',
@@ -1734,13 +1762,13 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
                 <div className="flex items-center space-x-2">
                   <Users className="w-4 h-4 text-blue-400" />
                   <span className="text-white font-medium text-sm">Membership</span>
-                    </div>
+                </div>
                 <div className="text-right">
                   <div className="text-lg font-bold text-blue-300">
                     {stakeSettings.minStakeToJoin} MOVE
                   </div>
                   <div className="text-xs text-gray-400">Required to join</div>
-              </div>
+                </div>
               </div>
             </div>
 
@@ -1757,21 +1785,21 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
                   <div className="text-xs text-gray-400">Required to propose</div>
                 </div>
               </div>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
 
       {/* Edit Stake Settings Form */}
       {showEditStake && (
         <div className="professional-card rounded-xl p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4">
             <h4 className="text-lg font-semibold text-white flex items-center space-x-2">
               <Edit className="w-5 h-5 text-purple-400" />
               <span>Update Stake Requirements</span>
             </h4>
-              <button
-                onClick={() => {
+            <button
+              onClick={() => {
                 setShowEditStake(false);
                 setNewStakeForm({
                   minStakeToJoin: stakeSettings.minStakeToJoin,
@@ -1780,14 +1808,14 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
                 setNewMinStake(stakeSettings.minStakeToJoin.toString());
                 setNewMinProposalStake(stakeSettings.minStakeToPropose.toString());
                 setErrors({});
-                }}
-                className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
-              >
-                <XCircle className="w-5 h-5" />
-              </button>
-            </div>
+              }}
+              className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+            >
+              <XCircle className="w-5 h-5" />
+            </button>
+          </div>
 
-            <div className="space-y-4">
+          <div className="space-y-4">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* Membership Stake */}
               <div className="space-y-2">
@@ -1805,7 +1833,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
                 <div className="flex items-center justify-between text-xs text-gray-500">
                   <span>Current: {stakeSettings.minStakeToJoin} MOVE</span>
                   <span>Required to join DAO</span>
-              </div>
+                </div>
               </div>
 
               {/* Proposal Stake */}
@@ -1840,20 +1868,20 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                <button
+              <button
                 onClick={handleUpdateBothStakes}
                 className="flex-1 flex items-center justify-center space-x-2"
-                  style={{
+                style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
                   padding: '2px',
-                    border: 'none',
-                  background: 'linear-gradient(45deg, #ffc30d, #b80af7)',
-                  borderRadius: '16px',
+                  border: 'none',
+                  background: '#1e1e20',
+                  borderRadius: '12px',
                   height: '36px',
                   minWidth: '0',
-                    cursor: 'pointer',
+                  cursor: 'pointer',
                   fontWeight: 600,
                   fontSize: '14px',
                   color: '#fff',
@@ -1891,7 +1919,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
                 className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-all"
               >
                 Update Proposals
-                </button>
+              </button>
             </div>
           </div>
         </div>
@@ -1903,7 +1931,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
           <div className="flex items-center space-x-2 mb-1">
             <Users className="w-4 h-4 text-blue-400" />
             <span className="text-white text-sm font-medium">Membership</span>
-    </div>
+          </div>
           <p className="text-xs text-gray-400">Required to join DAO and vote</p>
         </div>
         
@@ -1949,9 +1977,9 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         return renderOverview();
     }
   };
-  
+
   return (
-    <div className="w-full max-w-none px-4 sm:px-6 space-y-6 sm:space-y-8 overflow-hidden flex-shrink min-w-0">
+    <div className="w-full px-3 sm:px-6 space-y-4 sm:space-y-6">
       {/* Navigation */}
       <div className="flex flex-wrap gap-1 bg-white/5 rounded-lg p-1">
         {sections.map((section) => {
@@ -1973,7 +2001,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             </button>
           );
         })}
-            </div>
+      </div>
 
       {/* Content */}
       {renderContent()}

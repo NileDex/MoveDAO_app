@@ -65,7 +65,7 @@ const Proposals: React.FC = () => {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-white">Proposals</h2>
         <div style={{
-          background: 'linear-gradient(45deg, #ffc30d, #b80af7)',
+          background: '#1e1e20',
           borderRadius: '13px',
           padding: '2px',
           display: 'inline-block',
@@ -145,7 +145,7 @@ const Proposals: React.FC = () => {
             </div>
             <div className="flex space-x-3">
               <div style={{
-                background: 'linear-gradient(45deg, #ffc30d, #b80af7)',
+                background: '#1e1e20',
                 borderRadius: '13px',
                 padding: '2px',
                 display: 'inline-block',

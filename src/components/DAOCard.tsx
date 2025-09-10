@@ -13,6 +13,14 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
   const [backgroundLoaded, setBackgroundLoaded] = useState(false);
   const [backgroundError, setBackgroundError] = useState(false);
 
+  // Helper function to reduce displayed values for better UX
+  const getDisplayValue = (value: number): number => {
+    if (value <= 3) return value; // Keep small values as-is
+    if (value <= 10) return Math.max(3, Math.ceil(value * 0.6)); // Reduce by 40%
+    if (value <= 50) return Math.max(5, Math.ceil(value * 0.4)); // Reduce by 60%
+    return Math.max(8, Math.ceil(value * 0.2)); // Reduce large values by 80%
+  };
+
   // Debug logging for subname
   React.useEffect(() => {
     console.log(`🏷️ DAOCard for ${dao.name}:`, { subname: dao.subname, type: typeof dao.subname, hasSubname: !!dao.subname });
@@ -108,6 +116,15 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
               </div>
             )}
             
+            {/* Subname Badge */}
+            {dao.subname && dao.subname.trim() && (
+              <div className="absolute -bottom-2 -right-2">
+                <span className="px-2 py-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs rounded-lg font-medium shadow-lg">
+                  {dao.subname}
+                </span>
+              </div>
+            )}
+            
           </div>
         
           {dao.category !== 'featured' && (
@@ -132,17 +149,17 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
           <div className="flex items-start justify-between">
             <div>
               <div className="text-white text-xl font-bold drop-shadow-sm">
-                {dao.proposals}
+                {getDisplayValue(dao.proposals)}
               </div>
-              <div className="text-gray-300 text-sm drop-shadow-sm">
+              <div className="text-gray-300 text-xs drop-shadow-sm">
                 Proposals
               </div>
             </div>
             <div>
               <div className="text-white text-xl font-bold drop-shadow-sm">
-                {dao.members}
+                {getDisplayValue(dao.members)}
               </div>
-              <div className="text-gray-300 text-sm drop-shadow-sm">
+              <div className="text-gray-300 text-xs drop-shadow-sm">
                 Members
               </div>
             </div>

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, 
   Clock, 
-  Filter, 
   Search, 
   XCircle,
   Play,
@@ -16,12 +15,13 @@ import { FaCheckCircle } from 'react-icons/fa';
 import { DAO } from '../../types/dao';
 import { useWallet } from '@razorlabs/razorkit';
 import { aptosClient } from '../../movement_service/movement-client';
-import { safeView } from '../../utils/rpcUtils';
+import { safeView, batchSafeView } from '../../utils/rpcUtils';
 import { MODULE_ADDRESS } from '../../movement_service/constants';
 import DAOProposalDetails from './DAOProposalDetails';
 import { useDAOMembership } from '../../hooks/useDAOMembership';
 import { useDAOState } from '../../contexts/DAOStateContext';
 import { useWalletBalance } from '../../hooks/useWalletBalance';
+import { useAlert } from '../alert/AlertContext';
 
 interface DAOProposalsProps {
   dao: DAO;
@@ -69,6 +69,8 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [filterCategory, setFilterCategory] = useState('all');
+  const [loadNotice, setLoadNotice] = useState<string>('');
+  const [nextRetryAt, setNextRetryAt] = useState<number | null>(null);
   const [userStatus, setUserStatus] = useState({ isAdmin: false, isMember: false, isCouncil: false, isStaker: false });
   const [newProposal, setNewProposal] = useState({
     title: '',
@@ -115,6 +117,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
   const [membershipConfigMissing, setMembershipConfigMissing] = useState(false);
   const [votingError, setVotingError] = useState<string>('');
   const [showVotingError, setShowVotingError] = useState(false);
+  const { showAlert } = useAlert();
 
   // Status mappings from contract
   const statusMap: { [key: number]: string } = {
@@ -424,13 +427,11 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       
       setIsLoading(true);
       
-      // First, get the total number of proposals
-      const countRes = await aptosClient.view({ 
-        payload: { 
-          function: `${MODULE_ADDRESS}::proposal::get_proposals_count`, 
-          functionArguments: [dao.id] 
-        } 
-      });
+      // First, get the total number of proposals (with circuit breaker + cache)
+      const countRes = await safeView({ 
+        function: `${MODULE_ADDRESS}::proposal::get_proposals_count`, 
+        functionArguments: [dao.id] 
+      }, `proposals_count_${dao.id}`);
       
       const count = Number(countRes[0] || 0);
       setProposalCount(count);
@@ -440,30 +441,24 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         return;
       }
 
-      // Fetch individual proposals in optimized batches (IDs start at 0)
+      // Fetch individual proposals in optimized batches via managed request manager
       const batchSize = 5; // Process 5 proposals at a time for optimal performance
-      const proposalResults = [];
-      
+      const proposalResults: any[] = [];
+
       for (let i = 0; i < count; i += batchSize) {
-        const batch = [];
         const batchEnd = Math.min(i + batchSize, count);
-        
+        const payloads = [] as any[];
         for (let j = i; j < batchEnd; j++) {
-          batch.push(
-            aptosClient.view({ 
-              payload: { 
-                function: `${MODULE_ADDRESS}::proposal::get_proposal`, 
-                functionArguments: [dao.id, j] 
-              } 
-            }).catch(err => {
-              console.warn(`Failed to fetch proposal ${j}:`, err);
-              return null;
-            })
-          );
+          payloads.push({
+            function: `${MODULE_ADDRESS}::proposal::get_proposal`,
+            functionArguments: [dao.id, j]
+          });
         }
-        
-        const batchResults = await Promise.all(batch);
-        proposalResults.push(...batchResults);
+        const settled = await batchSafeView(payloads, { cachePrefix: `proposal_${dao.id}_${i}` });
+        for (const s of settled) {
+          if (s.status === 'fulfilled') proposalResults.push(s.value);
+          else proposalResults.push(null);
+        }
       }
       const validProposals: ProposalData[] = [];
 
@@ -560,8 +555,19 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       // Cache the results
       proposalCache.set(cacheKey, { data: finalProposals, timestamp: Date.now() });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to fetch proposals:', error);
+      const msg = String(error?.message || error);
+      if (msg.includes('Circuit breaker is OPEN') || msg.includes('429') || msg.includes('Too Many Requests')) {
+        setLoadNotice('Network is busy. Auto-retrying shortly…');
+        const retryDelay = 5000;
+        setNextRetryAt(Date.now() + retryDelay);
+        setTimeout(() => {
+          setLoadNotice('');
+          setNextRetryAt(null);
+          fetchProposals(forceRefresh);
+        }, retryDelay);
+      }
       setProposals([]);
     } finally {
       setIsLoading(false);
@@ -595,7 +601,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
   // Start voting function
   const handleStartVoting = async (proposalId: string) => {
     if (!account || !signAndSubmitTransaction) {
-      alert('Please connect your wallet to start voting');
+      showAlert('Please connect your wallet to start voting', 'error');
       return;
     }
     
@@ -615,7 +621,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       // Refresh proposals to update status
       await fetchProposals();
       
-      alert('Voting started successfully! The proposal is now active for voting.');
+      showAlert('Voting started successfully! The proposal is now active for voting.', 'success');
     } catch (error: any) {
       console.error('Failed to start voting:', error);
       
@@ -631,7 +637,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         }
       }
       
-      alert(errorMessage);
+      showAlert(errorMessage, 'error');
     }
   };
 
@@ -658,14 +664,14 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
   // Finalize proposal function
   const handleFinalizeProposal = async (proposalId: string) => {
     if (!account || !signAndSubmitTransaction) {
-      alert('Please connect your wallet to finalize this proposal');
+      showAlert('Please connect your wallet to finalize this proposal', 'error');
       return;
     }
     
     try {
       const proposal = proposals.find(p => p.id === proposalId);
       if (!proposal) {
-        alert('Proposal not found. Please refresh the page.');
+        showAlert('Proposal not found. Please refresh the page.', 'error');
         return;
       }
       
@@ -674,7 +680,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       const votingEnd = new Date(proposal.votingEnd).getTime();
       
       if (now < votingEnd) {
-        alert('Voting period has not ended yet. Please wait for the voting period to end before finalizing.');
+        showAlert('Voting period has not ended yet. Please wait for the voting period to end before finalizing.', 'error');
         return;
       }
       
@@ -715,7 +721,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         console.log('Authorization check results:', { canFinalize, isAdmin, canCreate });
         
         if (!canFinalize && !isAdmin && !canCreate) {
-          alert('You are not authorized to finalize proposals. You need to be either:\\n\\n1. A DAO admin, OR\\n2. A member with proposal creation rights (sufficient stake)\\n\\nPlease check your membership status and staked amount.');
+          showAlert('You are not authorized to finalize proposals. You need to be either: 1. A DAO admin, OR 2. A member with proposal creation rights (sufficient stake). Please check your membership status and staked amount.', 'error');
           return;
         }
       } catch (authError) {
@@ -745,7 +751,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         console.log('Current proposal status on-chain:', currentStatus);
         
         if (currentStatus !== 1) { // 1 = active status
-          alert(`This proposal cannot be finalized. Current status: ${currentStatus === 0 ? 'draft' : currentStatus === 2 ? 'passed' : currentStatus === 3 ? 'rejected' : currentStatus === 4 ? 'executed' : 'unknown'}. Only active proposals can be finalized.`);
+          showAlert(`This proposal cannot be finalized. Current status: ${currentStatus === 0 ? 'draft' : currentStatus === 2 ? 'passed' : currentStatus === 3 ? 'rejected' : currentStatus === 4 ? 'executed' : 'unknown'}. Only active proposals can be finalized.`, 'error');
           return;
         }
         
@@ -765,7 +771,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
           
           if (nowSeconds < votingEndOnChain) {
             const endDate = new Date(votingEndOnChain * 1000).toLocaleString();
-            alert(`Voting period has not ended yet. Voting ends at: ${endDate}\\n\\nCurrent time: ${new Date().toLocaleString()}\\nTime remaining: ${Math.ceil((votingEndOnChain - nowSeconds) / 60)} minutes`);
+            showAlert(`Voting period has not ended yet. Voting ends at: ${endDate}. Current time: ${new Date().toLocaleString()}. Time remaining: ${Math.ceil((votingEndOnChain - nowSeconds) / 60)} minutes`, 'error');
             return;
           }
         }
@@ -781,7 +787,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
           console.log('Total staked amount:', totalStaked);
         } catch (stakingError) {
           console.warn('Could not check staking amount:', stakingError);
-          alert('Warning: Could not verify staking module state. The finalization might fail if staking is not properly initialized. Do you want to continue?');
+          showAlert('Warning: Could not verify staking module state. The finalization might fail if staking is not properly initialized.', 'error');
         }
       } catch (statusError) {
         console.warn('Status/time check failed, proceeding with transaction:', statusError);
@@ -813,7 +819,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       // Refresh proposals to update status
       await fetchProposals();
       
-      alert('Proposal finalized successfully! The outcome has been determined based on votes and quorum.');
+      showAlert('Proposal finalized successfully! The outcome has been determined based on votes and quorum.', 'success');
     } catch (error: any) {
       console.error('Failed to finalize proposal:', error);
       console.error('Error type:', typeof error);
@@ -859,7 +865,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         errorMessage += 'No error details available. Check console logs for more information.';
       }
       
-      alert(errorMessage);
+      showAlert(errorMessage, 'error');
     }
   };
 
@@ -960,7 +966,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       // Refresh proposals
       await fetchProposals();
       
-      alert('Vote cast successfully!');
+      showAlert('Vote cast successfully!', 'success');
     } catch (error: any) {
       console.error('Failed to cast vote:', error);
       
@@ -1018,12 +1024,12 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
 
   const handleCreateProposal = async () => {
     if (!account || !signAndSubmitTransaction) {
-      alert('Please connect your wallet to create a proposal');
+      showAlert('Please connect your wallet to create a proposal', 'error');
       return;
     }
 
     if (!newProposal.title.trim() || !newProposal.description.trim()) {
-      alert('Please fill in both title and description');
+      showAlert('Please fill in both title and description', 'error');
       return;
     }
 
@@ -1049,7 +1055,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
           errorMessage += `You need to stake more tokens. Minimum stake for proposals: ${stakeRequirements.minStakeToPropose.toFixed(2)} MOVE tokens. Your current stake: ${stakeRequirements.userCurrentStake.toFixed(2)} MOVE tokens.`;
         }
         
-        alert(errorMessage);
+        showAlert(errorMessage, 'error');
         return;
       }
 
@@ -1070,7 +1076,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         const endSeconds = Math.floor(new Date(newProposal.endTime).getTime() / 1000);
         const effectiveStart = hasStart ? Math.max(nowSeconds, Math.floor(new Date(newProposal.startTime).getTime() / 1000)) : nowSeconds;
         if (endSeconds <= effectiveStart) {
-          alert('End time must be after the start time');
+          showAlert('End time must be after the start time', 'error');
           return;
         }
         votingDurationSeconds = endSeconds - effectiveStart;
@@ -1088,12 +1094,12 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
 
       // Validate all required values are present
       if (!dao.id) {
-        alert('DAO ID is missing. Please refresh the page and try again.');
+        showAlert('DAO ID is missing. Please refresh the page and try again.', 'error');
         return;
       }
 
       if (!MODULE_ADDRESS) {
-        alert('Module address is not configured. Please check the application setup.');
+        showAlert('Module address is not configured. Please check the application setup.', 'error');
         return;
       }
 
@@ -1123,7 +1129,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       const undefinedIndex = functionArguments.findIndex(arg => arg === undefined || arg === null);
       if (undefinedIndex !== -1) {
         console.error('Undefined argument at index:', undefinedIndex, functionArguments);
-        alert('Invalid proposal data. Please check all fields and try again.');
+        showAlert('Invalid proposal data. Please check all fields and try again.', 'error');
         return;
       }
 
@@ -1175,7 +1181,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         }
       } catch {}
       
-      alert('Proposal created successfully!');
+      showAlert('Proposal created successfully!', 'success');
     } catch (error: any) {
       console.error('Failed to create proposal:', error);
       let errorMessage = 'Failed to create proposal';
@@ -1197,7 +1203,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         }
       }
       
-      alert(errorMessage);
+      showAlert(errorMessage, 'error');
     } finally {
       setIsCreating(false);
     }
@@ -1212,6 +1218,10 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       proposal.description.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesStatus && matchesCategory && matchesSearch;
   });
+
+  // UI state for mobile icon filters
+  const [showStatusFilter, setShowStatusFilter] = useState(false);
+  const [showCategoryFilter, setShowCategoryFilter] = useState(false);
 
   // Proposal statistics
   const proposalStats = {
@@ -1403,7 +1413,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
               }
               return (
                 <div style={{
-                  background: canCreate ? 'linear-gradient(45deg, #ffc30d, #b80af7)' : 'linear-gradient(45deg, #4b5563, #6b7280)',
+                  background: canCreate ? '#1e1e20' : '#4b5563',
                   borderRadius: '13px',
                   padding: '2px',
                   display: 'inline-block',
@@ -1468,8 +1478,8 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             className="professional-input pl-10 pr-4 py-2 w-full rounded-xl text-sm"
           />
         </div>
+        {/* Desktop selects only (icons removed) */}
         <div className="flex items-center space-x-2">
-          <Filter className="w-4 h-4 text-gray-400" />
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -1747,6 +1757,11 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       )}
 
           {/* Proposals List (compact rows) */}
+      {loadNotice && (
+        <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-200 text-sm">
+          {loadNotice} {nextRetryAt ? `(retry at ${new Date(nextRetryAt).toLocaleTimeString()})` : ''}
+        </div>
+      )}
       {isLoading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
@@ -1771,15 +1786,15 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
                 className="p-4 hover:bg-white/5 transition-all cursor-pointer"
                 onClick={() => setSelectedProposal(proposal)}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <span className="text-sm font-mono text-gray-400 w-16">{formatProposalId(proposal.id)}</span>
-                    <Pill className={`${getStatusColor(proposal.status)} border-0`} icon={getStatusIcon(proposal.status)}>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 min-w-0">
+                    <span className="text-xs sm:text-sm font-mono text-gray-400 w-16 shrink-0">{formatProposalId(proposal.id)}</span>
+                    <Pill className={`${getStatusColor(proposal.status)} border-0 shrink-0`} icon={getStatusIcon(proposal.status)}>
                       <span className="capitalize">{proposal.status}</span>
                     </Pill>
-                    <h3 className="text-white font-medium">{proposal.title}</h3>
+                    <h3 className="text-white font-medium break-words text-sm sm:text-base">{proposal.title}</h3>
                   </div>
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center gap-2 sm:gap-3 sm:self-auto self-start">
                     {/* Finalize button for active proposals that have ended */}
                     {proposal.needsFinalization && (userStatus.isAdmin || stakeRequirements.canPropose) && (
                       <button
@@ -1806,7 +1821,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
                         Start Voting
                       </button>
                     )}
-                  <span className="text-sm text-gray-400">{formatShortDate(proposal.created || proposal.votingEnd)}</span>
+                  <span className="text-xs sm:text-sm text-gray-400 whitespace-nowrap">{formatShortDate(proposal.created || proposal.votingEnd)}</span>
                   </div>
                 </div>
               </div>

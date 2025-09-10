@@ -3,7 +3,42 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      fontWeight: {
+        thin: '200',
+        extralight: '200',
+        light: '300',
+        normal: '400',
+        medium: '500',
+        semibold: '500',
+        bold: '600',
+        extrabold: '700',
+        black: '800',
+      },
+      fontFamily: {
+        sans: [
+          'Inter',
+          'ui-sans-serif',
+          'system-ui',
+          '-apple-system',
+          'Segoe UI',
+          'Roboto',
+          'Helvetica',
+          'Arial',
+          'Apple Color Emoji',
+          'Segoe UI Emoji',
+          'sans-serif',
+        ],
+      },
       colors: {
+        // Theme-aware colors using CSS variables
+        'theme': {
+          'bg': 'var(--bg)',
+          'bg-soft': 'var(--bg-soft)',
+          'text': 'var(--text)',
+          'text-dim': 'var(--text-dim)',
+          'card': 'var(--card-bg)',
+          'border': 'var(--border)',
+        },
         'dark': {
           50: '#f8f9fa',
           100: '#f1f3f4',
@@ -16,21 +51,19 @@ export default {
           800: '#3c4043',
           900: '#202124',
           950: '#0f0f11',
-        },
-        'card': {
-          DEFAULT: 'rgba(25, 25, 28, 0.9)',
-          secondary: 'rgba(35, 35, 38, 0.8)',
-          border: 'rgba(255, 255, 255, 0.08)',
         }
       },
       backgroundColor: {
-        'primary': '#0f0f11',
-        'card': 'rgba(25, 25, 28, 0.9)',
-        'input': 'rgba(20, 20, 23, 0.8)',
+        'theme': 'var(--bg)',
+        'theme-card': 'var(--card-bg)',
+        'theme-soft': 'var(--bg-soft)',
+      },
+      textColor: {
+        'theme': 'var(--text)',
+        'theme-dim': 'var(--text-dim)',
       },
       borderColor: {
-        'card': 'rgba(255, 255, 255, 0.08)',
-        'input': 'rgba(255, 255, 255, 0.12)',
+        'theme': 'var(--border)',
       }
     },
   },

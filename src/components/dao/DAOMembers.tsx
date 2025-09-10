@@ -241,7 +241,6 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-white mb-2">Community Members</h2>
-          <p className="text-gray-400">Manage and view community membership</p>
         </div>
       </div>
 
@@ -292,25 +291,7 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
         </div>
       )}
 
-      {/* Stats Cards - Minimal and Small */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
-        <div className="bg-white/5 rounded-lg p-2 text-center">
-          <div className="text-gray-400 mb-1">Total Members</div>
-          <div className="font-semibold text-white">{isLoading ? '...' : membershipData.totalMembers}</div>
-        </div>
-        <div className="bg-white/5 rounded-lg p-2 text-center">
-          <div className="text-gray-400 mb-1">Total Stakers</div>
-          <div className="font-semibold text-white">{isLoading ? '...' : membershipData.totalStakers}</div>
-        </div>
-        <div className="bg-white/5 rounded-lg p-2 text-center">
-          <div className="text-gray-400 mb-1">Total Staked</div>
-          <div className="font-semibold text-white">{isLoading ? '...' : formatCompact(membershipData.totalStaked)}</div>
-        </div>
-        <div className="bg-white/5 rounded-lg p-2 text-center">
-          <div className="text-gray-400 mb-1">Min Stake</div>
-          <div className="font-semibold text-white">{isLoading ? '...' : membershipData.minStakeRequired.toFixed(0)}</div>
-        </div>
-      </div>
+      {/* Stats removed per request */}
 
       {/* Search and Filters */}
       <div className="bg-white/3 border border-white/5 rounded-xl p-4 w-full max-w-full overflow-hidden">

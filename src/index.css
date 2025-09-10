@@ -1,20 +1,309 @@
-@import url("https://fonts.googleapis.com/css2?family=Hubballi&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Root theme variables */
+:root {
+  --bg: #0f0f11;
+  --bg-soft: #151519;
+  --text: #ffffff;
+  --text-dim: #9aa0a6;
+  --card-bg: rgba(25, 25, 28, 0.4);
+  --border: rgba(255, 255, 255, 0.1);
+}
+
+/* Theme tokens driven by data-theme on <html> */
+[data-theme="light"] {
+  --bg: #ffffff;
+  --bg-soft: #f8fafc;
+  --text: #0f172a;
+  --text-dim: #64748b;
+  --card-bg: rgba(255, 255, 255, 0.8);
+  --border: rgba(0, 0, 0, 0.1);
+}
+[data-theme="dark"] {
+  --bg: #0f0f11;
+  --bg-soft: #151519;
+  --text: #ffffff;
+  --text-dim: #9aa0a6;
+  --card-bg: rgba(25, 25, 28, 0.4);
+  --border: rgba(255, 255, 255, 0.1);
+}
+
 body {
   padding: 0;
   margin: 0;
-  font-family: "Hubballi", sans-serif;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
   font-weight: 400;
   font-style: normal;
-  background: #1a1a1a;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg, #0f0f11);
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
   background-attachment: fixed;
-  color: #fff;
+  color: var(--text, #ffffff);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.professional-card { 
+  background: var(--card-bg, rgba(25, 25, 28, 0.4)); 
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+  transition: background-color 0.3s ease, border-color 0.3s ease;
+}
+
+/* Theme-aware input styles */
+.professional-input {
+  background: var(--card-bg, rgba(25, 25, 28, 0.4)) !important;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.1)) !important;
+  color: var(--text, #ffffff) !important;
+  transition: all 0.3s ease;
+}
+
+.professional-input::placeholder {
+  color: var(--text-dim, #9aa0a6) !important;
+}
+
+/* Theme-aware text colors */
+.text-white {
+  color: var(--text, #ffffff) !important;
+}
+
+.text-gray-400 {
+  color: var(--text-dim, #9aa0a6) !important;
+}
+
+/* Light mode specific overrides */
+[data-theme="light"] .text-white {
+  color: var(--text) !important;
+}
+
+[data-theme="light"] .text-gray-400 {
+  color: var(--text-dim) !important;
+}
+
+[data-theme="light"] .bg-black\/80 {
+  background: rgba(255, 255, 255, 0.9) !important;
+}
+
+
+/* Strong theme overrides for common Tailwind classes */
+.bg-black\/80,
+.bg-gray-900,
+.bg-gray-800 {
+  background-color: var(--card-bg) !important;
+}
+
+.text-white {
+  color: var(--text) !important;
+}
+
+.text-gray-400,
+.text-gray-300,
+.text-gray-500 {
+  color: var(--text-dim) !important;
+}
+
+.border-white\/10,
+.border-gray-700,
+.border-gray-800 {
+  border-color: var(--border) !important;
+}
+
+/* Override specific Tailwind background utilities */
+.bg-\[rgba\(25\,\ 25\,\ 28\,\ 0\.4\)\],
+.bg-\[rgba\(25\,\ 25\,\ 28\,\ 0\.9\)\] {
+  background-color: var(--card-bg) !important;
+}
+
+/* Add utility layer to override all theme-related styles */
+@layer utilities {
+  /* Background overrides */
+  .bg-primary,
+  .bg-card,
+  .bg-input {
+    background-color: var(--card-bg) !important;
+  }
+  
+  /* Text color overrides */
+  .text-primary {
+    color: var(--text) !important;
+  }
+  
+  .text-secondary {
+    color: var(--text-dim) !important;
+  }
+  
+  /* Border overrides */
+  .border-primary {
+    border-color: var(--border) !important;
+  }
+}
+
+/* Force all common background patterns to use theme variables */
+[class*="bg-gray-"],
+[class*="bg-slate-"],
+[class*="bg-zinc-"] {
+  background-color: var(--card-bg) !important;
+}
+
+/* Light theme specific overrides */
+[data-theme="light"] {
+  background: #ffffff !important;
+}
+
+[data-theme="light"] body {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* Fix loader visibility in light mode */
+[data-theme="light"] .square-loader svg rect {
+  stroke: #6366f1 !important;
+  stroke-opacity: 1 !important;
+}
+
+[data-theme="light"] .wallet-icon-pulse {
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.3) !important;
+}
+
+[data-theme="light"] * {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Light mode specific component overrides */
+[data-theme="light"] .professional-card {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .professional-input {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .bg-black\/80,
+[data-theme="light"] .bg-gray-900,
+[data-theme="light"] .bg-gray-800,
+[data-theme="light"] [class*="bg-gray-"],
+[data-theme="light"] [class*="bg-slate-"],
+[data-theme="light"] [class*="bg-zinc-"] {
+  background: rgba(255, 255, 255, 0.9) !important;
+  background-color: rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Fix modal overlay in light mode */
+[data-theme="light"] .modal-overlay {
+  background: rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Fix wallet item hover in light mode */
+[data-theme="light"] .wallet-item:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgba(99, 102, 241, 0.3) !important;
+}
+
+/* Theme-aware skeletal loaders */
+/* Dark mode: dark but a bit light to spot easily */
+[data-theme="dark"] .animate-pulse {
+  background: linear-gradient(90deg, rgba(75, 85, 99, 0.3), rgba(107, 114, 128, 0.5), rgba(75, 85, 99, 0.3)) !important;
+  background-size: 200% 100% !important;
+  animation: pulse-dark 1.5s ease-in-out infinite !important;
+}
+
+/* Light mode: light but a bit dark to spot easily */
+[data-theme="light"] .animate-pulse {
+  background: linear-gradient(90deg, rgba(229, 231, 235, 0.8), rgba(209, 213, 219, 1), rgba(229, 231, 235, 0.8)) !important;
+  background-size: 200% 100% !important;
+  animation: pulse-light 1.5s ease-in-out infinite !important;
+}
+
+/* Specific skeletal loader overrides for better visibility */
+/* Dark mode skeletal loaders */
+[data-theme="dark"] .bg-gray-600\/50,
+[data-theme="dark"] .bg-gray-600\/70,
+[data-theme="dark"] .bg-gray-700\/70 {
+  background: linear-gradient(135deg, rgba(107, 114, 128, 0.4), rgba(156, 163, 175, 0.6)) !important;
+}
+
+/* Light mode skeletal loaders */
+[data-theme="light"] .bg-gray-600\/50,
+[data-theme="light"] .bg-gray-600\/70,
+[data-theme="light"] .bg-gray-700\/70 {
+  background: linear-gradient(135deg, rgba(209, 213, 219, 0.8), rgba(156, 163, 175, 0.9)) !important;
+}
+
+/* Shimmer effects for loading states */
+/* Dark mode shimmer: lighter on dark background */
+[data-theme="dark"] .bg-gradient-to-r.from-transparent.via-white\/10,
+[data-theme="dark"] .bg-gradient-to-r.from-transparent.via-white\/20 {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent) !important;
+}
+
+/* Light mode shimmer: darker on light background */
+[data-theme="light"] .bg-gradient-to-r.from-transparent.via-white\/10,
+[data-theme="light"] .bg-gradient-to-r.from-transparent.via-white\/20 {
+  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.1), transparent) !important;
+}
+
+/* Spinner loaders theme-aware colors */
+/* Dark mode spinners: lighter border for visibility */
+[data-theme="dark"] .border-b-2.border-blue-500,
+[data-theme="dark"] .animate-spin {
+  border-bottom-color: #60a5fa !important;
+}
+
+/* Light mode spinners: darker border for visibility */
+[data-theme="light"] .border-b-2.border-blue-500,
+[data-theme="light"] .animate-spin {
+  border-bottom-color: #2563eb !important;
+}
+
+/* Custom pulse animations */
+@keyframes pulse-dark {
+  0%, 100% {
+    opacity: 0.4;
+    background-position: 200% 0;
+  }
+  50% {
+    opacity: 0.8;
+    background-position: -200% 0;
+  }
+}
+
+@keyframes pulse-light {
+  0%, 100% {
+    opacity: 0.6;
+    background-position: 200% 0;
+  }
+  50% {
+    opacity: 1;
+    background-position: -200% 0;
+  }
+}
+
+/* Ensure all text inherits Inter unless overridden */
+*, *::before, *::after {
+  font-family: inherit;
+}
+
+/* Responsive padding for All DAOs grid */
+.dao-grid {
+  padding-left: 0.8rem;
+  padding-right: 0.8rem;
+}
+
+@media (max-width: 640px) {
+  .dao-grid {
+    padding-left: 0;
+    padding-right: 0;
+  }
 }
 
 /* Custom scrollbar */
@@ -143,7 +432,7 @@ body {
 
 .card-title {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 600;
   color: #fff;
   margin: 0 0 8px 0;
 }
@@ -167,7 +456,7 @@ body {
 }
 
 .form-label {
-  font-weight: 600;
+  font-weight: 500;
   color: #fff;
   font-size: 14px;
 }
@@ -366,4 +655,17 @@ body {
 .px-4 {
   padding-left: 0.4rem !important;
   padding-right: 0.4rem !important;
+}
+
+/* Mobile-specific override for px-6: keep left 1.5rem, reduce right to 0.2rem */
+@media (max-width: 640px) {
+  .px-6 {
+    padding-left: 0 !important;
+    padding-right: 0.2rem !important;
+  }
+  /* Exemption class: apply to elements that should keep default right padding */
+  .no-px-override.px-6 {
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+  }
 }

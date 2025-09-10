@@ -278,6 +278,16 @@ class APIRequestManager {
   }
 
   /**
+   * Manually reset the circuit breaker
+   */
+  resetCircuitBreakerManually() {
+    this.circuitBreakerState = 'CLOSED';
+    this.failureCount = 0;
+    this.lastFailureTime = 0;
+    console.log('🔧 Circuit breaker manually reset');
+  }
+
+  /**
    * Get current status for debugging
    */
   getStatus() {
@@ -288,6 +298,7 @@ class APIRequestManager {
       failureCount: this.failureCount,
       cacheSize: this.cache.size,
       requestCount: this.requestCount,
+      timeSinceLastFailure: Date.now() - this.lastFailureTime,
     };
   }
 }
@@ -308,4 +319,18 @@ export async function managedApiCall<T>(
   }
 ): Promise<T> {
   return apiRequestManager.queueRequest(requestFn, options);
+}
+
+/**
+ * Manually reset the circuit breaker (for admin/debugging purposes)
+ */
+export function resetCircuitBreaker() {
+  return apiRequestManager.resetCircuitBreakerManually();
+}
+
+/**
+ * Get API manager status (for debugging)
+ */
+export function getAPIStatus() {
+  return apiRequestManager.getStatus();
 }

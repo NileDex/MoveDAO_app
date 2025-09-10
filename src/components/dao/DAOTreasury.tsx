@@ -9,6 +9,7 @@ import { MODULE_ADDRESS } from '../../movement_service/constants';
 import { BalanceService } from '../../useServices/useBalance';
 import { truncateAddress } from '../../utils/addressUtils';
 import { useWallet } from '@razorlabs/razorkit';
+import { useAlert } from '../alert/AlertContext';
 
 interface DAOTreasuryProps {
   dao: DAO;
@@ -22,8 +23,7 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
   // Render both sections sequentially (no tabs)
   const [isDepositing, setIsDepositing] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string>('');
-  const [errorMessage, setErrorMessage] = useState<string>('');
+  const { showAlert } = useAlert();
   const [isTogglingPublicDeposits, setIsTogglingPublicDeposits] = useState(false);
   const [movePrice, setMovePrice] = useState<number | null>(null);
   const [totalStaked, setTotalStaked] = useState<number>(0);
@@ -41,16 +41,6 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
     refreshData
   } = useTreasury(dao.id);
 
-  // Clear messages after 5 seconds
-  React.useEffect(() => {
-    if (successMessage || errorMessage) {
-      const timer = setTimeout(() => {
-        setSuccessMessage('');
-        setErrorMessage('');
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [successMessage, errorMessage]);
 
   // Fetch MOVE price from CoinGecko
   React.useEffect(() => {
@@ -100,7 +90,7 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
 
   const handleDeposit = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      setErrorMessage('Please enter a valid amount');
+      showAlert('Please enter a valid amount', 'error');
       return;
     }
 
@@ -111,12 +101,12 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
       const depositAmount = parseFloat(amount);
       await deposit(depositAmount);
       
-      setSuccessMessage(`Successfully deposited ${depositAmount.toFixed(3)} MOVE to treasury`);
+      showAlert(`Successfully deposited ${depositAmount.toFixed(3)} MOVE to treasury`, 'success');
       setShowDepositForm(false);
       setAmount('');
     } catch (error: any) {
       console.error('Deposit failed:', error);
-      setErrorMessage(error.message || 'Failed to deposit tokens');
+      showAlert(error.message || 'Failed to deposit tokens', 'error');
     } finally {
       setIsDepositing(false);
     }
@@ -124,7 +114,7 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
 
   const handleWithdraw = async () => {
     if (!amount || parseFloat(amount) <= 0) {
-      setErrorMessage('Please enter a valid amount');
+      showAlert('Please enter a valid amount', 'error');
       return;
     }
 
@@ -135,12 +125,12 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
       const withdrawAmount = parseFloat(amount);
       await withdraw(withdrawAmount);
       
-      setSuccessMessage(`Successfully withdrew ${withdrawAmount.toFixed(3)} MOVE from treasury`);
+      showAlert(`Successfully withdrew ${withdrawAmount.toFixed(3)} MOVE from treasury`, 'success');
       setShowWithdrawForm(false);
       setAmount('');
     } catch (error: any) {
       console.error('Withdrawal failed:', error);
-      setErrorMessage(error.message || 'Failed to withdraw tokens');
+      showAlert(error.message || 'Failed to withdraw tokens', 'error');
     } finally {
       setIsWithdrawing(false);
     }
@@ -153,14 +143,15 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
       
       await togglePublicDeposits(allow);
       
-      setSuccessMessage(
+      showAlert(
         allow 
           ? 'Public deposits enabled - anyone can now deposit to this treasury' 
-          : 'Public deposits disabled - only members and admins can deposit'
+          : 'Public deposits disabled - only members and admins can deposit',
+        'success'
       );
     } catch (error: any) {
       console.error('Toggle public deposits failed:', error);
-      setErrorMessage(error.message || 'Failed to update public deposit settings');
+      showAlert(error.message || 'Failed to update public deposit settings', 'error');
     } finally {
       setIsTogglingPublicDeposits(false);
     }
@@ -613,38 +604,6 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
 
   return (
     <div className="w-full px-4 sm:px-6 space-y-6 sm:space-y-8 max-w-full overflow-hidden relative">
-      {/* Success/Error Messages */}
-      {successMessage && (
-        <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex items-start space-x-3">
-          <FaCheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <h3 className="text-green-300 font-medium mb-1">Success</h3>
-            <p className="text-green-200 text-sm">{successMessage}</p>
-          </div>
-          <button
-            onClick={() => setSuccessMessage('')}
-            className="text-green-400 hover:text-green-300 transition-colors flex-shrink-0"
-          >
-            <XCircle className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-      
-      {errorMessage && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start space-x-3">
-          <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-          <div className="flex-1 min-w-0">
-            <h3 className="text-red-300 font-medium mb-1">Error</h3>
-            <p className="text-red-200 text-sm">{errorMessage}</p>
-          </div>
-          <button
-            onClick={() => setErrorMessage('')}
-            className="text-red-400 hover:text-red-300 transition-colors flex-shrink-0"
-          >
-            <XCircle className="w-4 h-4" />
-          </button>
-        </div>
-      )}
       
       {treasuryData.error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start space-x-3">
