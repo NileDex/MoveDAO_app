@@ -9,9 +9,10 @@ import { safeView, safeGetAccountResource, safeGetModuleEventsByEventType } from
 
 interface DAOMembersProps {
   dao: DAO;
+  sidebarCollapsed?: boolean;
 }
 
-const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
+const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [membershipData, setMembershipData] = useState({
@@ -235,7 +236,7 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
   const activeMembers = members.filter(m => m.isActive).length;
 
   return (
-    <div className="container mx-auto px-2 sm:px-6 max-w-screen-lg space-y-6">
+    <div className="w-full px-2 sm:px-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -251,7 +252,7 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
             ? 'border-green-500/30 bg-green-500/10' 
             : 'border-orange-500/30 bg-orange-500/10'
         }`}>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center space-x-3">
               <div className={`p-2 rounded-full ${
                 membershipData.userIsMember ? 'bg-green-500/20' : 'bg-orange-500/20'
@@ -260,27 +261,27 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
                   membershipData.userIsMember ? 'text-green-400' : 'text-orange-400'
                 }`} />
               </div>
-              <div>
-                <p className={`font-medium ${
+              <div className="min-w-0 flex-1">
+                <p className={`font-medium text-sm sm:text-base ${
                   membershipData.userIsMember ? 'text-green-300' : 'text-orange-300'
                 }`}>
                   {membershipData.userIsMember ? '✓ You are a member' : '⚠️ Not a member'} of {dao.name}
                 </p>
-                <p className="text-sm text-gray-400">
+                <p className="text-xs sm:text-sm text-gray-400">
                   Your stake: {membershipData.userStake.toFixed(2)} MOVE 
                   {!membershipData.userIsMember && ` (need ${membershipData.minStakeRequired.toFixed(0)} MOVE)`}
                 </p>
               </div>
             </div>
             {membershipData.userIsMember ? (
-              <div className="flex items-center space-x-3">
-              <div className="text-green-400 font-bold text-lg">
-                {membershipData.userStake.toFixed(0)} VP
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                <div className="text-green-400 font-bold text-lg text-center sm:text-left">
+                  {membershipData.userStake.toFixed(0)} VP
                 </div>
                 <button
                   onClick={handleLeaveDAO}
                   disabled={isLeaving}
-                  className="px-3 py-2 rounded-lg text-sm border border-red-500/40 text-red-300 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50"
+                  className="w-full sm:w-auto px-3 py-2 rounded-lg text-sm border border-red-500/40 text-red-300 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50 transition-colors"
                   title="Leave this DAO"
                 >
                   {isLeaving ? 'Leaving…' : 'Leave DAO'}
@@ -291,55 +292,39 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
         </div>
       )}
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 w-full">
-        {/* Total Members */}
-        <div className="min-w-0 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/10 shadow-lg rounded-lg p-2 sm:p-3 flex flex-col items-center justify-center text-center transition-transform duration-300">
-          <div className="mb-1 p-1.5 sm:mb-2 sm:p-2 rounded-full bg-gradient-to-br from-blue-500 to-cyan-500 shadow-inner flex items-center justify-center">
-            <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow" />
-          </div>
-          <div className="mb-0.5 text-base sm:text-lg font-extrabold text-white">
-            {isLoading ? '...' : membershipData.totalMembers}
-          </div>
-          <div className="mb-0.5 text-[10px] sm:text-xs text-gray-300 font-medium">Total Members</div>
+      {/* Stats Cards - Minimal and Small */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 text-xs">
+        <div className="bg-white/5 rounded-lg p-2 text-center">
+          <div className="text-gray-400 mb-1">Total Members</div>
+          <div className="font-semibold text-white">{isLoading ? '...' : membershipData.totalMembers}</div>
         </div>
-        {/* Total Stakers */}
-        <div className="min-w-0 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/10 shadow-lg rounded-lg p-2 sm:p-3 flex flex-col items-center justify-center text-center transition-transform duration-300">
-          <div className="mb-1 p-1.5 sm:mb-2 sm:p-2 rounded-full bg-gradient-to-br from-green-500 to-emerald-500 shadow-inner flex items-center justify-center">
-            <Coins className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow" />
-          </div>
-          <div className="mb-0.5 text-base sm:text-lg font-extrabold text-white">
-            {isLoading ? '...' : membershipData.totalStakers}
-          </div>
-          <div className="mb-0.5 text-[10px] sm:text-xs text-gray-300 font-medium">Total Stakers</div>
+        <div className="bg-white/5 rounded-lg p-2 text-center">
+          <div className="text-gray-400 mb-1">Total Stakers</div>
+          <div className="font-semibold text-white">{isLoading ? '...' : membershipData.totalStakers}</div>
         </div>
-        {/* Total Staked */}
-        <div className="min-w-0 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/10 shadow-lg rounded-lg p-2 sm:p-3 flex flex-col items-center justify-center text-center transition-transform duration-300">
-          <div className="mb-1 p-1.5 sm:mb-2 sm:p-2 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 shadow-inner flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow" />
-          </div>
-          <div className="mb-0.5 text-base sm:text-lg font-extrabold text-white">
-            {isLoading ? '...' : `${formatCompact(membershipData.totalStaked)}`}
-          </div>
-          <div className="mb-0.5 text-[10px] sm:text-xs text-gray-300 font-medium">Total Staked</div>
+        <div className="bg-white/5 rounded-lg p-2 text-center">
+          <div className="text-gray-400 mb-1">Total Staked</div>
+          <div className="font-semibold text-white">{isLoading ? '...' : formatCompact(membershipData.totalStaked)}</div>
         </div>
-        {/* Min Stake */}
-        <div className="min-w-0 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl border border-white/10 shadow-lg rounded-lg p-2 sm:p-3 flex flex-col items-center justify-center text-center transition-transform duration-300">
-          <div className="mb-1 p-1.5 sm:mb-2 sm:p-2 rounded-full bg-gradient-to-br from-yellow-500 to-orange-500 shadow-inner flex items-center justify-center">
-            <Shield className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow" />
-          </div>
-          <div className="mb-0.5 text-base sm:text-lg font-extrabold text-white">
-            {isLoading ? '...' : membershipData.minStakeRequired.toFixed(0)}
-          </div>
-          <div className="mb-0.5 text-[10px] sm:text-xs text-gray-300 font-medium">Min Stake</div>
+        <div className="bg-white/5 rounded-lg p-2 text-center">
+          <div className="text-gray-400 mb-1">Min Stake</div>
+          <div className="font-semibold text-white">{isLoading ? '...' : membershipData.minStakeRequired.toFixed(0)}</div>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="professional-card rounded-xl p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-bold text-white">Member Directory</h3>
-          <div className="flex items-center space-x-3">
+      <div className="bg-white/3 border border-white/5 rounded-xl p-4 w-full max-w-full overflow-hidden">
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm sm:text-base md:text-lg font-semibold text-white flex items-center gap-2">
+              <Users className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+              <span className="truncate">Member Directory</span>
+              {filteredMembers.length > 0 && (
+                <span className="text-xs sm:text-sm text-gray-400 hidden sm:inline">({filteredMembers.length})</span>
+              )}
+            </h3>
+          </div>
+          <div className="flex items-center space-x-2">
             <button
               onClick={() => {
                 fetchMembershipData();
@@ -351,35 +336,10 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
             >
               <RefreshCw className={`w-4 h-4 ${(isLoading || isLoadingMembers) ? 'animate-spin' : ''}`} />
             </button>
-            <div className="text-sm text-gray-400">
-              {isLoadingMembers ? 'Loading...' : `${filteredMembers.length} shown of ${membershipData.totalMembers} total`}
-            </div>
-          </div>
-        </div>
-        
-        {/* Member directory status */}
-        <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mb-6">
-          <div className="flex items-start space-x-3">
-            <Vote className="w-5 h-5 text-blue-400 mt-0.5" />
-            <div className="text-sm">
-              <p className="text-blue-300 font-medium mb-1">Real-Time Member Data</p>
-              <p className="text-blue-200">
-                Showing verified members with actual stakes. Total registered: <span className="font-bold">{membershipData.totalMembers}</span> | 
-                Total stakers: <span className="font-bold">{membershipData.totalStakers}</span> | 
-                Your status: <span className={`font-bold ${membershipData.userIsMember ? 'text-green-400' : 'text-orange-400'}`}>
-                  {membershipData.userIsMember ? 'Member' : 'Not Member'}
-                </span>
-              </p>
-              <p className="text-xs text-blue-300 mt-1">
-                {members.length === 0 && !isLoadingMembers 
-                  ? 'No verified members found. Connect your wallet and stake to appear in the directory.' 
-                  : 'Displaying members with verified stakes and active membership status.'}
-              </p>
-            </div>
           </div>
         </div>
 
-        <div className="flex items-center space-x-4 mb-6">
+        <div className="flex items-center space-x-4 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <input
@@ -387,7 +347,7 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
               placeholder="Search by address..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="professional-input pl-10 pr-4 py-2 w-full rounded-xl text-sm"
+              className="w-full px-4 py-2 pl-10 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
           </div>
           
@@ -396,7 +356,7 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
             <select
               value={filterRole}
               onChange={(e) => setFilterRole(e.target.value)}
-              className="professional-input px-3 py-2 rounded-xl text-sm"
+              className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Members</option>
               <option value="active">Active Only</option>
@@ -405,42 +365,37 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
           </div>
         </div>
 
-        {/* Members Table: table scrolls within container, page doesn't scroll */}
-        {/* Table for desktop and up */}
-        <div className="hidden sm:block w-full min-w-0 p-0 m-0">
-          <table className="professional-card rounded-xl p-0 m-0 w-full text-xs sm:text-sm">
+        {/* Desktop Table View */}
+        <div className="hidden sm:block overflow-x-auto">
+          <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10">
                 <th className="text-left py-4 px-4 font-medium text-gray-300">Member</th>
-                <th className="text-left py-4 px-4 font-medium text-gray-300">Staked tokens</th>
-                <th className="text-left py-4 px-4 font-medium text-gray-300">Voting Power</th>
-                <th className="text-left py-4 px-4 font-medium text-gray-300">Join Date</th>
+                <th className="text-left py-4 px-4 font-medium text-gray-300">Staked</th>
                 <th className="text-left py-4 px-4 font-medium text-gray-300">Status</th>
-                <th className="text-left py-4 px-4 font-medium text-gray-300">Actions</th>
+                <th className="text-left py-4 px-4 font-medium text-gray-300">Time</th>
               </tr>
             </thead>
             <tbody>
               {isLoadingMembers ? (
                 <tr>
-                  <td colSpan={6} className="py-8 px-4 text-center">
+                  <td colSpan={4} className="py-8 px-4 text-center">
                     <div className="flex items-center justify-center space-x-2 text-gray-400">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-                      <span>Loading member data...</span>
+                      <span>Loading members...</span>
                     </div>
                   </td>
                 </tr>
               ) : filteredMembers.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 px-4 text-center">
-                    <div className="text-gray-400">
-                      <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                      <p className="text-lg font-medium mb-1">No members found</p>
-                      <p className="text-sm">
-                        {membershipData.totalMembers > 0 
-                          ? 'Try adjusting your search filters or connect your wallet if you are a member.'
-                          : 'This DAO has no registered members yet. Be the first to join!'}
-                      </p>
-                    </div>
+                  <td colSpan={4} className="py-8 px-4 text-center">
+                    <Users className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+                    <p className="text-gray-400 text-sm">No members found</p>
+                    <p className="text-gray-500 text-xs mt-1">
+                      {membershipData.totalMembers > 0 
+                        ? 'Try adjusting your search or connect wallet if you are a member'
+                        : 'No registered members yet'}
+                    </p>
                   </td>
                 </tr>
               ) : (
@@ -448,40 +403,44 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
                 <tr key={member.id} className="border-b border-white/5 hover:bg-white/5 transition-all">
                   <td className="py-4 px-4">
                     <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">
-                        {member.shortAddress.slice(4, 6).toUpperCase()}
+                      <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                        {member.shortAddress.slice(2, 4).toUpperCase()}
                       </div>
-                      <div>
-                        <p className="font-medium text-white">{member.shortAddress}</p>
-                        <p className="text-sm text-gray-400">Member #{index + 1}</p>
+                      <div className="min-w-0">
+                        <h4 className="text-white font-medium text-sm leading-tight">{member.shortAddress}</h4>
+                        <p className="text-gray-400 text-xs leading-tight">Member #{index + 1}</p>
                       </div>
                     </div>
                   </td>
                   <td className="py-4 px-4">
-                    <span className="text-sm text-white font-medium">{member.tokensHeld.toLocaleString()} tokens</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <div className="flex items-center space-x-3">
-                      <span className="text-sm font-medium text-white">{member.tokensHeld.toLocaleString()} tokens</span>
-                      <div className="text-xs text-gray-400">(1:1 ratio)</div>
+                    <div className="flex items-center space-x-1">
+                      <span className="text-sm text-green-400 font-medium">{member.tokensHeld.toFixed(3)}</span>
+                      <img 
+                        src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27" 
+                        alt="MOVE"
+                        className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.classList.remove('hidden');
+                        }}
+                      />
+                      <span className="hidden">MOVE</span>
                     </div>
                   </td>
                   <td className="py-4 px-4">
-                    <span className="text-sm text-gray-400">{member.joinDate}</span>
-                  </td>
-                  <td className="py-4 px-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                    <span className={`px-2 py-1 rounded-full text-xs border ${
                       member.isActive 
-                        ? 'bg-green-500/20 text-green-300 border-green-500/30' 
-                        : 'bg-gray-500/20 text-gray-300 border-gray-500/30'
+                        ? 'text-green-400 border-green-500/30 bg-green-500/10' 
+                        : 'text-gray-400 border-gray-500/30 bg-gray-500/10'
                     }`}>
                       {member.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td className="py-4 px-4">
-                    <button className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all">
-                      <MoreVertical className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center space-x-1 text-gray-400">
+                      <span className="text-xs">{new Date().toLocaleDateString()}</span>
+                    </div>
                   </td>
                 </tr>
                 ))
@@ -489,67 +448,75 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
             </tbody>
           </table>
         </div>
-        {/* Card/list layout for mobile */}
-        <div className="sm:hidden space-y-4">
+
+        {/* Mobile Card View */}
+        <div className="sm:hidden">
           {isLoadingMembers ? (
-            <div className="bg-white/5 rounded-xl p-6 text-center">
+            <div className="text-center py-8">
               <div className="flex items-center justify-center space-x-2 text-gray-400">
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-                <span>Loading member data...</span>
+                <span>Loading members...</span>
               </div>
             </div>
           ) : filteredMembers.length === 0 ? (
-            <div className="bg-white/5 rounded-xl p-6 text-center">
-              <div className="text-gray-400">
-                <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                <p className="text-lg font-medium mb-1">No members found</p>
-                <p className="text-sm">
-                  {membershipData.totalMembers > 0 
-                    ? 'Try adjusting your search filters or connect your wallet if you are a member.'
-                    : 'This DAO has no registered members yet. Be the first to join!'}
-                </p>
-              </div>
+            <div className="text-center py-8">
+              <Users className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+              <p className="text-gray-400 text-sm">No members found</p>
+              <p className="text-gray-500 text-xs mt-1">
+                {membershipData.totalMembers > 0 
+                  ? 'Try adjusting your search'
+                  : 'No registered members yet'}
+              </p>
             </div>
           ) : (
-            filteredMembers.map((member, index) => (
-            <div key={member.id} className="bg-white/5 rounded-xl p-4 flex flex-col space-y-2 shadow border border-white/10">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">
-                  {member.shortAddress.slice(4, 6).toUpperCase()}
+            <div className="space-y-1.5">
+              {filteredMembers.map((member, index) => (
+                <div
+                  key={member.id}
+                  className="rounded-lg p-2.5 hover:bg-white/5 transition-all border-b border-white/5 last:border-b-0"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2 flex-1 min-w-0">
+                      <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                        {member.shortAddress.slice(2, 4).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h4 className="text-white font-medium text-sm leading-tight truncate">{member.shortAddress}</h4>
+                          <span className={`px-1.5 py-0.5 rounded-full text-[10px] border flex-shrink-0 ${
+                            member.isActive 
+                              ? 'text-green-400 border-green-500/30 bg-green-500/10' 
+                              : 'text-gray-400 border-gray-500/30 bg-gray-500/10'
+                          }`}>
+                            {member.isActive ? 'Active' : 'Inactive'}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-3 text-xs text-gray-400">
+                          <span>Member #{index + 1}</span>
+                          <span>{new Date().toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="flex items-center space-x-1">
+                        <span className="text-sm font-medium text-green-400">{member.tokensHeld.toFixed(3)}</span>
+                        <img 
+                          src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27" 
+                          alt="MOVE"
+                          className="w-3 h-3 flex-shrink-0"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                            if (fallback) fallback.classList.remove('hidden');
+                          }}
+                        />
+                        <span className="hidden">MOVE</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-white">{member.shortAddress}</p>
-                  <p className="text-xs text-gray-400">Member #{index + 1}</p>
-                </div>
-                <span className={`ml-auto px-3 py-1 rounded-full text-xs font-medium border ${
-                  member.isActive 
-                    ? 'bg-green-500/20 text-green-300 border-green-500/30' 
-                    : 'bg-gray-500/20 text-gray-300 border-gray-500/30'
-                }`}>
-                  {member.isActive ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2 text-xs text-gray-300">
-                <div className="flex items-center space-x-1">
-                  <span className="font-semibold text-white">Staked:</span>
-                  <span>{member.tokensHeld.toLocaleString()} tokens</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <span className="font-semibold text-white">Voting Power:</span>
-                  <span>{member.tokensHeld.toLocaleString()} tokens</span>
-                </div>
-                <div className="flex items-center space-x-1">
-                  <span className="font-semibold text-white">Joined:</span>
-                  <span>{member.joinDate}</span>
-                </div>
-              </div>
-              <div className="flex justify-end">
-                <button className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all">
-                  <MoreVertical className="w-4 h-4" />
-                </button>
-              </div>
+              ))}
             </div>
-            ))
           )}
         </div>
       </div>

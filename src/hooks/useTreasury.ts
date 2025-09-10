@@ -631,15 +631,18 @@ export const useTreasury = (daoId: string) => {
 
   // Initialize data fetching with timeout protection
   useEffect(() => {
-    if (daoId && account?.address) {
+    if (daoId) {
+      // Always fetch treasury data - this includes balance and basic info
+      const basicTasks = [fetchTreasuryData(), fetchTreasuryTransactions()];
+      
+      // Add wallet-specific tasks only if connected
+      const allTasks = account?.address 
+        ? [...basicTasks, fetchUserBalance(), checkAdminStatus()]
+        : basicTasks;
+      
       // Add timeout to prevent hanging on slow network
       Promise.race([
-        Promise.all([
-          fetchTreasuryData(),
-          fetchUserBalance(),
-          checkAdminStatus(),
-          fetchTreasuryTransactions()
-        ]),
+        Promise.all(allTasks),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Treasury data fetch timeout')), 8000))
       ]).catch((error) => {
         console.warn('Treasury initialization failed:', error);
@@ -647,17 +650,20 @@ export const useTreasury = (daoId: string) => {
     }
   }, [daoId, account?.address, fetchTreasuryData, fetchUserBalance, checkAdminStatus, fetchTreasuryTransactions]);
 
-  // Refresh data every 30 seconds
+  // Refresh data every 60 seconds
   useEffect(() => {
-    if (!daoId || !account?.address) return;
+    if (!daoId) return;
     
     const interval = setInterval(() => {
-      Promise.all([
-        fetchTreasuryData(),
-        fetchUserBalance(),
-        checkAdminStatus(),
-        fetchTreasuryTransactions()
-      ]);
+      // Always refresh treasury data and transactions
+      const basicTasks = [fetchTreasuryData(), fetchTreasuryTransactions()];
+      
+      // Add wallet-specific refresh only if connected
+      const allTasks = account?.address 
+        ? [...basicTasks, fetchUserBalance(), checkAdminStatus()]
+        : basicTasks;
+        
+      Promise.all(allTasks);
     }, 60000);
 
     return () => clearInterval(interval);

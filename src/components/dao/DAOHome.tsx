@@ -8,6 +8,7 @@ import { MODULE_ADDRESS } from '../../movement_service/constants';
 import { safeView } from '../../utils/rpcUtils';
 import { ACTIVITY_CONFIG } from '../../constants/activityConstants';
 import { useGetProfile } from '../../useServices/useProfile';
+import { truncateAddress } from '../../utils/addressUtils';
 
 interface DAOHomeProps {
   dao: DAO;
@@ -147,7 +148,7 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
               // Show first admin (usually the creator/super admin)
               const firstAdmin = admins[0];
               setFullAdminAddress(firstAdmin);
-              setAdminAddress(`${firstAdmin.slice(0, 6)}...${firstAdmin.slice(-4)}`);
+              setAdminAddress(truncateAddress(firstAdmin));
               return;
             }
           }
@@ -166,7 +167,7 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
           const creator = ev?.data?.creator as string | undefined;
           if (creator) {
             setFullAdminAddress(creator);
-            setAdminAddress(`${creator.slice(0, 6)}...${creator.slice(-4)}`);
+            setAdminAddress(truncateAddress(creator));
             return;
           }
         } catch (eventError) {
@@ -175,13 +176,13 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
 
         // Final fallback: DAO creator is the admin (contract guarantees this)
         setFullAdminAddress(dao.id);
-        setAdminAddress(`${dao.id.slice(0, 6)}...${dao.id.slice(-4)}`);
+        setAdminAddress(truncateAddress(dao.id));
         
       } catch (error: any) {
         console.warn('Error fetching admin info:', error);
         // Contract guarantees DAO creator is admin, so use DAO address
         setFullAdminAddress(dao.id);
-        setAdminAddress(`${dao.id.slice(0, 6)}...${dao.id.slice(-4)}`);
+        setAdminAddress(truncateAddress(dao.id));
       } finally {
         setIsLoadingAdmin(false);
       }
@@ -192,99 +193,86 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
   }, [dao.id]);
 
   return (
-    <div className="container mx-auto px-2 sm:px-6 space-y-6 max-w-screen-lg">
-
-      {/* Governance Parameters section removed as requested */}
-
-      {/* DAO Details & About */}
-      <div className="professional-card w-full max-w-full rounded-lg sm:rounded-xl p-3 sm:p-4 lg:p-6 box-border overflow-hidden">
-        <h2 className="text-sm sm:text-lg lg:text-xl font-bold text-white mb-3 sm:mb-4 lg:mb-6 flex items-center space-x-2">
-          <Info className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400 flex-shrink-0" />
-          <span className="truncate">About {dao.name}</span>
+    <div className="w-full px-4 sm:px-6 space-y-8">
+      
+      {/* About Section */}
+      <div className="space-y-6">
+        <h2 className="text-2xl font-bold text-white flex items-center space-x-3">
+          <Info className="w-6 h-6 text-blue-400" />
+          <span>About {dao.name}</span>
         </h2>
         
-        {/* DAO Stats */}
-        <div className="grid grid-cols-3 gap-1 sm:gap-2 md:gap-4 w-full mb-4 sm:mb-6">
-          <div className="flex flex-col items-center px-1">
-            <span className="font-medium text-[10px] sm:text-xs md:text-sm text-gray-400 mb-1 text-center leading-tight">Established</span>
-            <span className="text-xs sm:text-sm md:text-base font-bold text-white text-center">{dao.established}</span>
-          </div>
-          <div className="flex flex-col items-center px-1">
-            <span className="font-medium text-[10px] sm:text-xs md:text-sm text-gray-400 mb-1 text-center leading-tight">Treasury</span>
-            <div className="flex items-center justify-center space-x-1">
-              {isLoadingTreasury ? (
-                <span className="text-xs sm:text-sm md:text-base font-bold text-white font-mono text-center">Loading...</span>
-              ) : (
-                <>
-                  <span className="text-xs sm:text-sm md:text-base font-bold text-white font-mono text-center">{treasuryBalance}</span>
-                  <img 
-                    src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27" 
-                    alt="MOVE"
-                    className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                      if (fallback) fallback.classList.remove('hidden');
-                    }}
-                  />
-                  <span className="text-xs sm:text-sm md:text-base font-bold text-white font-mono text-center hidden">MOVE</span>
-                </>
-              )}
+        {/* Key Stats */}
+        <div className="grid grid-cols-2 gap-6">
+          <div className="text-center md:text-left">
+            <div className="flex flex-col space-y-1">
+              <span className="text-sm font-medium text-gray-400">Treasury Balance</span>
+              <div className="flex items-center justify-center md:justify-start space-x-2">
+                {isLoadingTreasury ? (
+                  <span className="text-xl font-bold text-white">Loading...</span>
+                ) : (
+                  <>
+                    <span className="text-xl font-bold text-white font-mono">{treasuryBalance}</span>
+                    <img 
+                      src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27" 
+                      alt="MOVE"
+                      className="w-6 h-6"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.classList.remove('hidden');
+                      }}
+                    />
+                    <span className="text-xl font-bold text-white font-mono hidden">MOVE</span>
+                  </>
+                )}
+              </div>
             </div>
           </div>
-          <div className="flex flex-col items-center px-1">
-            <span className="font-medium text-[10px] sm:text-xs md:text-sm text-gray-400 mb-1 text-center leading-tight">Admin</span>
-            <div className="flex flex-col items-center space-y-2">
+          
+          <div className="text-center md:text-left">
+            <div className="flex flex-col space-y-2">
+              <span className="text-sm font-medium text-gray-400">Admin</span>
               {isLoadingAdmin || adminProfileLoading ? (
-                <span className="text-xs">...</span>
+                <span className="text-sm text-gray-300">Loading...</span>
               ) : adminProfile ? (
-                <>
-                  <div className="flex items-center space-x-2">
-                    {adminProfile.avatarUrl ? (
-                      <img 
-                        src={adminProfile.avatarUrl} 
-                        alt={adminProfile.displayName}
-                        className="w-7 h-7 rounded-full object-cover flex-shrink-0"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                          if (fallback) fallback.classList.remove('hidden');
-                        }}
-                      />
-                    ) : null}
-                    <div className={`w-7 h-7 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${adminProfile.avatarUrl ? 'hidden' : ''}`}>
-                      {adminProfile.displayName.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="text-xs font-semibold text-white truncate">
+                <div className="flex items-center justify-center md:justify-start space-x-3">
+                  {adminProfile.avatarUrl ? (
+                    <img 
+                      src={adminProfile.avatarUrl} 
+                      alt={adminProfile.displayName}
+                      className="w-8 h-8 rounded-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.classList.remove('hidden');
+                      }}
+                    />
+                  ) : null}
+                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-sm font-bold ${adminProfile.avatarUrl ? 'hidden' : ''}`}>
+                    {adminProfile.displayName.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-semibold text-white">
                       {adminProfile.displayName}
                     </span>
+                    <span className="text-xs text-gray-400 font-mono">
+                      {adminAddress}
+                    </span>
                   </div>
-                  <span className="text-[10px] text-gray-400 font-mono text-center">
-                    {adminAddress}
-                  </span>
-                </>
+                </div>
               ) : (
-                <span className="text-xs font-bold text-white font-mono text-center break-all">
+                <span className="text-sm font-mono text-white">
                   {adminAddress}
                 </span>
               )}
             </div>
           </div>
         </div>
-        
-        {/* About Description */}
-        <div className="prose prose-invert max-w-none w-full overflow-hidden">
-          {dao.description && (
-            <p className="text-gray-300 leading-relaxed mb-2 sm:mb-4 text-xs sm:text-sm lg:text-base break-words">
-              {dao.description}
-            </p>
-          )}
-        </div>
       </div>
 
-
-      {/* Recent Activity - Optimized Contract-based data */}
-      <div className="w-full" style={{ maxWidth: '100vw', overflow: 'hidden' }}>
+      {/* Recent Activity */}
+      <div className="space-y-4">
         <OptimizedActivityTable
           activities={activities}
           isLoading={isLoading}

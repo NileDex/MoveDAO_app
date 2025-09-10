@@ -8,13 +8,13 @@
   position: sticky;
   top: 0;
   z-index: 50;
+  width: 100%;
 }
 .header-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  max-width: 80rem;
-  margin: 0 auto;
+  width: 100%;
 }
 .header-left {
   display: flex;
@@ -140,8 +140,4 @@
 .header-menu-btn:hover {
   color: #fff;
 }
-@media (min-width: 768px) {
-  .header-menu-btn {
-    display: none;
-  }
-} 
+ 

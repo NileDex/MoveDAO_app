@@ -3,6 +3,7 @@ import { Wallet, X, ChevronDown, ArrowLeft, User } from 'lucide-react';
 import ReactDOM from 'react-dom';
 import { useWallet } from '@razorlabs/razorkit';
 import { useAlert } from './alert/AlertContext';
+import { truncateAddress } from '../utils/addressUtils';
 
 
 // Reown-inspired wallet modal
@@ -641,8 +642,7 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-  // Truncate address for display
-  const truncateAddress = (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`;
+  // Use utility function for address truncation
 
   // Render button and modal
   return (

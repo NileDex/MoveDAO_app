@@ -9,7 +9,7 @@ body {
   font-family: "Hubballi", sans-serif;
   font-weight: 400;
   font-style: normal;
-  background: #0f0f11;
+  background: #1a1a1a;
   background-position: center;
   background-size: cover;
   background-repeat: no-repeat;
@@ -23,7 +23,7 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #0f0f11;
+  background: #1a1a1a;
 }
 
 ::-webkit-scrollbar-thumb {
@@ -62,10 +62,10 @@ body {
   animation: slideInSidebar 0.25s cubic-bezier(0.4,0,0.2,1);
 }
 
-/* Professional card styles */
+/* Professional card styles - Clean version with subtle background */
 .professional-card {
-  background: linear-gradient(135deg, rgba(25, 25, 28, 0.9) 0%, rgba(35, 35, 38, 0.8) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(25, 25, 28, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
 }
 
@@ -360,4 +360,10 @@ body {
     height: 72px;
     margin: -36px 0 0 -36px;
   }
+}
+
+/* Custom padding overrides */
+.px-4 {
+  padding-left: 0.4rem !important;
+  padding-right: 0.4rem !important;
 }

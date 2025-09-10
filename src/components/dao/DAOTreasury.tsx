@@ -1,23 +1,33 @@
 import React, { useState } from 'react';
-import { DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Wallet, Plus, Minus, Info, Shield, Clock, AlertTriangle, RefreshCw, XCircle, Users, Lock } from 'lucide-react';
+import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import { ArrowUpRight, ArrowDownRight, Wallet, Plus, Minus, Clock, AlertTriangle, RefreshCw, XCircle } from 'lucide-react';
 import { FaCheckCircle } from 'react-icons/fa';
 import { useTreasury } from '../../hooks/useTreasury';
 import { DAO } from '../../types/dao';
+import { aptosClient } from '../../movement_service/movement-client';
+import { MODULE_ADDRESS } from '../../movement_service/constants';
+import { BalanceService } from '../../useServices/useBalance';
+import { truncateAddress } from '../../utils/addressUtils';
+import { useWallet } from '@razorlabs/razorkit';
 
 interface DAOTreasuryProps {
   dao: DAO;
 }
 
 const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
+  const { account } = useWallet();
   const [showDepositForm, setShowDepositForm] = useState(false);
   const [showWithdrawForm, setShowWithdrawForm] = useState(false);
   const [amount, setAmount] = useState('');
-  const [activeTab, setActiveTab] = useState<'overview' | 'transactions'>('overview');
+  // Render both sections sequentially (no tabs)
   const [isDepositing, setIsDepositing] = useState(false);
   const [isWithdrawing, setIsWithdrawing] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isTogglingPublicDeposits, setIsTogglingPublicDeposits] = useState(false);
+  const [movePrice, setMovePrice] = useState<number | null>(null);
+  const [totalStaked, setTotalStaked] = useState<number>(0);
+  const isWalletConnected = !!account?.address;
 
   // Use the treasury hook
   const {
@@ -42,6 +52,51 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
     }
   }, [successMessage, errorMessage]);
 
+  // Fetch MOVE price from CoinGecko
+  React.useEffect(() => {
+    const fetchMovePrice = async () => {
+      try {
+        const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=movement&vs_currencies=usd');
+        const data = await response.json();
+        if (data.movement && data.movement.usd) {
+          setMovePrice(data.movement.usd);
+        }
+      } catch (error) {
+        console.warn('Failed to fetch MOVE price from CoinGecko:', error);
+        // Fallback to a default price if API fails
+        setMovePrice(1); // $1 fallback
+      }
+    };
+
+    fetchMovePrice();
+    // Refresh price every 5 minutes
+    const interval = setInterval(fetchMovePrice, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch total staked amount
+  React.useEffect(() => {
+    const fetchTotalStaked = async () => {
+      try {
+        const totalStakedRes = await aptosClient.view({ 
+          payload: { 
+            function: `${MODULE_ADDRESS}::staking::get_total_staked`, 
+            functionArguments: [dao.id] 
+          } 
+        });
+        const totalStakedAmount = BalanceService.octasToMove(Number(totalStakedRes?.[0] || 0));
+        setTotalStaked(totalStakedAmount);
+      } catch (error) {
+        console.warn('Failed to fetch total staked:', error);
+        setTotalStaked(0);
+      }
+    };
+
+    fetchTotalStaked();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchTotalStaked, 30 * 1000);
+    return () => clearInterval(interval);
+  }, [dao.id]);
 
   const handleDeposit = async () => {
     if (!amount || parseFloat(amount) <= 0) {
@@ -111,390 +166,325 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
     }
   };
 
-  const tabs = [
-    { id: 'overview', label: 'Overview', icon: Wallet },
-    { id: 'transactions', label: 'Transactions', icon: Clock }
-  ];
+  // Tabs removed – show Overview and Transactions together
 
   const renderOverview = () => (
     <div className="space-y-6">
-      {/* Treasury Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="professional-card rounded-xl p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-400">Total Balance</p>
-              <p className="text-2xl font-bold text-white">{treasuryData.balance.toFixed(3)} MOVE</p>
+      {/* Top value header - Made responsive */}
+      <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6">
+        {/* Assets left - compact list - Increased width */}
+        <div className="w-full xl:w-[400px] space-y-2">
+          {/* Treasury value calculated from tokens */}
+          <div className="text-left mb-2">
+            <div className="text-5xl font-extrabold text-white">
+              {movePrice !== null 
+                ? `$${((treasuryData?.balance || 0) * movePrice).toLocaleString(undefined,{maximumFractionDigits:2})}` 
+                : `$${((treasuryData?.balance || 0) * 1).toLocaleString(undefined,{maximumFractionDigits:2})}`
+              }
             </div>
-            <Wallet className="w-8 h-8 text-blue-400" />
+            <div className="text-lg font-bold text-gray-400">Treasury Value</div>
           </div>
+          
+          {[
+            { id: 'tokens', label: 'Tokens', value: treasuryData?.balance ?? 0 },
+            { id: 'staking', label: 'Staking', value: totalStaked }
+          ].map((a, i) => (
+            <div key={a.id} className={`rounded-xl p-4 ${i === 0 ? 'bg-white/10' : 'bg-transparent hover:bg-white/5'} border border-white/10`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <span className={`inline-block w-2 h-2 rounded-full ${i===0?'bg-blue-400':i===1?'bg-emerald-400':'bg-yellow-400'}`}></span>
+                  <span className="text-white font-medium">{a.label}</span>
+                </div>
+                <div className="text-right">
+                  <div className="text-white font-semibold">
+                    {movePrice !== null 
+                      ? `$${(a.value * movePrice).toLocaleString(undefined,{maximumFractionDigits:2})}` 
+                      : `$${(a.value * 1).toLocaleString(undefined,{maximumFractionDigits:2})}`
+                    }
+                  </div>
+                  <div className="text-sm text-gray-300 flex items-center justify-end space-x-1 mb-1">
+                    <span>{(a.value*1).toLocaleString(undefined,{maximumFractionDigits:2})}</span>
+                    <img 
+                      src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27" 
+                      alt="MOVE"
+                      className="w-3 h-3 flex-shrink-0"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                        if (fallback) fallback.classList.remove('hidden');
+                      }}
+                    />
+                    <span className="hidden">MOVE</span>
+                  </div>
+                  <div className="text-xs text-gray-400">{i===0?'100.0%':'0.0%'}</div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-        
-        <div className="professional-card rounded-xl p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-400">Daily Limit</p>
-              <p className="text-2xl font-bold text-white">{treasuryData.dailyWithdrawalLimit.toFixed(0)} MOVE</p>
-            </div>
-            <Shield className="w-8 h-8 text-yellow-400" />
+
+        {/* Donut chart right - Made responsive */}
+        <div className="w-full xl:w-auto flex-1 max-w-md xl:max-w-none p-4">
+          <div 
+            className="h-56 w-full [&_svg]:outline-none [&_svg]:border-none [&_*]:outline-none [&_*]:border-none" 
+            style={{ outline: 'none' }}
+          >
+          <ResponsiveContainer width="100%" height="100%" style={{ outline: 'none' }}>
+            <PieChart style={{ outline: 'none', border: 'none' }}>
+              <Pie 
+                dataKey="value" 
+                data={[
+                  { name: 'Tokens', value: Math.max(0, treasuryData?.balance ?? 0) },
+                  { name: 'Staking', value: Math.max(0, totalStaked) }
+                ]} 
+                innerRadius={70} 
+                outerRadius={110} 
+                paddingAngle={1}
+                stroke="none"
+                onClick={undefined}
+                onMouseEnter={undefined}
+                onMouseLeave={undefined}
+                style={{ outline: 'none' }}
+              >
+                {["#22d3ee", "#f59e0b"].map((c, idx) => (
+                  <Cell 
+                    key={idx} 
+                    fill={c} 
+                    stroke="none" 
+                    style={{ outline: 'none' }}
+                  />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
           </div>
-        </div>
-        
-        <div className="professional-card rounded-xl p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-400">Daily Used</p>
-              <p className="text-2xl font-bold text-white">{treasuryData.dailyWithdrawn.toFixed(3)} MOVE</p>
-            </div>
-            <div className="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center">
-              <Minus className="w-5 h-5 text-orange-400" />
-            </div>
-          </div>
-        </div>
-        
-        <div className="professional-card rounded-xl p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-400">Remaining Today</p>
-              <p className="text-2xl font-bold text-white">{treasuryData.remainingDaily.toFixed(3)} MOVE</p>
-            </div>
-            <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
-              <Plus className="w-5 h-5 text-green-400" />
-            </div>
-          </div>
+          <div className="text-center text-gray-300 mt-2 text-sm">Tokens breakdown</div>
         </div>
       </div>
 
-      {/* Public Deposits Toggle - Admin Only */}
+      {/* Public Deposits Toggle - Admin Only - No background */}
       {isAdmin && (
-        <div className="professional-card rounded-xl p-4 sm:p-6">
-          <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
-            <Users className="w-5 h-5 text-blue-400" />
-            <span>Public Deposits Settings</span>
-          </h3>
-          
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex-1">
-              <div className="flex items-center space-x-2 mb-2">
-                {treasuryData.allowsPublicDeposits ? (
-                  <Users className="w-5 h-5 text-green-400" />
-                ) : (
-                  <Lock className="w-5 h-5 text-yellow-400" />
-                )}
-                <span className={`font-medium ${
-                  treasuryData.allowsPublicDeposits ? 'text-green-300' : 'text-yellow-300'
-                }`}>
-                  {treasuryData.allowsPublicDeposits ? 'Public Deposits Enabled' : 'Member-Only Deposits'}
-                </span>
-              </div>
-              <p className="text-sm text-gray-400">
-                {treasuryData.allowsPublicDeposits 
-                  ? 'Anyone can deposit tokens to support this DAO' 
-                  : 'Only DAO members and admins can deposit tokens'}
-              </p>
+        <div className="flex items-center justify-between py-2">
+          <div>
+            <div className="text-white font-medium mb-1">
+              {treasuryData.allowsPublicDeposits ? 'Public Deposits Enabled' : 'Member-Only Deposits'}
             </div>
+            <div className="text-sm text-gray-400">
+              {treasuryData.allowsPublicDeposits 
+                ? 'Anyone can deposit tokens' 
+                : 'Only members can deposit'}
+            </div>
+          </div>
+          
+          <div className="flex space-x-2">
+            <button
+              onClick={() => handleTogglePublicDeposits(true)}
+              disabled={treasuryData.allowsPublicDeposits || isTogglingPublicDeposits}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                treasuryData.allowsPublicDeposits
+                  ? 'bg-green-600 text-white'
+                  : 'bg-white/10 text-gray-400 hover:bg-white/20'
+              }`}
+            >
+              Public
+            </button>
             
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-              <button
-                onClick={() => handleTogglePublicDeposits(true)}
-                disabled={treasuryData.allowsPublicDeposits || isTogglingPublicDeposits}
-                className={`px-4 py-2 rounded-lg font-medium transition-all text-sm flex items-center justify-center w-full sm:w-auto ${
-                  treasuryData.allowsPublicDeposits
-                    ? 'bg-green-500/20 text-green-300 cursor-not-allowed opacity-50'
-                    : isTogglingPublicDeposits
-                    ? 'bg-green-500/10 text-green-400 cursor-not-allowed'
-                    : 'bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-500/30'
-                }`}
-              >
-                {isTogglingPublicDeposits && treasuryData.allowsPublicDeposits === false ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-green-300"></div>
-                    <span>Enabling...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <Users className="w-4 h-4" />
-                    <span>Enable Public</span>
-                  </div>
-                )}
-              </button>
-              
-              <button
-                onClick={() => handleTogglePublicDeposits(false)}
-                disabled={!treasuryData.allowsPublicDeposits || isTogglingPublicDeposits}
-                className={`px-4 py-2 rounded-lg font-medium transition-all text-sm flex items-center justify-center w-full sm:w-auto ${
-                  !treasuryData.allowsPublicDeposits
-                    ? 'bg-yellow-500/20 text-yellow-300 cursor-not-allowed opacity-50'
-                    : isTogglingPublicDeposits
-                    ? 'bg-yellow-500/10 text-yellow-400 cursor-not-allowed'
-                    : 'bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-300 border border-yellow-500/30'
-                }`}
-              >
-                {isTogglingPublicDeposits && treasuryData.allowsPublicDeposits === true ? (
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-yellow-300"></div>
-                    <span>Disabling...</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-2">
-                    <Lock className="w-4 h-4" />
-                    <span>Member Only</span>
-                  </div>
-                )}
-              </button>
-            </div>
+            <button
+              onClick={() => handleTogglePublicDeposits(false)}
+              disabled={!treasuryData.allowsPublicDeposits || isTogglingPublicDeposits}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                !treasuryData.allowsPublicDeposits
+                  ? 'bg-yellow-600 text-white'
+                  : 'bg-white/10 text-gray-400 hover:bg-white/20'
+              }`}
+            >
+              Members
+            </button>
           </div>
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div style={{
-          background: 'linear-gradient(45deg, #ffc30d, #b80af7)',
-          borderRadius: '13px',
-          padding: '2px',
-          display: 'inline-block',
-        }}>
-        <button
-          onClick={() => setShowDepositForm(true)}
-            className="flex items-center justify-center space-x-2 px-6 py-3 font-medium transition-all"
-            style={{
-              background: '#121212',
-              borderRadius: '11px',
-              border: 'none',
-              color: '#fff',
-              cursor: 'pointer',
-              minWidth: 'fit-content',
-            }}
-            title={treasuryData.allowsPublicDeposits 
-              ? 'Public deposits enabled - Anyone can deposit to support this DAO' 
-              : 'Member-only deposits - Only DAO members and admins can deposit'
-            }
-        >
-          <Plus className="w-4 h-4" />
-          <span>Deposit Tokens</span>
-          {treasuryData.allowsPublicDeposits ? (
-            <Users className="w-3 h-3 text-green-400" title="Public deposits enabled" />
-          ) : (
-            <Lock className="w-3 h-3 text-yellow-400" title="Member-only deposits" />
+      {/* Actions - Only show when wallet is connected */}
+      {isWalletConnected ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
+          <button
+            onClick={() => setShowDepositForm(true)}
+            className="flex items-center justify-center space-x-2 px-6 py-3 text-green-400 border border-green-500/30 rounded-xl font-medium hover:bg-green-500/10 transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Deposit</span>
+          </button>
+          
+          {isAdmin && (
+            <button
+              onClick={() => setShowWithdrawForm(true)}
+              className="flex items-center justify-center space-x-2 px-6 py-3 text-red-400 border border-red-500/30 rounded-xl font-medium hover:bg-red-500/10 transition-all"
+            >
+              <Minus className="w-4 h-4" />
+              <span>Withdraw</span>
+            </button>
           )}
-        </button>
         </div>
-        {isAdmin && (
-          <div style={{
-            background: 'linear-gradient(45deg, #ef4444, #dc2626)',
-            borderRadius: '13px',
-            padding: '2px',
-            display: 'inline-block',
-          }}>
-        <button
-          onClick={() => setShowWithdrawForm(true)}
-              className="flex items-center justify-center space-x-2 px-6 py-3 font-medium transition-all"
-              style={{
-                background: '#121212',
-                borderRadius: '11px',
-                border: 'none',
-                color: '#ef4444',
-                cursor: 'pointer',
-                minWidth: 'fit-content',
-              }}
-              title="Withdraw funds (Admin only)"
-        >
-          <Minus className="w-4 h-4" />
-              <span>Withdraw Tokens</span>
-        </button>
+      ) : (
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 max-w-md">
+          <div className="flex items-center space-x-3">
+            <Wallet className="w-5 h-5 text-blue-400 flex-shrink-0" />
+            <div>
+              <p className="text-blue-300 font-medium mb-1">Connect Wallet</p>
+              <p className="text-blue-200 text-sm">Connect your wallet to deposit or withdraw funds</p>
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* Deposit Form */}
+      {/* Deposit Modal */}
       {showDepositForm && (
-        <div className="professional-card rounded-xl p-4 sm:p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Deposit Tokens</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Amount</label>
-              <input
-                type="text"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="0.000"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Available: {userBalance.toFixed(3)} MOVE
-              </p>
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4" onClick={() => setShowDepositForm(false)}>
+          <div className="rounded-xl p-5 w-full max-w-md bg-[#121212] border border-white/10" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-white">Deposit Tokens</h3>
+              <button onClick={() => setShowDepositForm(false)} className="text-gray-400 hover:text-white">
+                <XCircle className="w-5 h-5" />
+              </button>
             </div>
-            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-              <div style={{
-                background: (!amount || parseFloat(amount) <= 0 || isDepositing) 
-                  ? 'linear-gradient(45deg, #4b5563, #6b7280)' 
-                  : 'linear-gradient(45deg, #ffc30d, #b80af7)',
-                borderRadius: '13px',
-                padding: '2px',
-                display: 'inline-block',
-              }}>
-              <button
-                onClick={handleDeposit}
-                    className="flex items-center justify-center space-x-2 px-6 py-3 font-medium transition-all"
-                    style={{
-                      background: '#121212',
-                      borderRadius: '11px',
-                      border: 'none',
-                      color: (!amount || parseFloat(amount) <= 0 || isDepositing) ? '#9ca3af' : '#fff',
-                      cursor: (!amount || parseFloat(amount) <= 0 || isDepositing) ? 'not-allowed' : 'pointer',
-                      opacity: (!amount || parseFloat(amount) <= 0 || isDepositing) ? 0.5 : 1,
-                      minWidth: 'fit-content',
-                    }}
-                disabled={!amount || parseFloat(amount) <= 0 || isDepositing}
-              >
-                {isDepositing ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>Depositing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-4 h-4" />
-                    <span>Deposit</span>
-                  </>
-                )}
-              </button>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">Amount</label>
+                <input
+                  type="text"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="0.000"
+                />
+                <p className="text-xs text-gray-500 mt-1">Available: {userBalance.toFixed(3)} MOVE</p>
               </div>
-              <button
-                onClick={() => setShowDepositForm(false)}
-                className="px-6 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl transition-all"
-              >
-                Cancel
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleDeposit}
+                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium disabled:opacity-50"
+                  disabled={!amount || parseFloat(amount) <= 0 || isDepositing}
+                >
+                  {isDepositing ? 'Depositing...' : 'Confirm Deposit'}
+                </button>
+                <button onClick={() => setShowDepositForm(false)} className="px-6 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl">
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Withdraw Form */}
+      {/* Withdraw Modal */}
       {showWithdrawForm && isAdmin && (
-        <div className="professional-card rounded-xl p-4 sm:p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Withdraw Tokens</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Amount</label>
-              <input
-                type="text"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
-                placeholder="0.000"
-              />
-              <div className="text-xs text-gray-500 mt-1 space-y-1">
-                <p>Treasury balance: {treasuryData.balance.toFixed(3)} MOVE</p>
-                <p>Daily limit remaining: {treasuryData.remainingDaily.toFixed(3)} MOVE</p>
-                <p>Max withdrawal: {Math.min(treasuryData.remainingDaily, treasuryData.balance).toFixed(3)} MOVE</p>
-              </div>
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4" onClick={() => setShowWithdrawForm(false)}>
+          <div className="rounded-xl p-5 w-full max-w-md bg-[#121212] border border-white/10" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-lg font-semibold text-white">Withdraw Tokens</h3>
+              <button onClick={() => setShowWithdrawForm(false)} className="text-gray-400 hover:text-white">
+                <XCircle className="w-5 h-5" />
+              </button>
             </div>
-            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-              <button
-                onClick={handleWithdraw}
-                className="flex items-center justify-center space-x-2 px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/30 rounded-xl transition-all flex-1"
-                disabled={!amount || parseFloat(amount) <= 0 || parseFloat(amount) > Math.min(treasuryData.remainingDaily, treasuryData.balance) || isWithdrawing}
-              >
-                {isWithdrawing ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-300"></div>
-                    <span>Withdrawing...</span>
-                  </>
-                ) : (
-                  <>
-                    <Minus className="w-4 h-4" />
-                    <span>Withdraw</span>
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => setShowWithdrawForm(false)}
-                className="px-6 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl transition-all"
-              >
-                Cancel
-              </button>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-400 mb-2">Amount</label>
+                <input
+                  type="text"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500"
+                  placeholder="0.000"
+                />
+                <div className="text-xs text-gray-500 mt-1 space-y-1">
+                  <p>Treasury balance: {treasuryData.balance.toFixed(3)} MOVE</p>
+                  <p>Daily limit remaining: {treasuryData.remainingDaily.toFixed(3)} MOVE</p>
+                  <p>Max withdrawal: {Math.min(treasuryData.remainingDaily, treasuryData.balance).toFixed(3)} MOVE</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={handleWithdraw}
+                  className="flex-1 px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium disabled:opacity-50"
+                  disabled={!amount || parseFloat(amount) <= 0 || parseFloat(amount) > Math.min(treasuryData.remainingDaily, treasuryData.balance) || isWithdrawing}
+                >
+                  {isWithdrawing ? 'Withdrawing...' : 'Confirm Withdraw'}
+                </button>
+                <button onClick={() => setShowWithdrawForm(false)} className="px-6 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl">
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Treasury Info */}
-      <div className="professional-card rounded-xl p-4 sm:p-6">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
-          <Info className="w-5 h-5 text-blue-400" />
-          <span>Treasury Information</span>
-        </h3>
-        
-        <div className="space-y-3">
-          <div className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
-            <Wallet className="w-5 h-5 text-blue-400 mt-0.5" />
-            <div>
-              <p className="text-white font-medium">Native Tokens Only</p>
-              <p className="text-sm text-gray-400">Treasury contract only handles native tokens for security and simplicity</p>
-            </div>
-          </div>
-          
-          <div className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
-            <Shield className="w-5 h-5 text-yellow-400 mt-0.5" />
-            <div>
-              <p className="text-white font-medium">Daily Withdrawal Limits</p>
-              <p className="text-sm text-gray-400">Built-in security with {treasuryData.dailyWithdrawalLimit.toFixed(0)} MOVE daily withdrawal limit per admin</p>
-            </div>
-          </div>
-          
-          <div className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
-            {treasuryData.allowsPublicDeposits ? (
-              <Users className="w-5 h-5 text-green-400 mt-0.5" />
-            ) : (
-              <Lock className="w-5 h-5 text-yellow-400 mt-0.5" />
-            )}
-            <div>
-              <p className="text-white font-medium">
-                {treasuryData.allowsPublicDeposits ? 'Public Deposits Enabled' : 'Member-Only Deposits'}
-              </p>
-              <p className="text-sm text-gray-400">
-                {treasuryData.allowsPublicDeposits
-                  ? 'Anyone can deposit tokens to support the DAO. Only admins can withdraw funds.'
-                  : 'Only DAO members and admins can deposit tokens. Admins can toggle this setting.'
-                }
-              </p>
-            </div>
-          </div>
-          
-          <div className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
-            <Shield className="w-5 h-5 text-purple-400 mt-0.5" />
-            <div>
-              <p className="text-white font-medium">Reentrancy Protection</p>
-              <p className="text-sm text-gray-400">Advanced security measures prevent reentrancy attacks during withdrawals</p>
-            </div>
-          </div>
+      {/* Treasury Info - Clean version */}
+      <div className="space-y-2 text-sm">
+        <div className="flex justify-between items-center py-2 border-b border-white/5">
+          <span className="text-gray-400">Security</span>
+          <span className="text-white">Native tokens only, Daily limits, Reentrancy protection</span>
+        </div>
+        <div className="flex justify-between items-center py-2 border-b border-white/5">
+          <span className="text-gray-400">Daily Limit</span>
+          <span className="text-white">{treasuryData.dailyWithdrawalLimit.toFixed(0)} MOVE per admin</span>
+        </div>
+        <div className="flex justify-between items-center py-2">
+          <span className="text-gray-400">Deposits</span>
+          <span className="text-white">
+            {treasuryData.allowsPublicDeposits ? 'Public enabled' : 'Members only'}
+          </span>
         </div>
       </div>
     </div>
   );
 
   const renderTransactions = () => {
-    // Helper function to truncate addresses for mobile
-    const truncateAddress = (address: string | undefined): string => {
-      if (!address) return 'Unknown';
-      if (address.length <= 12) return address;
-      return `${address.slice(0, 6)}...${address.slice(-4)}`;
-    };
+    // Use the utility function for consistent address truncation
 
     return (
-      <div className="space-y-6">
-        <div className="professional-card rounded-xl p-4 sm:p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Recent Transactions</h3>
-          <div className="space-y-3">
-            {transactions.length > 0 ? (
-              transactions.map((tx, index) => (
-                <div key={index} className="bg-white/5 rounded-xl p-4">
-                  {/* Mobile Layout: Stacked */}
-                  <div className="flex flex-col sm:hidden space-y-3">
-                    <div className="flex items-center justify-between">
+      <div className="bg-white/3 border border-white/5 rounded-xl p-4 w-full max-w-full overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-3 sm:mb-4">
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm sm:text-base md:text-lg font-semibold text-white flex items-center gap-2">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0" />
+              <span className="truncate">Recent Transactions</span>
+              {transactions.length > 0 && (
+                <span className="text-xs sm:text-sm text-gray-400 hidden sm:inline">({transactions.length})</span>
+              )}
+            </h3>
+          </div>
+        </div>
+
+        {/* Desktop Table View */}
+        <div className="hidden sm:block overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-white/10">
+                <th className="text-left py-4 px-4 font-medium text-gray-300">Transaction</th>
+                <th className="text-left py-4 px-4 font-medium text-gray-300">Type</th>
+                <th className="text-left py-4 px-4 font-medium text-gray-300">Amount</th>
+                <th className="text-left py-4 px-4 font-medium text-gray-300">Address</th>
+                <th className="text-left py-4 px-4 font-medium text-gray-300">Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {transactions.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="py-8 px-4 text-center">
+                    <Clock className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+                    <p className="text-gray-400 text-sm">No transactions yet</p>
+                    <p className="text-gray-500 text-xs mt-1">
+                      Treasury transactions will appear here
+                    </p>
+                  </td>
+                </tr>
+              ) : (
+                transactions.map((tx, index) => (
+                  <tr key={index} className="border-b border-white/5 hover:bg-white/5 transition-all">
+                    {/* Transaction */}
+                    <td className="py-4 px-4">
                       <div className="flex items-center space-x-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                           tx.type === 'deposit' ? 'bg-green-500/20' : 'bg-red-500/20'
@@ -505,62 +495,115 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
                             <ArrowUpRight className="w-4 h-4 text-red-400" />
                           )}
                         </div>
-                        <span className="font-medium text-white capitalize text-sm">{tx.type}</span>
+                        <div className="min-w-0">
+                          <h4 className="text-white font-medium text-sm leading-tight capitalize">{tx.type}</h4>
+                          <p className="text-gray-400 text-xs leading-tight">Treasury {tx.type}</p>
+                        </div>
                       </div>
-                      <p className={`font-semibold text-sm ${tx.type === 'deposit' ? 'text-green-400' : 'text-red-400'}`}>
+                    </td>
+                    
+                    {/* Type */}
+                    <td className="py-4 px-4">
+                      <span className={`px-2 py-1 rounded-full text-xs border whitespace-nowrap ${
+                        tx.type === 'deposit' 
+                          ? 'text-green-400 border-green-500/30 bg-green-500/10' 
+                          : 'text-red-400 border-red-500/30 bg-red-500/10'
+                      }`}>
+                        {tx.type === 'deposit' ? 'Deposit' : 'Withdraw'}
+                      </span>
+                    </td>
+                    
+                    {/* Amount */}
+                    <td className="py-4 px-4">
+                      <div className={`text-sm font-medium ${tx.type === 'deposit' ? 'text-green-400' : 'text-red-400'}`}>
                         {tx.type === 'deposit' ? '+' : '-'}{tx.amount.toFixed(3)} MOVE
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between text-sm text-gray-400">
-                      <span>
+                      </div>
+                    </td>
+                    
+                    {/* Address */}
+                    <td className="py-4 px-4">
+                      <span className="text-sm text-gray-300 font-mono">
                         {tx.type === 'deposit' 
-                          ? `From: ${truncateAddress(tx.from)}` 
-                          : `To: ${truncateAddress(tx.to)}`
+                          ? truncateAddress(tx.from || '')
+                          : truncateAddress(tx.to || '')
                         }
                       </span>
-                      <span>{new Date(tx.timestamp).toLocaleDateString()}</span>
-                    </div>
-                  </div>
+                    </td>
+                    
+                    {/* Time */}
+                    <td className="py-4 px-4">
+                      <div className="flex items-center space-x-1 text-gray-400">
+                        <Clock className="w-3 h-3" />
+                        <span className="text-xs">{new Date(tx.timestamp).toLocaleDateString()}</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-                  {/* Desktop Layout: Side by Side */}
-                  <div className="hidden sm:flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+        {/* Mobile Card View */}
+        <div className="sm:hidden">
+          {transactions.length === 0 ? (
+            <div className="text-center py-8">
+              <Clock className="w-12 h-12 text-gray-500 mx-auto mb-3" />
+              <p className="text-gray-400 text-sm">No transactions yet</p>
+              <p className="text-gray-500 text-xs mt-1">
+                Treasury transactions will appear here
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {transactions.map((tx, index) => (
+                <div
+                  key={index}
+                  className="rounded-lg p-2.5 hover:bg-white/5 transition-all border-b border-white/5 last:border-b-0"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2 flex-1 min-w-0">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                         tx.type === 'deposit' ? 'bg-green-500/20' : 'bg-red-500/20'
                       }`}>
                         {tx.type === 'deposit' ? (
-                          <ArrowDownRight className="w-5 h-5 text-green-400" />
+                          <ArrowDownRight className="w-4 h-4 text-green-400" />
                         ) : (
-                          <ArrowUpRight className="w-5 h-5 text-red-400" />
+                          <ArrowUpRight className="w-4 h-4 text-red-400" />
                         )}
                       </div>
-                      <div>
-                        <p className="font-medium text-white capitalize">{tx.type}</p>
-                        <p className="text-sm text-gray-400">
-                          {tx.type === 'deposit' 
-                            ? `From: ${truncateAddress(tx.from)}` 
-                            : `To: ${truncateAddress(tx.to)}`
-                          }
-                        </p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h4 className="text-white font-medium text-sm leading-tight capitalize">{tx.type}</h4>
+                          <span className={`px-1.5 py-0.5 rounded-full text-[10px] border flex-shrink-0 ${
+                            tx.type === 'deposit' 
+                              ? 'text-green-400 border-green-500/30 bg-green-500/10' 
+                              : 'text-red-400 border-red-500/30 bg-red-500/10'
+                          }`}>
+                            {tx.type === 'deposit' ? 'Deposit' : 'Withdraw'}
+                          </span>
+                        </div>
+                        <div className="flex items-center space-x-3 text-xs text-gray-400">
+                          <span className="font-mono">
+                            {tx.type === 'deposit' 
+                              ? truncateAddress(tx.from || '')
+                              : truncateAddress(tx.to || '')
+                            }
+                          </span>
+                          <span>{new Date(tx.timestamp).toLocaleDateString()}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className={`font-medium ${tx.type === 'deposit' ? 'text-green-400' : 'text-red-400'}`}>
+                    <div className="text-right flex-shrink-0">
+                      <div className={`text-sm font-medium ${tx.type === 'deposit' ? 'text-green-400' : 'text-red-400'}`}>
                         {tx.type === 'deposit' ? '+' : '-'}{tx.amount.toFixed(3)} MOVE
-                      </p>
-                      <p className="text-sm text-gray-400">{new Date(tx.timestamp).toLocaleDateString()}</p>
+                      </div>
                     </div>
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="text-center py-8">
-                <Clock className="w-12 h-12 text-gray-500 mx-auto mb-4" />
-                <p className="text-gray-400 mb-2">No transactions yet</p>
-                <p className="text-sm text-gray-500">Treasury transactions will appear here</p>
-              </div>
-            )}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -569,18 +612,18 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
 
 
   return (
-    <div className="container mx-auto px-2 sm:px-6 space-y-6 sm:space-y-8 max-w-screen-lg">
+    <div className="w-full px-4 sm:px-6 space-y-6 sm:space-y-8 max-w-full overflow-hidden relative">
       {/* Success/Error Messages */}
       {successMessage && (
         <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 flex items-start space-x-3">
-                          <FaCheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
+          <FaCheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+          <div className="flex-1 min-w-0">
             <h3 className="text-green-300 font-medium mb-1">Success</h3>
             <p className="text-green-200 text-sm">{successMessage}</p>
           </div>
           <button
             onClick={() => setSuccessMessage('')}
-            className="text-green-400 hover:text-green-300 transition-colors"
+            className="text-green-400 hover:text-green-300 transition-colors flex-shrink-0"
           >
             <XCircle className="w-4 h-4" />
           </button>
@@ -590,13 +633,13 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
       {errorMessage && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start space-x-3">
           <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h3 className="text-red-300 font-medium mb-1">Error</h3>
             <p className="text-red-200 text-sm">{errorMessage}</p>
           </div>
           <button
             onClick={() => setErrorMessage('')}
-            className="text-red-400 hover:text-red-300 transition-colors"
+            className="text-red-400 hover:text-red-300 transition-colors flex-shrink-0"
           >
             <XCircle className="w-4 h-4" />
           </button>
@@ -606,68 +649,93 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
       {treasuryData.error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start space-x-3">
           <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
+          <div className="flex-1 min-w-0">
             <h3 className="text-red-300 font-medium mb-1">Treasury Error</h3>
             <p className="text-red-200 text-sm">{treasuryData.error}</p>
           </div>
           <button
             onClick={() => refreshData()}
-            className="text-blue-400 hover:text-blue-300 transition-colors"
+            className="text-blue-400 hover:text-blue-300 transition-colors flex-shrink-0"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
       )}
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
+      
+      {/* Header - Made responsive */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+        <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Treasury</h1>
           <p className="text-gray-400">Manage {dao.name} funds securely</p>
         </div>
-        <div className="flex items-center space-x-3">
-          <div className="text-right">
-            <p className="text-sm text-gray-400">Your Balance</p>
-            <p className="text-lg font-semibold text-white">{userBalance.toFixed(3)} MOVE</p>
-          </div>
-          {isAdmin && (
-            <div className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-lg border border-purple-500/30 text-sm">
-              Admin
+        
+        {/* Mobile KPIs - Show as clean responsive dropdown */}
+        <div className="lg:hidden absolute top-2 right-2 z-20">
+          <div className="relative">
+            <select className="appearance-none bg-gray-900/95 backdrop-blur-sm border border-gray-700 rounded-xl px-4 py-2.5 pr-8 text-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-xl min-w-[140px] transition-all duration-200 hover:bg-gray-800/95">
+              <option value="balance" className="bg-gray-900 text-white py-1">Balance: {userBalance.toFixed(3)} MOVE</option>
+              <option value="limit" className="bg-gray-900 text-white py-1">Limit: {treasuryData.dailyWithdrawalLimit.toFixed(0)} MOVE</option>
+              <option value="used" className="bg-gray-900 text-white py-1">Used: {treasuryData.dailyWithdrawn.toFixed(3)} MOVE</option>
+              <option value="remaining" className="bg-gray-900 text-white py-1">Remaining: {treasuryData.remainingDaily.toFixed(3)} MOVE</option>
+            </select>
+            {/* Custom dropdown arrow */}
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
-          )}
-          <button
-            onClick={() => refreshData()}
-            className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all"
-            title="Refresh treasury and wallet data"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
+          </div>
+        </div>
+        
+        <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 w-full lg:w-auto">
+          {/* Desktop KPIs - Show as cards */}
+          <div className={`hidden lg:grid gap-2 text-xs ${isWalletConnected ? 'grid-cols-4' : 'grid-cols-3'}`}>
+            {isWalletConnected && (
+              <div className="bg-white/5 rounded-lg p-2 text-center">
+                <div className="text-gray-400 mb-1">Balance</div>
+                <div className="font-semibold text-white">{userBalance.toFixed(3)}</div>
+              </div>
+            )}
+            <div className="bg-white/5 rounded-lg p-2 text-center">
+              <div className="text-gray-400 mb-1">Limit</div>
+              <div className="font-semibold text-white">{treasuryData.dailyWithdrawalLimit.toFixed(0)}</div>
+            </div>
+            <div className="bg-white/5 rounded-lg p-2 text-center">
+              <div className="text-gray-400 mb-1">Used</div>
+              <div className="font-semibold text-white">{treasuryData.dailyWithdrawn.toFixed(3)}</div>
+            </div>
+            <div className="bg-white/5 rounded-lg p-2 text-center">
+              <div className="text-gray-400 mb-1">Remaining</div>
+              <div className="font-semibold text-white">{treasuryData.remainingDaily.toFixed(3)}</div>
+            </div>
+          </div>
+          
+          {/* Status indicators + refresh */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {!isWalletConnected && (
+              <div className="px-3 py-1 bg-gray-500/20 text-gray-300 rounded-lg border border-gray-500/30 text-sm">
+                Guest
+              </div>
+            )}
+            {isWalletConnected && isAdmin && (
+              <div className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-lg border border-purple-500/30 text-sm">
+                Admin
+              </div>
+            )}
+            <button
+              onClick={() => refreshData()}
+              className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all"
+              title={isWalletConnected ? "Refresh treasury and wallet data" : "Refresh treasury data"}
+            >
+              <RefreshCw className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-1 bg-white/5 rounded-xl p-1">
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center space-x-2 px-4 py-3 rounded-lg font-medium transition-all w-full sm:w-auto justify-center sm:justify-start ${
-                isActive
-                  ? 'bg-white/10 text-white shadow-lg'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-blue-400' : ''}`} />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Content */}
-      {activeTab === 'overview' ? renderOverview() : renderTransactions()}
+      {/* Content (tabs removed) */}
+      {renderOverview()}
+      {renderTransactions()}
     </div>
   );
 };

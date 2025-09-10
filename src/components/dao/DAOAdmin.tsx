@@ -1977,7 +1977,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
   };
 
   return (
-    <div className="container mx-auto px-3 sm:px-6 space-y-4 sm:space-y-6 max-w-screen-lg">
+    <div className="w-full px-3 sm:px-6 space-y-4 sm:space-y-6">
       {/* Navigation */}
       <div className="flex flex-wrap gap-1 bg-white/5 rounded-lg p-1">
         {sections.map((section) => {

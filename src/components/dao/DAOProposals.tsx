@@ -25,6 +25,7 @@ import { useWalletBalance } from '../../hooks/useWalletBalance';
 
 interface DAOProposalsProps {
   dao: DAO;
+  sidebarCollapsed?: boolean;
 }
 
 interface ProposalData {
@@ -58,7 +59,7 @@ interface ProposalData {
 const proposalCache = new Map<string, { data: ProposalData[]; timestamp: number }>();
 const PROPOSAL_CACHE_TTL = 30000; // 30 seconds
 
-const DAOProposals: React.FC<DAOProposalsProps> = ({ dao }) => {
+const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = false }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -1254,7 +1255,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao }) => {
   const formatShortDate = (iso: string) => new Date(iso).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   return (
-    <div className="container mx-auto px-2 sm:px-6 space-y-6 sm:space-y-8 max-w-screen-lg">
+    <div className="w-full px-2 sm:px-6 space-y-6 sm:space-y-8">
       {/* Details view when a proposal is selected */}
       {selectedProposal ? (
         <div className="space-y-4">
@@ -1664,7 +1665,9 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao }) => {
                 </select>
               </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={`grid grid-cols-1 gap-4 ${
+              sidebarCollapsed ? 'md:grid-cols-2' : 'md:grid-cols-1'
+            }`}>
                 <div>
                 <h3 className="text-sm font-semibold text-gray-300 mb-3">Voting Schedule</h3>
                 <label className="block text-sm font-medium text-white mb-2">Start Time</label>
@@ -1689,7 +1692,9 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao }) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className={`grid grid-cols-1 gap-4 ${
+              sidebarCollapsed ? 'md:grid-cols-2' : 'md:grid-cols-1'
+            }`}>
               <div>
                 <h3 className="text-sm font-semibold text-gray-300 mb-3">Governance Parameters</h3>
                 <label className="block text-sm font-medium text-white mb-2">Minimum Quorum (%)</label>
@@ -1742,23 +1747,23 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao }) => {
       )}
 
           {/* Proposals List (compact rows) */}
-      <div className="professional-card rounded-xl p-0 overflow-hidden">
-        {isLoading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-            <p className="text-gray-400">Loading proposals...</p>
-          </div>
-        ) : filteredProposals.length === 0 ? (
-          <div className="text-center py-12">
-            <BarChart3 className="w-16 h-16 text-gray-500 mx-auto mb-4 opacity-50" />
-            <h3 className="text-lg font-medium text-white mb-2">No proposals found</h3>
-            <p className="text-gray-400 mb-4">
-              {proposals.length === 0 
-                ? 'This DAO has no proposals yet. Be the first to create one!'
-                : 'Try adjusting your search filters.'}
-            </p>
-          </div>
-        ) : (
+      {isLoading ? (
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading proposals...</p>
+        </div>
+      ) : filteredProposals.length === 0 ? (
+        <div className="text-center py-12">
+          <BarChart3 className="w-16 h-16 text-gray-500 mx-auto mb-4 opacity-50" />
+          <h3 className="text-lg font-medium text-white mb-2">No proposals found</h3>
+          <p className="text-gray-400 mb-4">
+            {proposals.length === 0 
+              ? 'This DAO has no proposals yet. Be the first to create one!'
+              : 'Try adjusting your search filters.'}
+          </p>
+        </div>
+      ) : (
+        <div className="professional-card rounded-xl p-0 overflow-hidden">
           <div className="divide-y divide-white/10">
             {filteredProposals.map((proposal) => (
               <div
@@ -1806,9 +1811,9 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao }) => {
                 </div>
               </div>
             ))}
+          </div>
         </div>
         )}
-      </div>
         </>
       )}
     </div>

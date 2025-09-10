@@ -3,6 +3,7 @@ import { useWallet } from '@razorlabs/razorkit'
 import { aptosClient } from '../movement_service/movement-client'
 import { ABI } from '../Userprofileabi/profile'
 import { managedApiCall } from '../services/apiRequestManager'
+import { truncateAddress } from '../utils/addressUtils'
 
 // Profile types based on the contract
 export interface UserProfile {
@@ -606,7 +607,7 @@ export function useValidateProfile(userAddress: string | null) {
 export const getDisplayNameOrAddress = (profile: BasicProfile | null, address: string): string => {
   return profile?.displayName && profile.displayName.trim() 
     ? profile.displayName 
-    : `${address.slice(0, 6)}...${address.slice(-4)}`
+    : truncateAddress(address)
 }
 
 // Utility function to get avatar or default

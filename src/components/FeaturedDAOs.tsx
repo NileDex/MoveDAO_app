@@ -7,9 +7,10 @@ import { useFetchCreatedDAOs } from '../useServices/useFetchDAOs';
 interface FeaturedDAOsProps {
   onDAOSelect: (dao: DAO) => void;
   onCreateDAO?: () => void;
+  sidebarCollapsed?: boolean;
 }
 
-const FeaturedDAOs: React.FC<FeaturedDAOsProps> = ({ onDAOSelect, onCreateDAO }) => {
+const FeaturedDAOs: React.FC<FeaturedDAOsProps> = ({ onDAOSelect, onCreateDAO, sidebarCollapsed = false }) => {
   const { daos, isLoading, error, refetch } = useFetchCreatedDAOs();
 
   if (isLoading) {
@@ -19,7 +20,9 @@ const FeaturedDAOs: React.FC<FeaturedDAOsProps> = ({ onDAOSelect, onCreateDAO })
           <h2 className="text-2xl font-bold text-white">All DAOs</h2>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-sm sm:max-w-none mx-auto sm:mx-0" style={{ paddingLeft: '0.8rem', paddingRight: '0.8rem' }}>
+        <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-sm sm:max-w-none mx-auto sm:mx-0 ${
+          sidebarCollapsed ? 'lg:grid-cols-4' : 'lg:grid-cols-3'
+        }`} style={{ paddingLeft: '0.8rem', paddingRight: '0.8rem' }}>
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
@@ -82,7 +85,9 @@ const FeaturedDAOs: React.FC<FeaturedDAOsProps> = ({ onDAOSelect, onCreateDAO })
           <p className="text-gray-400">Be the first to create a DAO on Movement Network!</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 max-w-sm sm:max-w-none mx-auto sm:mx-0" style={{ paddingLeft: '0.8rem', paddingRight: '0.8rem' }}>
+        <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-sm sm:max-w-none mx-auto sm:mx-0 ${
+          sidebarCollapsed ? 'lg:grid-cols-4' : 'lg:grid-cols-3'
+        }`} style={{ paddingLeft: '0.8rem', paddingRight: '0.8rem' }}>
           {daos.map((dao) => (
             <DAOCard 
               key={dao.id} 

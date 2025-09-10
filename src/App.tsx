@@ -12,6 +12,7 @@ function App() {
   const [currentView, setCurrentView] = useState('home');
   const [selectedDAO, setSelectedDAO] = useState<DAO | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const handleDAOSelect = (dao: DAO) => {
     setSelectedDAO(dao);
@@ -23,17 +24,18 @@ function App() {
     setSelectedDAO(null);
   };
 
+
   const renderContent = () => {
     switch (currentView) {
       case 'home':
-        return <MainDashboard onDAOSelect={handleDAOSelect} onCreateDAO={() => setCurrentView('create')} />;
+        return <MainDashboard onDAOSelect={handleDAOSelect} onCreateDAO={() => setCurrentView('create')} sidebarCollapsed={sidebarCollapsed} />;
       case 'create':
         return <CreateDAO onBack={handleBackToHome} />;
       case 'create-new':
         return <CreateDAO onBack={handleBackToHome} />;
       case 'dao-detail':
         return selectedDAO ? (
-          <DAODetail dao={selectedDAO} onBack={handleBackToHome} />
+          <DAODetail dao={selectedDAO} onBack={handleBackToHome} sidebarCollapsed={sidebarCollapsed} />
         ) : (
           <MainDashboard onDAOSelect={handleDAOSelect} onCreateDAO={() => setCurrentView('create')} />
         );
@@ -73,25 +75,31 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0f0f11] flex">
-      {/* Sidebar: always visible on sm+, overlay on mobile */}
-      <Sidebar
-        currentView={currentView}
-        onViewChange={(view) => {
-          setCurrentView(view);
-          setSidebarOpen(false); // close on mobile after selection
-        }}
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
+    <div className="min-h-screen bg-[#0f0f11] flex flex-col">
+      {/* Header: always at the top */}
+      <Header
+        currentDAO={selectedDAO?.name}
+        // Pass a prop to trigger sidebar open on mobile
+        onMenuClick={() => setSidebarOpen(true)}
+        onProfileClick={() => setCurrentView('profile')}
       />
-      <div className="flex-1 flex flex-col ml-0 sm:ml-20">
-        <Header
-          currentDAO={selectedDAO?.name}
-          // Pass a prop to trigger sidebar open on mobile
-          onMenuClick={() => setSidebarOpen(true)}
-          onProfileClick={() => setCurrentView('profile')}
+      
+      {/* Content area with sidebar below header */}
+      <div className="flex flex-1 min-h-0">
+        {/* Sidebar: below header on desktop, overlay on mobile */}
+        <Sidebar
+          currentView={currentView}
+          onViewChange={(view) => {
+            setCurrentView(view);
+            setSidebarOpen(false); // close on mobile after selection
+          }}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onCollapseChange={setSidebarCollapsed}
         />
-        <main className="flex-1 overflow-auto">
+        <main className={`flex-1 overflow-auto transition-all duration-300 ${
+          sidebarCollapsed ? 'md:ml-16' : 'md:ml-48'
+        }`}>
           {renderContent()}
         </main>
       </div>

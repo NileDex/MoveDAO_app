@@ -114,7 +114,7 @@ const StatsOverview: React.FC = () => {
           return (
             <div
               key={index}
-              className="min-w-0 from-white/10 to-white/5 backdrop-blur-xl border border-white/10 shadow-lg rounded-lg p-2 sm:p-3 flex flex-col items-center justify-center text-center transition-transform duration-300"
+              className="min-w-0 from-white/10 to-white/5 backdrop-blur-xl border border-white/10 shadow-lg rounded-lg p-3 sm:p-4 flex flex-col items-center justify-center text-center transition-transform duration-300"
               style={{ animationDelay: `${index * 0.07}s` }}
             >
               <div className={`mb-1 p-1.5 sm:mb-2 sm:p-2 rounded-full flex items-center justify-center`}>

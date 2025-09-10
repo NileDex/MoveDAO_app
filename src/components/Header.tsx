@@ -19,14 +19,12 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, onProfileClick }) => {
             <img src={mainLogo} alt="MoveDAO" className="header-logo-image" />
             {/* Hide logo and subtitle on mobile, show on md+ */}
             <div className="header-title-group hidden md:block">
-              <h1 className="header-title">MoveDAO</h1>
-              <p className="header-subtitle">Governance Platform</p>
             </div>
           </div>
         </div>
         <div className="header-actions">
           <WalletConnectButton onProfileClick={onProfileClick} />
-          <button className="header-menu-btn" onClick={onMenuClick} aria-label="Open Sidebar">
+          <button className="header-menu-btn md:hidden" onClick={onMenuClick} aria-label="Open Sidebar">
             <Menu className="w-5 h-5" />
           </button>
         </div>

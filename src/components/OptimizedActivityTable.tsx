@@ -3,6 +3,7 @@ import { Activity, OptimizedActivityTracker } from '../useServices/useOptimizedA
 import { Clock, ExternalLink, RefreshCw, AlertCircle, Activity as ActivityIcon, ChevronDown, ChevronUp } from 'lucide-react';
 import { getActivityColor } from '../constants/activityConstants';
 import { useGetProfile, getDisplayNameOrAddress, getAvatarUrlOrDefault } from '../useServices/useProfile';
+import { truncateAddress } from '../utils/addressUtils';
 
 interface OptimizedActivityTableProps {
   activities: Activity[];
@@ -22,10 +23,7 @@ interface OptimizedActivityTableProps {
 const UserDisplay: React.FC<{ address: string; isCompact?: boolean }> = ({ address, isCompact = false }) => {
   const { data: profileData, isLoading } = useGetProfile(address || null);
   
-  const truncateAddress = (addr: string) => {
-    if (!addr) return 'Unknown';
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
-  };
+  // Use the utility function instead of local implementation
 
   if (isLoading) {
     return (
@@ -89,10 +87,7 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
 }) => {
   const displayActivities = maxRows ? activities.slice(0, maxRows) : activities;
 
-  const truncateAddress = (address: string) => {
-    if (!address) return 'Unknown';
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  };
+  // Use the utility function instead of local implementation
 
   const formatAmount = (amount?: number) => {
     if (!amount) return null;
@@ -146,7 +141,7 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
 
   if (isLoading && displayActivities.length === 0) {
     return (
-      <div className={`bg-white/5 border border-white/10 rounded-xl p-6 ${className}`}>
+      <div className={`p-6 ${className}`}>
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-white flex items-center gap-2">
             <ActivityIcon className="w-5 h-5" />
@@ -156,7 +151,7 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
         <div className="space-y-3">
           {[...Array(3)].map((_, i) => (
             <div key={i} className="animate-pulse">
-              <div className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg">
+              <div className="flex items-center space-x-3 p-3 rounded-lg">
                 <div className="w-8 h-8 bg-gray-600/50 rounded-full"></div>
                 <div className="flex-1 space-y-2">
                   <div className="h-4 bg-gray-600/50 rounded w-3/4"></div>
@@ -172,7 +167,7 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
   }
 
   return (
-    <div className={`bg-white/5 border border-white/10 rounded-xl p-2 sm:p-3 md:p-4 w-full max-w-full overflow-hidden ${className}`} style={{ maxWidth: '100vw' }}>
+    <div className={`bg-white/3 border border-white/5 rounded-xl p-4 w-full max-w-full overflow-hidden ${className}`} style={{ maxWidth: '100vw' }}>
       {/* Header */}
       <div className="flex items-center justify-between mb-3 sm:mb-4">
         <div className="flex items-center gap-2">
@@ -332,7 +327,7 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
               return (
                 <div
                   key={activity.id || index}
-                  className="bg-white/5 border border-white/10 rounded-lg p-2.5 hover:bg-white/10 transition-all"
+                  className="rounded-lg p-2.5 hover:bg-white/5 transition-all border-b border-white/5 last:border-b-0"
                 >
                   <div className="flex items-center justify-between">
                     {/* Left Side */}

@@ -6,9 +6,10 @@ import { DAO } from '../types/dao';
 interface MainDashboardProps {
   onDAOSelect: (dao: DAO) => void;
   onCreateDAO?: () => void;
+  sidebarCollapsed?: boolean;
 }
 
-const MainDashboard: React.FC<MainDashboardProps> = ({ onDAOSelect, onCreateDAO }) => {
+const MainDashboard: React.FC<MainDashboardProps> = ({ onDAOSelect, onCreateDAO, sidebarCollapsed = false }) => {
   return (
     <div className="max-w-7xl mx-auto px-2 sm:px-6 py-6 sm:py-8 w-full">
       <div className="mb-8">
@@ -24,7 +25,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({ onDAOSelect, onCreateDAO 
       </div>
 
       <StatsOverview />
-      <FeaturedDAOs onDAOSelect={onDAOSelect} onCreateDAO={onCreateDAO} />
+      <FeaturedDAOs onDAOSelect={onDAOSelect} onCreateDAO={onCreateDAO} sidebarCollapsed={sidebarCollapsed} />
     </div>
   );
 };

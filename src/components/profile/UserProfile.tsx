@@ -10,6 +10,7 @@ import {
   getAvatarUrlOrDefault
 } from '../../useServices/useProfile';
 import { useUserDAOs } from '../../useServices/useUserDAOs';
+import { truncateAddress } from '../../utils/addressUtils';
 
 interface UserProfileProps {
   className?: string;
@@ -297,7 +298,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
           <h1 className="text-2xl font-bold text-white mb-1">{displayData.displayName}</h1>
           {account?.address && (
             <div className="flex items-center justify-center gap-2 text-sm">
-              <span className="text-gray-400">{account.address.slice(0, 6)}...{account.address.slice(-4)}</span>
+              <span className="text-gray-400">{truncateAddress(account.address)}</span>
               {displayData.hasProfile && (
                 <span className="text-green-400 text-xs bg-green-900/30 px-2 py-1 rounded-full">Profile Active</span>
               )}
