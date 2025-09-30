@@ -5,8 +5,8 @@ const MODULE_ADDRESS = "0xca42c40b77b11054475a55e0c3ea5d2eeb722d6428ed8d7e45f329
 
 const config = new AptosConfig({
   network: Network.CUSTOM,
-  fullnode: "https://full.testnet.movementinfra.xyz/v1",
-  indexer: "https://indexer.testnet.movementnetwork.xyz/v1/graphql"
+  fullnode: "https://testnet.movementnetwork.xyz/v1",
+  indexer: "https://hasura.testnet.movementnetwork.xyz/v1/graphql/v1/graphql"
 });
 
 const aptos = new Aptos(config);

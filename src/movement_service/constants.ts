@@ -5,9 +5,9 @@ export const CONTRACT_MODULE = "MoveDAO-Contract-finalversion";
 // Latest Movement Network endpoints (updated 2025)
 export const NETWORK_CONFIG = {
   // Primary testnet endpoint with timeout settings
-  fullnode: "https://full.testnet.movementinfra.xyz/v1",
+  fullnode: "https://testnet.movementnetwork.xyz/v1",
   // GraphQL indexer endpoint
-  indexer: "https://indexer.testnet.movementnetwork.xyz/v1/graphql", 
+  indexer: "https://hasura.testnet.movementnetwork.xyz/v1/graphql",
   // Network details
   chainId: 250,
   // Faucet endpoints
