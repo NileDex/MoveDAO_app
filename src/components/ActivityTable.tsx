@@ -129,25 +129,25 @@ const ActivityTable: React.FC<ActivityTableProps> = ({
                   <tr key={activity.id} className="border-b border-white/5 hover:bg-white/5 transition-all">
                     <td className="py-4 px-4">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium border ${display.color}`}>
-                        {display.icon} {display.displayType}
+                        {display.icon} <span className="text-gray-900 dark:text-white">{display.displayType}</span>
                       </span>
                     </td>
                     <td className="py-4 px-4">
                       <div>
-                        <p className="text-white font-medium">{activity.title}</p>
-                        <p className="text-gray-400 text-xs">{activity.description}</p>
+                        <p className="text-gray-900 dark:text-white font-medium">{activity.title}</p>
+                        <p className="text-gray-600 dark:text-gray-400 text-xs">{activity.description}</p>
                       </div>
                     </td>
                     {showUserColumn && (
                       <td className="py-4 px-4">
-                        <span className="text-white font-mono text-xs">
+                        <span className="text-gray-900 dark:text-white font-mono text-xs">
                           {truncateAddress(activity.user)}
                         </span>
                       </td>
                     )}
                     {showDAOColumn && (
                       <td className="py-4 px-4">
-                        <span className="text-white font-mono text-xs">
+                        <span className="text-gray-900 dark:text-white font-mono text-xs">
                           {activity.daoName || truncateAddress(activity.dao)}
                         </span>
                       </td>
@@ -168,7 +168,7 @@ const ActivityTable: React.FC<ActivityTableProps> = ({
                     )}
                     <td className="py-4 px-4 text-right">
                       <div className="text-right">
-                        <div className="text-white text-sm font-medium">
+                        <div className="text-gray-900 dark:text-white text-sm font-medium">
                           {(() => {
                             // Handle different timestamp formats (microseconds, milliseconds, seconds)
                             let date;
@@ -214,10 +214,10 @@ const ActivityTable: React.FC<ActivityTableProps> = ({
             <div key={activity.id} className="bg-white/5 rounded-xl p-4 border border-white/10">
               <div className="flex items-start justify-between mb-3">
                 <span className={`px-2 py-1 rounded-full text-xs font-medium border ${display.color}`}>
-                  {display.icon} {display.displayType}
+                  {display.icon} <span className="text-gray-900 dark:text-white">{display.displayType}</span>
                 </span>
                 <div className="text-right">
-                  <div className="text-white text-sm font-medium">
+                  <div className="text-gray-900 dark:text-white text-sm font-medium">
                     {(() => {
                       // Handle different timestamp formats (microseconds, milliseconds, seconds)
                       let date;
@@ -236,23 +236,23 @@ const ActivityTable: React.FC<ActivityTableProps> = ({
                   </div>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div>
-                  <p className="text-white font-medium text-sm">{activity.title}</p>
-                  <p className="text-gray-400 text-xs">{activity.description}</p>
+                  <p className="text-gray-900 dark:text-white font-medium text-sm">{activity.title}</p>
+                  <p className="text-gray-600 dark:text-gray-400 text-xs">{activity.description}</p>
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     {showUserColumn && (
-                      <p className="text-xs text-gray-400">
-                        User: <span className="text-white font-mono">{truncateAddress(activity.user)}</span>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        User: <span className="text-gray-900 dark:text-white font-mono">{truncateAddress(activity.user)}</span>
                       </p>
                     )}
                     {showDAOColumn && (
-                      <p className="text-xs text-gray-400">
-                        DAO: <span className="text-white font-mono">{activity.daoName || truncateAddress(activity.dao)}</span>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                        DAO: <span className="text-gray-900 dark:text-white font-mono">{activity.daoName || truncateAddress(activity.dao)}</span>
                       </p>
                     )}
                   </div>

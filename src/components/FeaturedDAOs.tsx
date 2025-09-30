@@ -13,7 +13,8 @@ interface FeaturedDAOsProps {
 const FeaturedDAOs: React.FC<FeaturedDAOsProps> = ({ onDAOSelect, onCreateDAO, sidebarCollapsed = false }) => {
   const { daos, isLoading, error, refetch } = useFetchCreatedDAOs();
 
-  if (isLoading) {
+  // Only show skeleton if loading AND no cached data
+  if (isLoading && daos.length === 0) {
     return (
       <div className="mb-12 w-full">
         <div className="flex flex-wrap items-center gap-2 mb-6">

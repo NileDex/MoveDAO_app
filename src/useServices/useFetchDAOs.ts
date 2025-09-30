@@ -18,14 +18,26 @@ interface DAOCreatedEvent {
 
 
 export function useFetchCreatedDAOs() {
-  const [daos, setDAOs] = useState<DAO[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  // Load cache immediately on mount for instant display
+  const cachedData = (() => {
+    try {
+      const cached = typeof window !== 'undefined' ? window.localStorage.getItem('daos_cache_v4_stable_count') : null;
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return parsed?.daos || [];
+      }
+    } catch {}
+    return [];
+  })();
+
+  const [daos, setDAOs] = useState<DAO[]>(cachedData)
+  const [isLoading, setIsLoading] = useState(cachedData.length === 0) // Only show loading if no cache
   const [error, setError] = useState<string | null>(null)
 
   // Enhanced caching with stale-while-revalidate - updated cache key for new deployment
   const CACHE_KEY = 'daos_cache_v4_stable_count'
-  const FRESH_TTL_MS = 30 * 1000 // 30s fresh window for consistency
-  const STALE_TTL_MS = 2 * 60 * 1000 // 2 minutes stale-while-revalidate
+  const FRESH_TTL_MS = 60 * 1000 // 60s fresh window - increased for better performance
+  const STALE_TTL_MS = 5 * 60 * 1000 // 5 minutes stale-while-revalidate - increased
 
   // Contract verification helper with retry logic
   const verifyContractDeployment = async (): Promise<boolean> => {
@@ -282,10 +294,10 @@ export function useFetchCreatedDAOs() {
     }
   }
 
-  // Batch processing configuration - Very conservative to avoid 429 errors
-  const BATCH_SIZE = 1 // Process 1 DAO at a time for reliability
-  const BATCH_DELAY = 2000 // 2s delay between batches  
-  const REQUEST_DELAY = 500 // 500ms delay between individual requests
+  // Batch processing configuration - Optimized for faster loading
+  const BATCH_SIZE = 3 // Process 3 DAOs at a time for faster loading
+  const BATCH_DELAY = 1000 // 1s delay between batches - reduced for speed
+  const REQUEST_DELAY = 200 // 200ms delay between individual requests - reduced for speed
 
   // Helper function to process a single DAO address
   const processSingleDAO = async (address: string): Promise<DAO | null> => {
