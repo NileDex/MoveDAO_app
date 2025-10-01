@@ -12,20 +12,64 @@ import { truncateAddress } from '../../utils/addressUtils';
 import { useSectionLoader } from '../../hooks/useSectionLoader';
 import SectionLoader from '../common/SectionLoader';
 
+// Admin Display Component with Profile - optimized for instant display
+const AdminDisplay: React.FC<{ address: string }> = ({ address }) => {
+  const { data: profileData, isLoading } = useGetProfile(address || null);
+
+  // Always show address immediately, upgrade to profile when loaded
+  if (profileData && !isLoading) {
+    return (
+      <div className="flex items-center space-x-3">
+        {profileData.avatarUrl ? (
+          <img
+            src={profileData.avatarUrl}
+            alt={profileData.displayName}
+            className="w-8 h-8 rounded-full object-cover"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+              if (fallback) fallback.classList.remove('hidden');
+            }}
+          />
+        ) : null}
+        <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-sm font-bold ${profileData.avatarUrl ? 'hidden' : ''}`}>
+          {profileData.displayName.charAt(0).toUpperCase()}
+        </div>
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold text-white">
+            {profileData.displayName}
+          </span>
+          <span className="text-xs text-gray-400 font-mono">
+            {truncateAddress(address)}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Show address immediately (no loading state delay)
+  return (
+    <div className="flex items-center space-x-3">
+      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center text-white text-sm font-bold">
+        {address.charAt(2).toUpperCase()}
+      </div>
+      <span className="text-sm font-mono text-white">
+        {truncateAddress(address)}
+      </span>
+    </div>
+  );
+};
+
 interface DAOHomeProps {
   dao: DAO;
 }
 
 const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
-  const [adminAddress, setAdminAddress] = useState<string>('');
   const [fullAdminAddress, setFullAdminAddress] = useState<string>('');
   const [treasuryBalance, setTreasuryBalance] = useState<string>('0.00');
 
   // Section loader for Overview tab
   const sectionLoader = useSectionLoader();
-
-  // Fetch profile for admin address
-  const { data: adminProfile, isLoading: adminProfileLoading } = useGetProfile(fullAdminAddress || null);
 
   const [page, setPage] = useState<number>(1);
   const PAGE_LIMIT = 10;
@@ -140,9 +184,7 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
 
             if (admins.length > 0) {
               // Show first admin (usually the creator/super admin)
-              const firstAdmin = admins[0];
-              setFullAdminAddress(firstAdmin);
-              setAdminAddress(truncateAddress(firstAdmin));
+              setFullAdminAddress(admins[0]);
               return;
             }
           }
@@ -161,7 +203,6 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
           const creator = ev?.data?.creator as string | undefined;
           if (creator) {
             setFullAdminAddress(creator);
-            setAdminAddress(truncateAddress(creator));
             return;
           }
         } catch (eventError) {
@@ -170,7 +211,6 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
 
         // Final fallback: DAO creator is the admin (contract guarantees this)
         setFullAdminAddress(dao.id);
-        setAdminAddress(truncateAddress(dao.id));
         
         // Also fetch treasury balance
         await fetchTreasuryBalance();
@@ -179,7 +219,6 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
         console.warn('Error fetching overview data:', error);
         // Contract guarantees DAO creator is admin, so use DAO address as fallback
         setFullAdminAddress(dao.id);
-        setAdminAddress(truncateAddress(dao.id));
         sectionLoader.setError(error?.message || 'Failed to load overview data');
       }
     };
@@ -224,38 +263,10 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
           <div className="text-left pl-12 sm:pl-0">
             <div className="flex flex-col space-y-2">
               <span className="text-sm font-medium text-gray-400">Admin</span>
-              {adminProfileLoading ? (
-                <span className="text-sm text-gray-300">Loading...</span>
-              ) : adminProfile ? (
-                <div className="flex items-center justify-start space-x-3">
-                  {adminProfile.avatarUrl ? (
-                    <img
-                      src={adminProfile.avatarUrl}
-                      alt={adminProfile.displayName}
-                      className="w-8 h-8 rounded-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.classList.remove('hidden');
-                      }}
-                    />
-                  ) : null}
-                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-sm font-bold ${adminProfile.avatarUrl ? 'hidden' : ''}`}>
-                    {adminProfile.displayName.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-sm font-semibold text-white">
-                      {adminProfile.displayName}
-                    </span>
-                    <span className="text-xs text-gray-400 font-mono">
-                      {adminAddress}
-                    </span>
-                  </div>
-                </div>
+              {fullAdminAddress ? (
+                <AdminDisplay address={fullAdminAddress} />
               ) : (
-                <span className="text-sm font-mono text-white">
-                  {adminAddress}
-                </span>
+                <span className="text-sm text-gray-300">Loading...</span>
               )}
             </div>
           </div>

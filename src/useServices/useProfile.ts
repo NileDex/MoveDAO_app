@@ -246,9 +246,9 @@ export function useGetProfile(userAddress: string | null) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [lastFetchTime, setLastFetchTime] = useState(0)
-  
+
   // Debounce profile fetching to prevent excessive API calls
-  const FETCH_COOLDOWN = 5000 // 5 seconds between fetches
+  const FETCH_COOLDOWN = 100 // 100ms between fetches (minimal delay)
 
   const fetchProfile = async () => {
     if (!userAddress) return

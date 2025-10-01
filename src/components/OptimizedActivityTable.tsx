@@ -4,6 +4,7 @@ import { Clock, ExternalLink, RefreshCw, AlertCircle, Activity as ActivityIcon, 
 import { getActivityColor } from '../constants/activityConstants';
 import { useGetProfile, getDisplayNameOrAddress, getAvatarUrlOrDefault } from '../useServices/useProfile';
 import { truncateAddress } from '../utils/addressUtils';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface OptimizedActivityTableProps {
   activities: Activity[];
@@ -104,6 +105,8 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
   className = '',
   title = 'Recent Activity'
 }) => {
+  const { isDark } = useTheme();
+
   // Keep track of cached activities to show while loading
   const [cachedActivities, setCachedActivities] = useState<Activity[]>(activities);
   const hasEverLoaded = useRef(hasLoadedActivitiesOnce.get());
@@ -416,7 +419,11 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
                 <button
                   onClick={onPrevPage}
                   disabled={isLoading || !hasPrevPage}
-                  className="px-3 py-1.5 text-xs sm:text-sm rounded-lg border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-50 whitespace-nowrap inline-flex items-center gap-1"
+                  className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg border disabled:opacity-50 whitespace-nowrap inline-flex items-center gap-1 ${
+                    isDark
+                      ? 'border-white/10 text-white hover:bg-white/10'
+                      : 'border-gray-300 text-black hover:bg-gray-100'
+                  }`}
                   aria-label="Previous page"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -428,7 +435,11 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
                 <button
                   onClick={onNextPage}
                   disabled={isLoading || !hasNextPage}
-                  className="px-3 py-1.5 text-xs sm:text-sm rounded-lg border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-50 whitespace-nowrap inline-flex items-center gap-1"
+                  className={`px-3 py-1.5 text-xs sm:text-sm rounded-lg border disabled:opacity-50 whitespace-nowrap inline-flex items-center gap-1 ${
+                    isDark
+                      ? 'border-white/10 text-white hover:bg-white/10'
+                      : 'border-gray-300 text-black hover:bg-gray-100'
+                  }`}
                   aria-label="Next page"
                 >
                   <span className="hidden sm:inline">Next page</span>
