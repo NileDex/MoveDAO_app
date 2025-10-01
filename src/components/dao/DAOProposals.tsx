@@ -1413,21 +1413,15 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
                 }
               }
               return (
-                <div
-                  className={`inline-block rounded-[13px] p-[2px] ${
-                    canCreate
-                      ? 'bg-gray-200 dark:bg-[#1e1e20]'
-                      : 'bg-gray-200 dark:bg-gray-600'
-                  }`}
-                >
+                <div className="inline-block rounded-[13px] p-[2px]">
                   <button
                     onClick={() => canCreate && setShowCreateForm(true)}
                     disabled={!canCreate}
                     title={tooltip}
                     className={`flex items-center space-x-2 px-4 py-2 font-medium text-sm transition-all rounded-[11px] w-full h-full border ${
                       canCreate
-                        ? 'text-gray-900 bg-white border-gray-300 hover:bg-gray-50 dark:text-white dark:bg-[#121212] dark:border-transparent hover:dark:bg-[#1a1a1a]'
-                        : 'text-gray-500 bg-white border-gray-300 cursor-not-allowed dark:text-gray-400 dark:bg-[#121212] dark:border-transparent'
+                        ? 'text-gray-900 dark:text-white bg-transparent dark:bg-transparent border-gray-300 dark:border-white/20 hover:bg-transparent dark:hover:bg-transparent'
+                        : 'cursor-not-allowed text-gray-500 dark:text-gray-400 bg-transparent dark:bg-transparent border-gray-300 dark:border-white/15'
                     }`}
                   >
                     <Plus className="w-4 h-4" />
@@ -1447,7 +1441,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             <div className="professional-card p-4 text-center rounded-xl relative">
               <button
                 type="button"
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-gray-200 text-gray-900 shadow-sm dark:bg-white/10 dark:text-gray-200"
                 onClick={() => setCarouselIndex((i) => (i - 1 + 5) % 5)}
                 aria-label="Previous stat"
               >
@@ -1455,7 +1449,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
               </button>
               <button
                 type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-gray-200 text-gray-900 shadow-sm dark:bg-white/10 dark:text-gray-200"
                 onClick={() => setCarouselIndex((i) => (i + 1) % 5)}
                 aria-label="Next stat"
               >
@@ -1470,7 +1464,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             <div className="professional-card p-4 text-center rounded-xl relative">
               <button
                 type="button"
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-gray-200 text-gray-900 shadow-sm dark:bg-white/10 dark:text-gray-200"
                 onClick={() => setCarouselIndex((i) => (i - 1 + 5) % 5)}
                 aria-label="Previous stat"
               >
@@ -1478,7 +1472,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
               </button>
               <button
                 type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-gray-200 text-gray-900 shadow-sm dark:bg-white/10 dark:text-gray-200"
                 onClick={() => setCarouselIndex((i) => (i + 1) % 5)}
                 aria-label="Next stat"
               >
