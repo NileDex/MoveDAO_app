@@ -22,10 +22,20 @@ interface DAODetailProps {
   dao: DAO;
   onBack: () => void;
   sidebarCollapsed?: boolean;
+  onSidebarOpen?: () => void;
+  onActiveTabChange?: (tabId: string, activeTab: string) => void;
+  activeTab?: string;
 }
 
-const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = false }) => {
+const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = false, onSidebarOpen, onActiveTabChange, activeTab: externalActiveTab }) => {
   const [activeTab, setActiveTab] = useState('home');
+
+  // Sync with external active tab (from sidebar on mobile)
+  useEffect(() => {
+    if (externalActiveTab) {
+      setActiveTab(externalActiveTab);
+    }
+  }, [externalActiveTab]);
   const [avatarLoaded, setAvatarLoaded] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
   const [bgLoaded, setBgLoaded] = useState(false);
@@ -230,6 +240,12 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
     { id: 'apps', label: 'Apps', icon: Zap, color: 'text-cyan-400' },
   ];
 
+  // Handle tab change and notify parent
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId);
+    onActiveTabChange?.(dao.id, tabId);
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'home':
@@ -387,7 +403,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => handleTabChange(tab.id)}
                     className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-medium justify-center ${
                       isActive
                         ? 'bg-white/10 text-white shadow-lg'
@@ -400,28 +416,6 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                 );
               })}
             </nav>
-
-            {/* Mobile Menu Button - Visible on Mobile */}
-            <div className="md:hidden mt-8">
-              <button
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="w-full rounded-xl p-4 flex items-center justify-between text-white font-medium"
-              >
-                <div className="flex items-center space-x-2">
-                  {(() => {
-                    const activeTabData = tabs.find(tab => tab.id === activeTab);
-                    const Icon = activeTabData?.icon || Home;
-                    return (
-                      <>
-                        <Icon className={`w-4 h-4 ${activeTabData?.color || 'text-blue-400'}`} />
-                        <span>{activeTabData?.label || 'Overview'}</span>
-                      </>
-                    );
-                  })()}
-                </div>
-                <Menu className="w-4 h-4 text-gray-400" />
-              </button>
-            </div>
           </div>
         </div>
 
@@ -601,59 +595,6 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
         </div>
       </div>
 
-      {/* Mobile Navigation Modal - Bottom Sheet */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-[9998] md:hidden" style={{ pointerEvents: 'auto' }}>
-          {/* Light Overlay - Lower z-index to not interfere with header */}
-          <div 
-            className="absolute inset-0 bg-black/30"
-            style={{ pointerEvents: 'auto' }}
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsMobileMenuOpen(false);
-            }}
-          />
-          
-          {/* Bottom Sheet */}
-          <div 
-            className="absolute bottom-0 left-0 right-0 bg-white/10 backdrop-blur-xl rounded-t-3xl p-4 max-h-[60vh] overflow-y-auto z-[9999]"
-            style={{ pointerEvents: 'auto' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Handle */}
-            <div className="w-12 h-1 bg-gray-400/50 rounded-full mx-auto mb-4" />
-            
-            {/* Navigation Items */}
-            <div className="space-y-2">
-              {tabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveTab(tab.id);
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className={`flex items-center space-x-3 w-full px-3 py-2.5 rounded-xl font-medium transition-all text-left ${
-                      isActive
-                        ? 'bg-white/20 text-white shadow-lg'
-                        : 'text-gray-300 hover:text-white hover:bg-white/10'
-                    }`}
-                  >
-                    <Icon className={`w-5 h-5 ${isActive ? tab.color : 'text-gray-400'}`} />
-                    <span className="flex-1">{tab.label}</span>
-                    {isActive && (
-                      <div className="w-2 h-2 bg-blue-400 rounded-full" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Share Modal */}
       <ShareModal 

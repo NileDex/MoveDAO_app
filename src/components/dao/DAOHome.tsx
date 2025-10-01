@@ -9,6 +9,8 @@ import { safeView } from '../../utils/rpcUtils';
 import { ACTIVITY_CONFIG } from '../../constants/activityConstants';
 import { useGetProfile } from '../../useServices/useProfile';
 import { truncateAddress } from '../../utils/addressUtils';
+import { useSectionLoader } from '../../hooks/useSectionLoader';
+import SectionLoader from '../common/SectionLoader';
 
 interface DAOHomeProps {
   dao: DAO;
@@ -17,12 +19,16 @@ interface DAOHomeProps {
 const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
   const [adminAddress, setAdminAddress] = useState<string>('');
   const [fullAdminAddress, setFullAdminAddress] = useState<string>('');
-  const [isLoadingAdmin, setIsLoadingAdmin] = useState(true);
   const [treasuryBalance, setTreasuryBalance] = useState<string>('0.00');
-  const [isLoadingTreasury, setIsLoadingTreasury] = useState(true);
+
+  // Section loader for Overview tab
+  const sectionLoader = useSectionLoader();
 
   // Fetch profile for admin address
   const { data: adminProfile, isLoading: adminProfileLoading } = useGetProfile(fullAdminAddress || null);
+
+  const [page, setPage] = useState<number>(1);
+  const PAGE_LIMIT = 10;
 
   const { 
     activities, 
@@ -31,16 +37,13 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
     pagination,
     refetch
   } = useDAOActivities(dao.id, {
-    limit: ACTIVITY_CONFIG.DEFAULT_LIMIT,
-    page: 1
+    limit: PAGE_LIMIT,
+    page
   });
 
   // Fetch treasury balance from contract - professional cached approach
   const fetchTreasuryBalance = async () => {
     try {
-      setIsLoadingTreasury(true);
-      console.log('Fetching treasury balance for DAO:', dao.id);
-
       let balance = 0;
       let treasuryObject: any = null;
 
@@ -50,40 +53,38 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
           function: `${MODULE_ADDRESS}::dao_core_file::get_treasury_object`,
           functionArguments: [dao.id]
         }, `treasury_object_${dao.id}`);
-        console.log('Treasury object fetch result:', objectResult);
         treasuryObject = (objectResult as any)?.[0];
       } catch (error) {
-        console.log('Treasury object fetch failed:', error);
+        // Silent fallback to legacy method
       }
 
       // Step 2: If treasury object exists, get balance from it - with caching
       if (treasuryObject) {
         try {
-          const objectAddress = typeof treasuryObject === 'string' ? treasuryObject : (treasuryObject?.inner || treasuryObject?.value || treasuryObject?.address || null);
-          console.log('Using treasury object address:', objectAddress);
-          
+          // Use the raw treasury object directly (it's already in the correct Object<Treasury> format)
           // Try comprehensive treasury info first - with caching
           try {
             const infoRes = await safeView({
               function: `${MODULE_ADDRESS}::treasury::get_treasury_info`,
-              functionArguments: [objectAddress]
-            }, `treasury_info_${objectAddress}`);
+              functionArguments: [treasuryObject]
+            }, `treasury_info_${dao.id}`);
             if (Array.isArray(infoRes) && infoRes.length >= 1) {
               balance = Number(infoRes[0] || 0) / 1e8;
-              console.log('Got balance from treasury info:', balance);
             }
-          } catch (infoError) {
-            console.log('Treasury info failed, trying object balance:', infoError);
+          } catch (infoError: any) {
             // Fallback to direct object balance - with caching
-            const balanceResult = await safeView({
-              function: `${MODULE_ADDRESS}::treasury::get_balance_from_object`,
-              functionArguments: [treasuryObject]
-            }, `treasury_balance_obj_${dao.id}`);
-            balance = Number(balanceResult[0] || 0) / 1e8;
-            console.log('Got balance from object:', balance);
+            try {
+              const balanceResult = await safeView({
+                function: `${MODULE_ADDRESS}::treasury::get_balance_from_object`,
+                functionArguments: [treasuryObject]
+              }, `treasury_balance_obj_${dao.id}`);
+              balance = Number(balanceResult[0] || 0) / 1e8;
+            } catch (balError: any) {
+              // Silent fallback to legacy
+            }
           }
-        } catch (objError) {
-          console.warn('Object-based balance fetch failed:', objError);
+        } catch (objError: any) {
+          // Silent fallback to legacy
         }
       }
 
@@ -94,32 +95,25 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
             function: `${MODULE_ADDRESS}::treasury::get_balance`,
             functionArguments: [dao.id]
           }, `treasury_balance_legacy_${dao.id}`);
-          
+
           if (balanceResult && Array.isArray(balanceResult) && balanceResult.length > 0) {
             balance = Number(balanceResult[0] || 0) / 1e8;
-            console.log('Got balance from legacy method:', balance);
           }
         } catch (legacyError) {
-          console.warn('Legacy balance fetch failed:', legacyError);
+          // Silent - will show 0 balance
         }
       }
 
-      console.log('Final treasury balance:', balance);
       setTreasuryBalance(balance.toFixed(2));
-    } catch (error) {
-      console.warn('Failed to fetch treasury balance:', error);
+    } catch (error: any) {
       setTreasuryBalance('0.00');
-    } finally {
-      setIsLoadingTreasury(false);
     }
   };
 
   // Fetch admin address based on contract behavior
   useEffect(() => {
-    const fetchAdmin = async () => {
+    const fetchOverviewData = async () => {
       try {
-        setIsLoadingAdmin(true);
-        
         // Primary: Get admins from AdminList (contract initializes this during DAO creation)
         try {
           // First check if admin system exists - with caching
@@ -178,42 +172,65 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
         setFullAdminAddress(dao.id);
         setAdminAddress(truncateAddress(dao.id));
         
+        // Also fetch treasury balance
+        await fetchTreasuryBalance();
+
       } catch (error: any) {
-        console.warn('Error fetching admin info:', error);
-        // Contract guarantees DAO creator is admin, so use DAO address
+        console.warn('Error fetching overview data:', error);
+        // Contract guarantees DAO creator is admin, so use DAO address as fallback
         setFullAdminAddress(dao.id);
         setAdminAddress(truncateAddress(dao.id));
-      } finally {
-        setIsLoadingAdmin(false);
+        sectionLoader.setError(error?.message || 'Failed to load overview data');
       }
     };
 
-    fetchAdmin();
-    fetchTreasuryBalance();
+    sectionLoader.executeWithLoader(fetchOverviewData);
   }, [dao.id]);
+
+  const retryOverviewData = () => {
+    sectionLoader.reset();
+    const fetchOverviewData = async () => {
+      // Re-fetch all overview data
+      await fetchTreasuryBalance();
+    };
+    sectionLoader.executeWithLoader(fetchOverviewData);
+  };
 
   return (
     <div className="w-full px-4 sm:px-6 space-y-8">
-      
       {/* About Section */}
       <div className="space-y-6">
-        <h2 className="text-base sm:text-lg md:text-lg lg:text-xl xl:text-xl 2xl:text-xl font-bold text-white flex items-center space-x-3">
-          <Info className="w-5 h-5 text-blue-400 ml-4" />
-          <span>About {dao.name}</span>
-        </h2>
-        
+        <div className="flex items-center justify-between">
+          <h2 className="text-base sm:text-lg md:text-lg lg:text-xl xl:text-xl 2xl:text-xl font-bold text-white flex items-center space-x-3">
+            <Info className="w-5 h-5 text-blue-400 ml-4" />
+            <span>About {dao.name}</span>
+          </h2>
+
+          {/* Top-right status */}
+          <div className="text-right">
+            {sectionLoader.isLoading && (
+              <div className="text-xs text-blue-300">Loading...</div>
+            )}
+            {sectionLoader.error && (
+              <div className="text-xs text-red-300 cursor-pointer" onClick={retryOverviewData}>
+                Error - Click to retry
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Key Stats (Admin only – Treasury removed) */}
         <div className="grid grid-cols-1 gap-6">
           <div className="text-left pl-12 sm:pl-0">
             <div className="flex flex-col space-y-2">
               <span className="text-sm font-medium text-gray-400">Admin</span>
-              {isLoadingAdmin || adminProfileLoading ? (
+              {adminProfileLoading ? (
                 <span className="text-sm text-gray-300">Loading...</span>
               ) : adminProfile ? (
                 <div className="flex items-center justify-start space-x-3">
                   {adminProfile.avatarUrl ? (
-                    <img 
-                      src={adminProfile.avatarUrl} 
+                    <img
+                      src={adminProfile.avatarUrl}
                       alt={adminProfile.displayName}
                       className="w-8 h-8 rounded-full object-cover"
                       onError={(e) => {
@@ -256,7 +273,16 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
           showAmountColumn={true}
           showDAOColumn={false}
           showActionColumn={false}
-          maxRows={10}
+          maxRows={undefined}
+          showingCountText={
+            pagination?.totalItems > 0
+              ? `Showing ${(page - 1) * PAGE_LIMIT + Math.min(PAGE_LIMIT, activities.length)} of ${pagination.totalItems} activities`
+              : undefined
+          }
+          hasNextPage={Boolean(pagination?.hasNextPage)}
+          hasPrevPage={Boolean(pagination?.hasPreviousPage)}
+          onNextPage={() => setPage(p => p + 1)}
+          onPrevPage={() => setPage(p => Math.max(1, p - 1))}
           title="Recent DAO Activity"
         />
       </div>

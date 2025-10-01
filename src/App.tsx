@@ -7,6 +7,7 @@ import DAODetail from './components/DAODetail';
 import PlatformGrowthCharts from './components/PlatformGrowthCharts';
 import { UserProfile } from './components/profile';
 import { DAO } from './types/dao';
+import { Home, FileText, Wallet, Users, Coins, Shield, Zap } from 'lucide-react';
 
 function App() {
   const [currentView, setCurrentView] = useState('home');
@@ -19,16 +20,34 @@ function App() {
     } catch {}
     return true; // default collapsed
   });
+  const [daoActiveTab, setDaoActiveTab] = useState<string>('home');
 
   const handleDAOSelect = (dao: DAO) => {
     setSelectedDAO(dao);
     setCurrentView('dao-detail');
+    setDaoActiveTab('home'); // Reset to home tab when selecting a DAO
   };
 
   const handleBackToHome = () => {
     setCurrentView('home');
     setSelectedDAO(null);
+    setDaoActiveTab('home'); // Reset tab when going back
   };
+
+  const handleDaoTabChange = (daoId: string, tabId: string) => {
+    setDaoActiveTab(tabId);
+  };
+
+  // Define DAO tabs
+  const daoTabs = [
+    { id: 'home', label: 'Overview', icon: Home, color: 'text-blue-400' },
+    { id: 'proposals', label: 'Proposals', icon: FileText, color: 'text-green-400' },
+    { id: 'staking', label: 'Staking', icon: Coins, color: 'text-orange-400' },
+    { id: 'treasury', label: 'Treasury', icon: Wallet, color: 'text-yellow-400' },
+    { id: 'members', label: 'Members', icon: Users, color: 'text-pink-400' },
+    { id: 'admin', label: 'Admin', icon: Shield, color: 'text-purple-400' },
+    { id: 'apps', label: 'Apps', icon: Zap, color: 'text-cyan-400' },
+  ];
 
 
   const renderContent = () => {
@@ -41,7 +60,14 @@ function App() {
         return <CreateDAO onBack={handleBackToHome} />;
       case 'dao-detail':
         return selectedDAO ? (
-          <DAODetail dao={selectedDAO} onBack={handleBackToHome} sidebarCollapsed={sidebarCollapsed} />
+          <DAODetail
+            dao={selectedDAO}
+            onBack={handleBackToHome}
+            sidebarCollapsed={sidebarCollapsed}
+            onSidebarOpen={() => setSidebarOpen(true)}
+            onActiveTabChange={handleDaoTabChange}
+            activeTab={daoActiveTab}
+          />
         ) : (
           <MainDashboard onDAOSelect={handleDAOSelect} onCreateDAO={() => setCurrentView('create')} />
         );
@@ -102,6 +128,9 @@ function App() {
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
           onCollapseChange={setSidebarCollapsed}
+          daoTabs={currentView === 'dao-detail' ? daoTabs : undefined}
+          activeTab={daoActiveTab}
+          onTabChange={setDaoActiveTab}
         />
         <main className={`flex-1 overflow-auto transition-all duration-300 ${
           sidebarCollapsed ? 'md:ml-16' : 'md:ml-48'

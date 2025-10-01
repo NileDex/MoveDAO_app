@@ -2,16 +2,35 @@
 import { aptosClient } from '../movement_service/movement-client';
 import { managedApiCall } from '../services/apiRequestManager';
 
+// Helper to check if error is a treasury resource missing error (expected for some DAOs)
+const isTreasuryResourceMissingError = (error: any): boolean => {
+  const errorMsg = error?.message || JSON.stringify(error);
+  return (
+    errorMsg.includes('MISSING_DATA') &&
+    errorMsg.includes('treasury') &&
+    errorMsg.includes('Failed to borrow global resource')
+  );
+};
+
 // Wrapper for view function calls with professional request management
 export const safeView = async (payload: any, cacheKey?: string): Promise<any> => {
-  return managedApiCall(
-    () => aptosClient.view({ payload }),
-    {
-      cacheKey: cacheKey ? `view_${cacheKey}` : undefined,
-      cacheTtl: 5000, // Cache for 5 seconds
-      priority: 1
+  try {
+    return await managedApiCall(
+      () => aptosClient.view({ payload }),
+      {
+        cacheKey: cacheKey ? `view_${cacheKey}` : undefined,
+        cacheTtl: 5000, // Cache for 5 seconds
+        priority: 1
+      }
+    );
+  } catch (error: any) {
+    // Suppress treasury resource missing errors (expected for some DAOs)
+    if (isTreasuryResourceMissingError(error)) {
+      // Return empty result instead of throwing
+      return [];
     }
-  );
+    throw error;
+  }
 };
 
 // Wrapper for resource calls with professional request management
