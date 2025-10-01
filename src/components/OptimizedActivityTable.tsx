@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Activity, OptimizedActivityTracker } from '../useServices/useOptimizedActivityTracker';
 import { Clock, ExternalLink, RefreshCw, AlertCircle, Activity as ActivityIcon, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getActivityColor } from '../constants/activityConstants';
@@ -77,6 +77,15 @@ const UserDisplay: React.FC<{ address: string; isCompact?: boolean }> = ({ addre
   );
 };
 
+// Global flag to track if activities have ever been loaded (persists across component unmounts)
+const hasLoadedActivitiesOnce = (() => {
+  let loaded = false;
+  return {
+    get: () => loaded,
+    set: (value: boolean) => { loaded = value; }
+  };
+})();
+
 const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
   activities,
   isLoading = false,
@@ -95,7 +104,23 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
   className = '',
   title = 'Recent Activity'
 }) => {
-  const displayActivities = maxRows ? activities.slice(0, maxRows) : activities;
+  // Keep track of cached activities to show while loading
+  const [cachedActivities, setCachedActivities] = useState<Activity[]>(activities);
+  const hasEverLoaded = useRef(hasLoadedActivitiesOnce.get());
+
+  // Update cached activities when new data arrives
+  useEffect(() => {
+    if (activities.length > 0) {
+      setCachedActivities(activities);
+      hasEverLoaded.current = true;
+      hasLoadedActivitiesOnce.set(true);
+    }
+  }, [activities]);
+
+  // Use cached activities while loading (after first load)
+  const displayActivities = maxRows
+    ? (isLoading && hasEverLoaded.current ? cachedActivities : activities).slice(0, maxRows)
+    : (isLoading && hasEverLoaded.current ? cachedActivities : activities);
 
   // Use the utility function instead of local implementation
 
@@ -149,7 +174,8 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
     );
   }
 
-  if (isLoading && displayActivities.length === 0) {
+  // Only show skeleton on true first load ever (no cached data and never loaded before)
+  if (isLoading && !hasEverLoaded.current && cachedActivities.length === 0) {
     return (
       <div className={`p-6 ${className}`}>
         <div className="flex items-center justify-between mb-4">
