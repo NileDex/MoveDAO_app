@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { ArrowUpRight, ArrowDownRight, Wallet, Plus, Minus, Clock, AlertTriangle, RefreshCw, XCircle } from 'lucide-react';
-import { FaCheckCircle } from 'react-icons/fa';
 import { useTreasury } from '../../hooks/useTreasury';
 import { DAO } from '../../types/dao';
 import { aptosClient } from '../../movement_service/movement-client';
@@ -10,6 +9,9 @@ import { BalanceService } from '../../useServices/useBalance';
 import { truncateAddress } from '../../utils/addressUtils';
 import { useWallet } from '@razorlabs/razorkit';
 import { useAlert } from '../alert/AlertContext';
+import VaultManager from '../VaultManager';
+import { useSectionLoader } from '../../hooks/useSectionLoader';
+import SectionLoader from '../common/SectionLoader';
 
 interface DAOTreasuryProps {
   dao: DAO;
@@ -29,6 +31,9 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
   const [totalStaked, setTotalStaked] = useState<number>(0);
   const isWalletConnected = !!account?.address;
 
+  // Section loader for Treasury tab
+  const sectionLoader = useSectionLoader();
+
   // Use the treasury hook
   const {
     treasuryData,
@@ -42,9 +47,12 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
   } = useTreasury(dao.id);
 
 
-  // Fetch MOVE price from CoinGecko
-  React.useEffect(() => {
-    const fetchMovePrice = async () => {
+  // Initialize section loading
+  useEffect(() => {
+    const loadTreasuryData = async () => {
+      await refreshData();
+
+      // Also fetch MOVE price
       try {
         const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=movement&vs_currencies=usd');
         const data = await response.json();
@@ -53,12 +61,36 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
         }
       } catch (error) {
         console.warn('Failed to fetch MOVE price from CoinGecko:', error);
-        // Fallback to a default price if API fails
         setMovePrice(1); // $1 fallback
       }
     };
 
-    fetchMovePrice();
+    sectionLoader.executeWithLoader(loadTreasuryData);
+  }, [dao.id, account?.address]);
+
+  const retryTreasuryData = () => {
+    const loadTreasuryData = async () => {
+      await refreshData();
+    };
+    sectionLoader.executeWithLoader(loadTreasuryData);
+  };
+
+  // Original MOVE price fetch logic (now part of loading)
+  const fetchMovePrice = async () => {
+    try {
+      const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=movement&vs_currencies=usd');
+      const data = await response.json();
+      if (data.movement && data.movement.usd) {
+        setMovePrice(data.movement.usd);
+      }
+    } catch (error) {
+      console.warn('Failed to fetch MOVE price from CoinGecko:', error);
+      setMovePrice(1); // $1 fallback
+    }
+  };
+
+  // Old useEffect cleanup
+  useEffect(() => {
     // Refresh price every 5 minutes
     const interval = setInterval(fetchMovePrice, 5 * 60 * 1000);
     return () => clearInterval(interval);
@@ -96,7 +128,6 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
 
     try {
       setIsDepositing(true);
-      setErrorMessage('');
       
       const depositAmount = parseFloat(amount);
       await deposit(depositAmount);
@@ -120,7 +151,6 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
 
     try {
       setIsWithdrawing(true);
-      setErrorMessage('');
       
       const withdrawAmount = parseFloat(amount);
       await withdraw(withdrawAmount);
@@ -139,7 +169,6 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
   const handleTogglePublicDeposits = async (allow: boolean) => {
     try {
       setIsTogglingPublicDeposits(true);
-      setErrorMessage('');
       
       await togglePublicDeposits(allow);
       
@@ -416,10 +445,6 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
           <span className="text-gray-400">Security</span>
           <span className="text-white">Native tokens only, Daily limits, Reentrancy protection</span>
         </div>
-        <div className="flex justify-between items-center py-2 border-b border-white/5">
-          <span className="text-gray-400">Daily Limit</span>
-          <span className="text-white">{treasuryData.dailyWithdrawalLimit.toFixed(0)} MOVE per admin</span>
-        </div>
         <div className="flex justify-between items-center py-2">
           <span className="text-gray-400">Deposits</span>
           <span className="text-white">
@@ -604,7 +629,21 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
 
   return (
     <div className="w-full px-4 sm:px-6 space-y-6 sm:space-y-8 max-w-full overflow-hidden relative">
-      
+
+      {/* Top-right status */}
+      <div className="flex justify-end mb-4">
+        <div className="text-right">
+          {(sectionLoader.isLoading || treasuryData.isLoading) && (
+            <div className="text-xs text-blue-300">Loading...</div>
+          )}
+          {sectionLoader.error && (
+            <div className="text-xs text-red-300 cursor-pointer" onClick={retryTreasuryData}>
+              Error - Click to retry
+            </div>
+          )}
+        </div>
+      </div>
+
       {treasuryData.error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start space-x-3">
           <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
@@ -694,6 +733,13 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
 
       {/* Content (tabs removed) */}
       {renderOverview()}
+
+      {/* Vault Manager Component */}
+      {/* <VaultManager
+        daoId={dao.id}
+        treasuryObject={treasuryData.treasuryObject}
+      /> */}
+
       {renderTransactions()}
     </div>
   );

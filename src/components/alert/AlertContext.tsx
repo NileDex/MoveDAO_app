@@ -24,9 +24,11 @@ export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {alert && (
         <div style={{
           position: 'fixed', bottom: 24, left: 24, right: 'auto', transform: 'none',
-          background: alert.type === 'error' ? '#ef4444' : alert.type === 'success' ? '#22c55e' : '#334155',
-          color: '#fff', padding: '12px 32px', borderRadius: 8, fontWeight: 600, fontSize: 16, zIndex: 2000,
-          boxShadow: '0 2px 16px rgba(0,0,0,0.18)'
+          background: '#131315',
+          color: '#fff', padding: '16px 20px', fontWeight: 400, fontSize: 14, zIndex: 2000,
+          boxShadow: '0 2px 16px rgba(0,0,0,0.18)',
+          width: '250px', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          textAlign: 'center', wordWrap: 'break-word', overflow: 'hidden'
         }}>{alert.message}</div>
       )}
     </AlertContext.Provider>

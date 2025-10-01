@@ -82,7 +82,6 @@ export function useCreateDAO() {
     
     try {
       const result = await signAndSubmitTransaction({ payload } as any)
-      console.log('✅ Minimal transaction succeeded:', result)
       return result
     } catch (testError) {
       console.error('❌ Minimal transaction failed:', testError)
@@ -99,12 +98,10 @@ export function useCreateDAO() {
     setError(null)
 
     try {
-      console.log('🔄 Building transaction for DAO creation...')
       console.log('📋 Parameters:', params)
       console.log('👤 Account:', account.address)
       
       // With multi-DAO registry, multiple DAOs per address are now allowed
-      console.log('✅ Multiple DAOs per address supported - proceeding with creation')
       
       // Validate parameters against contract requirements
       
@@ -294,7 +291,6 @@ export function useCreateDAO() {
             || null);
 
         if (txHash) {
-          console.log('✅ Transaction submitted successfully:', txHash)
           // Wait for transaction with improved feedback
           try {
             console.log('⏳ Waiting for transaction confirmation...')
@@ -305,7 +301,6 @@ export function useCreateDAO() {
                 timeoutSecs: 45
               } 
             });
-            console.log('✅ DAO created successfully! Transaction confirmed on-chain.')
             console.log(`🔗 Transaction hash: ${txHash}`)
           } catch (waitError) {
             console.warn('⚠️ Transaction confirmation timeout. DAO creation likely succeeded but confirmation is pending.')
@@ -332,12 +327,10 @@ export function useCreateDAO() {
       
       // Refresh data to verify DAO creation
       try {
-        console.log('🔍 Verifying DAO creation...')
         const daoResource = await aptosClient.getAccountResource({
           accountAddress: account.address,
           resourceType: `${MODULE_ADDRESS}::dao_core_file::DAOInfo`
         })
-        console.log('✅ DAO verification successful - DAOInfo resource found:', daoResource)
       } catch (verifyError) {
         console.warn('⚠️ DAO verification failed - resource not found yet. This might be normal due to indexer delay.')
       }
@@ -362,7 +355,6 @@ export function useCreateDAO() {
     setError(null)
 
     try {
-      console.log('🔄 Building transaction for DAO creation with URLs...')
       console.log('📋 Parameters:', params)
       
       // Validate parameters
@@ -408,7 +400,6 @@ export function useCreateDAO() {
       
       if (tx && (tx as any).hash) {
         const txHash = (tx as any).hash;
-        console.log('✅ DAO with URLs created successfully:', txHash)
         
         await aptosClient.waitForTransaction({ 
           transactionHash: txHash, 
@@ -529,7 +520,6 @@ export function useGetDAOInfo(daoAddress: string | null) {
     setError(null)
 
     try {
-      console.log('🔍 Fetching DAO info for:', daoAddress);
       
       const result = await aptosClient.view({
         payload: {
@@ -574,15 +564,6 @@ export function useGetDAOInfo(daoAddress: string | null) {
         backgroundUint8 = new Uint8Array(bgData as number[]);
         backgroundDataUrl = uint8ArrayToDataUrl(backgroundUint8);
       }
-      
-      console.log('🖼️ Image conversion results:', {
-        logoType: logoIsUrl ? 'URL' : 'binary',
-        backgroundType: bgIsUrl ? 'URL' : 'binary',
-        logoDataUrlLength: logoDataUrl.length,
-        backgroundDataUrlLength: backgroundDataUrl.length,
-        logoPreview: logoDataUrl.substring(0, 50) + '...',
-        backgroundPreview: backgroundDataUrl.substring(0, 50) + '...'
-      });
 
       setData({
         name: name as string,
@@ -595,7 +576,6 @@ export function useGetDAOInfo(daoAddress: string | null) {
         createdAt: Number(createdAt),
       })
       
-      console.log('✅ DAO info processed successfully');
     } catch (err) {
       console.error('❌ Failed to fetch DAO info:', err);
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch DAO info'

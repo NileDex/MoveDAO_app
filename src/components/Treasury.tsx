@@ -1,5 +1,6 @@
 import React from 'react';
 import { DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { FAVaultTable } from './dao/FAVaultTable';
 
 const Treasury: React.FC = () => {
   const assets = [
@@ -180,6 +181,8 @@ const Treasury: React.FC = () => {
           </div>
         </div>
       </div>
+      {/* Replace with your actual vault address when available */}
+      <FAVaultTable vault={"0x0000000000000000000000000000000000000000"} />
     </div>
   );
 };

@@ -48,7 +48,6 @@ export function useCreateProfile() {
     setError(null)
 
     try {
-      console.log('🔄 Creating profile:', { displayName, avatarUrl })
 
       const payload = {
         function: `${ABI.address}::profile::create_profile`,
@@ -67,7 +66,6 @@ export function useCreateProfile() {
       const txHash = typeof tx === 'string' ? tx : (tx as any)?.hash
       
       if (txHash) {
-        console.log('✅ Profile created successfully:', txHash)
         await aptosClient.waitForTransaction({ 
           transactionHash: txHash as string, 
           options: { checkSuccess: true, timeoutSecs: 30 } 
@@ -121,7 +119,6 @@ export function useUpdateProfile() {
     setError(null)
 
     try {
-      console.log('🔄 Updating profile:', { displayName, avatarUrl })
 
       const payload = {
         function: `${ABI.address}::profile::update_profile`,
@@ -140,7 +137,6 @@ export function useUpdateProfile() {
       const txHash = typeof tx === 'string' ? tx : (tx as any)?.hash
       
       if (txHash) {
-        console.log('✅ Profile updated successfully:', txHash)
         await aptosClient.waitForTransaction({ 
           transactionHash: txHash as string, 
           options: { checkSuccess: true, timeoutSecs: 30 } 
@@ -260,7 +256,6 @@ export function useGetProfile(userAddress: string | null) {
     // Check cooldown to prevent excessive API calls
     const now = Date.now()
     if (now - lastFetchTime < FETCH_COOLDOWN) {
-      console.log('⏱️ Profile fetch on cooldown')
       return
     }
 
@@ -269,7 +264,6 @@ export function useGetProfile(userAddress: string | null) {
     setLastFetchTime(now)
 
     try {
-      console.log('🔍 Fetching profile for:', userAddress)
 
       const result = await managedApiCall(
         () => aptosClient.view({
@@ -296,7 +290,6 @@ export function useGetProfile(userAddress: string | null) {
         updatedAt: Number(updatedAt),
       })
 
-      console.log('✅ Profile fetched successfully')
     } catch (err: any) {
       // Check for various ways the profile not found error can manifest
       if (err.message?.includes('PROFILE_NOT_FOUND') || 
@@ -401,7 +394,6 @@ export function useGetMultipleProfiles() {
     setError(null)
 
     try {
-      console.log('🔍 Fetching display names for', addresses.length, 'addresses')
 
       const result = await aptosClient.view({
         payload: {
@@ -411,7 +403,6 @@ export function useGetMultipleProfiles() {
       })
 
       const displayNames = result[0] as string[]
-      console.log('✅ Display names fetched:', displayNames.length)
       
       setIsLoading(false)
       return displayNames
@@ -455,7 +446,6 @@ export function useGetMultipleProfiles() {
     setError(null)
 
     try {
-      console.log('🔍 Batch fetching profiles for', addresses.length, 'addresses')
 
       const [displayNames, avatarUrls] = await Promise.all([
         getMultipleDisplayNames(addresses),
@@ -467,7 +457,6 @@ export function useGetMultipleProfiles() {
         avatarUrl: avatarUrls[index] || '',
       }))
 
-      console.log('✅ Batch profiles fetched:', profiles.length)
       setIsLoading(false)
       return profiles
     } catch (err: any) {

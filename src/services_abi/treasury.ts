@@ -33,6 +33,19 @@ export const ABI = {
       ]
     },
     {
+      "name": "create_dao_vault",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>",
+        "0x1::object::Object<0x1::fungible_asset::Metadata>"
+      ],
+      "return": []
+    },
+    {
       "name": "deposit",
       "visibility": "public",
       "is_entry": true,
@@ -40,6 +53,20 @@ export const ABI = {
       "generic_type_params": [],
       "params": [
         "&signer",
+        "address",
+        "u64"
+      ],
+      "return": []
+    },
+    {
+      "name": "deposit_to_dao_vault",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>",
         "address",
         "u64"
       ],
@@ -100,6 +127,19 @@ export const ABI = {
       ]
     },
     {
+      "name": "get_dao_vaults",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>"
+      ],
+      "return": [
+        "vector<address>"
+      ]
+    },
+    {
       "name": "get_treasury_info",
       "visibility": "public",
       "is_entry": false,
@@ -145,6 +185,20 @@ export const ABI = {
       "return": []
     },
     {
+      "name": "user_deposit_to_vault",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>",
+        "address",
+        "u64"
+      ],
+      "return": []
+    },
+    {
       "name": "withdraw",
       "visibility": "public",
       "is_entry": true,
@@ -152,6 +206,20 @@ export const ABI = {
       "generic_type_params": [],
       "params": [
         "&signer",
+        "address",
+        "u64"
+      ],
+      "return": []
+    },
+    {
+      "name": "withdraw_from_dao_vault",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>",
         "address",
         "u64"
       ],
@@ -186,6 +254,20 @@ export const ABI = {
     }
   ],
   "structs": [
+    {
+      "name": "DAOVaultRegistry",
+      "is_native": false,
+      "abilities": [
+        "key"
+      ],
+      "generic_type_params": [],
+      "fields": [
+        {
+          "name": "vaults",
+          "type": "vector<address>"
+        }
+      ]
+    },
     {
       "name": "ReentrancyGuard",
       "is_native": false,

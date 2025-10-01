@@ -12,6 +12,7 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
   const [imageError, setImageError] = useState(false);
   const [backgroundLoaded, setBackgroundLoaded] = useState(false);
   const [backgroundError, setBackgroundError] = useState(false);
+  const backgroundRetryRef = React.useRef(0);
 
   // Helper function to reduce displayed values for better UX
   const getDisplayValue = (value: number): number => {
@@ -21,9 +22,11 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
     return Math.max(8, Math.ceil(value * 0.2)); // Reduce large values by 80%
   };
 
-  // Debug logging for subname
+  // Debug logging for subname (reduced verbosity)
   React.useEffect(() => {
-    console.log(`🏷️ DAOCard for ${dao.name}:`, { subname: dao.subname, type: typeof dao.subname, hasSubname: !!dao.subname });
+    if (dao.subname) {
+      console.log(`🏷️ DAOCard for ${dao.name} has subname:`, dao.subname);
+    }
   }, [dao.name, dao.subname]);
 
   // Optimized image preloading - keep images stable once loaded
@@ -42,15 +45,64 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
   }, [dao.image]);
 
   React.useEffect(() => {
-    if (dao.background) {
+    // Reset retry count when background changes
+    backgroundRetryRef.current = 0;
+
+    if (dao.background && dao.background.trim()) {
+
+      // Validate background URL before attempting to load
+      const isValidUrl = (url: string) => {
+        try {
+          // Check if it's a data URL
+          if (url.startsWith('data:')) {
+            return url.includes('image/');
+          }
+          // Check if it's a valid HTTP/HTTPS URL
+          if (url.startsWith('http://') || url.startsWith('https://')) {
+            new URL(url);
+            return true;
+          }
+          return false;
+        } catch {
+          return false;
+        }
+      };
+
+      if (!isValidUrl(dao.background)) {
+        console.warn(`⚠️ Invalid background URL for ${dao.name}:`, dao.background);
+        setBackgroundError(true);
+        return;
+      }
+
+      setBackgroundLoaded(false);
+      setBackgroundError(false);
+
       const bgImg = new Image();
       bgImg.decoding = 'async' as any;
-      bgImg.onload = () => setBackgroundLoaded(true);
-      bgImg.onerror = () => setBackgroundError(true);
+      bgImg.crossOrigin = 'anonymous'; // Add CORS support
       bgImg.loading = 'eager';
       bgImg.fetchPriority = 'high';
+
+      // Add a timeout to detect hanging requests
+      const timeoutId = setTimeout(() => {
+        console.warn(`⏰ Background loading timeout for ${dao.name} after 5 seconds`);
+        setBackgroundError(true);
+      }, 5000); // Reduced timeout
+
+      bgImg.onload = () => {
+        clearTimeout(timeoutId);
+        setBackgroundLoaded(true);
+      };
+
+      bgImg.onerror = () => {
+        clearTimeout(timeoutId);
+        console.log(`❌ Background failed to load for ${dao.name} - using gradient fallback`);
+        setBackgroundError(true);
+      };
+
       bgImg.src = dao.background;
     } else {
+      console.log(`⚠️ No background data for ${dao.name} - using gradient`);
       setBackgroundError(true);
     }
   }, [dao.background]);
@@ -67,7 +119,14 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
             backgroundLoaded ? 'opacity-100' : 'opacity-0'
           }`}
           style={{ backgroundImage: `url(${dao.background})` }}
-        />
+        >
+          {/* Debug indicator */}
+          {!backgroundLoaded && (
+            <div className="absolute top-1 left-1 bg-black/50 text-white text-xs px-2 py-1 rounded">
+              Loading...
+            </div>
+          )}
+        </div>
       )}
       
       {/* Loading background with animated shimmer */}
@@ -82,7 +141,13 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
       
       {/* Fallback gradient background if no background image or error */}
       {(!dao.background || backgroundError) && (
-        <div className="absolute left-0 right-0 top-0 h-20 bg-gradient-to-r from-indigo-500/30 to-purple-500/30 pointer-events-none" />
+        <div className="absolute left-0 right-0 top-0 h-20 bg-gradient-to-r from-indigo-500/30 to-purple-500/30 pointer-events-none">
+          {/* Debug indicator */}
+          {backgroundError && (
+            <div className="absolute top-1 left-1 w-2 h-2 bg-red-500 rounded-full">
+            </div>
+          )}
+        </div>
       )}
       
       {/* Content with overlay */}
@@ -119,7 +184,7 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
             {/* Subname Badge */}
             {dao.subname && dao.subname.trim() && (
               <div className="absolute -bottom-2 -right-2">
-                <span className="px-2 py-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs rounded-lg font-medium shadow-lg">
+                <span className="px-2 py-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white dark:text-black text-xs rounded-lg font-medium shadow-lg">
                   {dao.subname}
                 </span>
               </div>

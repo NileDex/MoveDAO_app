@@ -46,18 +46,36 @@ export interface PaginatedActivities {
 
 
 export class OptimizedActivityTracker {
+  // Lightweight caches to reduce RPC round trips
+  private static initializedCache: { value: boolean | null; timestamp: number } = { value: null, timestamp: 0 };
+  private static readonly INIT_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+  // Cache DAO activity ID lists per DAO
+  private static daoActivitiesIdsCache: Map<string, { ids: number[]; timestamp: number }> = new Map();
+  private static readonly IDS_TTL_MS = 60 * 1000; // 60 seconds
+
+  // Cache activity details by ID
+  private static activityDetailCache: Map<number, { activity: Activity; timestamp: number }> = new Map();
+  private static readonly DETAIL_TTL_MS = 5 * 60 * 1000; // 5 minutes
   /**
    * Check if activity tracker is initialized
    */
   static async isInitialized(): Promise<boolean> {
+    // Use cached result if fresh
+    const now = Date.now();
+    if (this.initializedCache.value !== null && (now - this.initializedCache.timestamp) < this.INIT_TTL_MS) {
+      return Boolean(this.initializedCache.value);
+    }
+
     try {
       // Check if GlobalActivityTracker exists at module address
       const resource = await aptosClient.getAccountResource({
         accountAddress: MODULE_ADDRESS,
         resourceType: `${MODULE_ADDRESS}::activity_tracker::GlobalActivityTracker`
       });
-      
-      return !!resource;
+      const ok = !!resource;
+      this.initializedCache = { value: ok, timestamp: now };
+      return ok;
     } catch {
       // If resource doesn't exist, try to check via total activities
       try {
@@ -67,9 +85,11 @@ export class OptimizedActivityTracker {
             functionArguments: []
           }
         });
+        this.initializedCache = { value: true, timestamp: now };
         return true;
       } catch {
         console.warn('Activity tracker not initialized - no activities available');
+        this.initializedCache = { value: false, timestamp: now };
         return false;
       }
     }
@@ -95,14 +115,23 @@ export class OptimizedActivityTracker {
       
       // Primary method: Use contract view function to get activity IDs
       try {
-        const activityIdsResult = await aptosClient.view({
-          payload: {
-            function: `${MODULE_ADDRESS}::activity_tracker::get_dao_activities`,
-            functionArguments: [daoAddress]
-          }
-        });
+        // Try cache first for IDs
+        const now = Date.now();
+        let activityIds: number[] | undefined;
+        const cachedIds = this.daoActivitiesIdsCache.get(daoAddress);
+        if (cachedIds && (now - cachedIds.timestamp) < this.IDS_TTL_MS) {
+          activityIds = cachedIds.ids;
+        } else {
+          const activityIdsResult = await aptosClient.view({
+            payload: {
+              function: `${MODULE_ADDRESS}::activity_tracker::get_dao_activities`,
+              functionArguments: [daoAddress]
+            }
+          });
+          activityIds = activityIdsResult[0] as number[];
+          this.daoActivitiesIdsCache.set(daoAddress, { ids: activityIds, timestamp: now });
+        }
 
-        const activityIds = activityIdsResult[0] as number[];
         console.log(`📊 Found ${activityIds.length} activity IDs for DAO ${daoAddress}`);
 
         if (activityIds.length === 0) {
@@ -120,18 +149,30 @@ export class OptimizedActivityTracker {
 
         console.log(`📄 Fetching activities ${startIndex}-${endIndex} of ${sortedIds.length}`);
 
-        // Fetch activity records by IDs
+        // Fetch activity records by IDs with cache and larger batch size
         const activities: Activity[] = [];
-        const batchSize = 5;
-        
-        for (let i = 0; i < paginatedIds.length; i += batchSize) {
-          const batch = paginatedIds.slice(i, i + batchSize);
+        const missingIds: number[] = [];
+        // First, pull from detail cache
+        for (const id of paginatedIds) {
+          const cached = this.activityDetailCache.get(id);
+          if (cached && (Date.now() - cached.timestamp) < this.DETAIL_TTL_MS) {
+            activities.push(cached.activity);
+          } else {
+            missingIds.push(id);
+          }
+        }
+
+        // Fetch only missing ids in parallel batches
+        const batchSize = 20; // increase concurrency to speed up
+        for (let i = 0; i < missingIds.length; i += batchSize) {
+          const batch = missingIds.slice(i, i + batchSize);
           const batchPromises = batch.map(id => this.getActivityById(id));
-          
           const batchResults = await Promise.allSettled(batchPromises);
-          batchResults.forEach(result => {
+          batchResults.forEach((result, idx) => {
             if (result.status === 'fulfilled' && result.value) {
               activities.push(result.value);
+              const id = batch[idx];
+              this.activityDetailCache.set(id, { activity: result.value, timestamp: Date.now() });
             }
           });
         }
@@ -341,6 +382,12 @@ export class OptimizedActivityTracker {
    * Get activity by ID using contract ABI
    */
   private static async getActivityById(activityId: number): Promise<Activity | null> {
+    // Check cache first
+    const cached = this.activityDetailCache.get(activityId);
+    if (cached && (Date.now() - cached.timestamp) < this.DETAIL_TTL_MS) {
+      return cached.activity;
+    }
+
     try {
       const activityRecord = await aptosClient.view({
         payload: {
@@ -371,7 +418,7 @@ export class OptimizedActivityTracker {
       // Convert timestamp (contract stores in seconds, UI expects milliseconds for some displays)
       const timestamp = Number(record.timestamp) * 1000;
 
-      return {
+      const activity: Activity = {
         id: String(record.id),
         type: typeInfo.type as Activity['type'],
         title: record.title || typeInfo.title, // Use contract title if available
@@ -384,6 +431,9 @@ export class OptimizedActivityTracker {
         blockNumber: Number(record.block_number),
         status: 'success' // Assume success if it's recorded
       };
+      // Save to cache
+      this.activityDetailCache.set(activityId, { activity, timestamp: Date.now() });
+      return activity;
 
     } catch (error) {
       console.warn(`Failed to fetch activity ${activityId}:`, error);

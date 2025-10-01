@@ -64,7 +64,6 @@ export class ActivityTracker {
       cursor
     } = options;
 
-    console.log(`🔍 Fetching paginated activities for DAO ${daoAddress} - Page: ${page}, Limit: ${limit}`);
     
     // Try contract-based activities first
     try {
@@ -74,7 +73,6 @@ export class ActivityTracker {
       );
       
       if (contractResult.activities.length > 0) {
-        console.log(`✅ Found ${contractResult.activities.length} contract-based activities`);
         return contractResult;
       }
     } catch (error) {
@@ -105,7 +103,6 @@ export class ActivityTracker {
       cursor
     } = options;
 
-    console.log(`🔍 Fetching paginated user activities for ${userAddress} - Page: ${page}, Limit: ${limit}`);
     
     const result = await this.fetchUserActivitiesPaginated(userAddress, {
       page,
@@ -130,7 +127,6 @@ export class ActivityTracker {
       cursor
     } = options;
 
-    console.log(`🔍 Fetching paginated global activities - Page: ${page}, Limit: ${limit}`);
     
     // Try contract-based activities first
     try {
@@ -140,7 +136,6 @@ export class ActivityTracker {
       );
       
       if (contractResult.activities.length > 0) {
-        console.log(`✅ Found ${contractResult.activities.length} contract-based global activities`);
         return contractResult;
       }
     } catch (error) {
@@ -170,13 +165,11 @@ export class ActivityTracker {
     const activities: Activity[] = [];
     
     try {
-      console.log(`🔍 Fetching activities for DAO: ${daoAddress}`);
       
       // Multi-strategy approach to find DAO activities
       
       // Strategy 1: Search network for transactions mentioning this DAO
       const networkActivities = await this.searchNetworkForDAOActivities(daoAddress, limit);
-      console.log(`📊 Strategy 1 found ${networkActivities.length} network activities`);
       activities.push(...networkActivities);
       
       // Strategy 2: Get recent transactions and filter for DAO relevance
@@ -185,13 +178,11 @@ export class ActivityTracker {
         offset: 0
       });
       
-      console.log(`📊 Found ${transactions.length} recent transactions to analyze`);
       
       for (const tx of transactions) {
         if (tx.type === 'user_transaction') {
           const relevantActivities = await this.parseTransactionForDAOContext(tx, daoAddress);
           if (relevantActivities.length > 0) {
-            console.log(`📊 Transaction ${tx.hash} yielded ${relevantActivities.length} activities`);
           }
           activities.push(...relevantActivities);
         }
@@ -232,7 +223,6 @@ export class ActivityTracker {
       // Take only the requested limit
       const paginatedActivities = uniqueActivities.slice(0, limit);
       
-      console.log(`✅ Found ${uniqueActivities.length} total activities for DAO ${daoAddress}, showing ${paginatedActivities.length}`);
       
       // Strategy 3: If no activities found, create demo/sample activities to show functionality
       if (paginatedActivities.length === 0) {
@@ -346,7 +336,6 @@ export class ActivityTracker {
     const activities: Activity[] = [];
     
     try {
-      console.log('🔍 Fetching global activities from all DAO participants...');
       
       // First, get all existing DAOs
       const daos = await this.getAllDAOs();
@@ -360,7 +349,6 @@ export class ActivityTracker {
       // Get DAO members and activities from all DAOs
       const allActivitiesPromises = daos.map(async (dao) => {
         try {
-          console.log(`🔍 Fetching activities for DAO: ${dao.name} (${dao.id})`);
           
           // Get DAO members
           const members = await this.getDAOMembers(dao.id);
@@ -402,7 +390,6 @@ export class ActivityTracker {
       uniqueActivities.sort((a, b) => b.timestamp - a.timestamp);
       const paginatedActivities = uniqueActivities.slice(0, limit);
       
-      console.log(`✅ Found ${uniqueActivities.length} total unique activities from all DAOs, returning ${paginatedActivities.length}`);
       
       return {
         activities: paginatedActivities,
@@ -1095,7 +1082,6 @@ export class ActivityTracker {
    */
   private static async getAllDAOs(): Promise<Array<{id: string, name: string}>> {
     try {
-      console.log('🔍 Fetching all DAOs from network...');
       
       // Get DAO creation events
       const events = await aptosClient.getModuleEventsByEventType({
@@ -1130,7 +1116,6 @@ export class ActivityTracker {
         }
       }
 
-      console.log(`✅ Found ${daos.length} DAOs`);
       return daos;
     } catch (error) {
       console.error('Error fetching DAOs:', error);
@@ -1314,7 +1299,6 @@ export class ActivityTracker {
         startVersion
       });
       
-      console.log(`🔍 Processing ${transactions.length} transactions for general activities`);
       
       for (const tx of transactions) {
         if (tx.type === 'user_transaction') {
@@ -1362,7 +1346,6 @@ export class ActivityTracker {
     const activities: Activity[] = [];
     
     try {
-      console.log(`🔍 Searching network for DAO activities: ${daoAddress}`);
       
       // Search recent transactions for any mention of this DAO
       const { transactions } = await this.getAllRecentTransactionsPaginated({
@@ -1370,7 +1353,6 @@ export class ActivityTracker {
         offset: 0
       });
 
-      console.log(`📊 Searching ${transactions.length} transactions for DAO ${daoAddress}`);
 
       let foundCount = 0;
       for (const tx of transactions) {
@@ -1384,7 +1366,6 @@ export class ActivityTracker {
             const argsString = JSON.stringify(tx.payload.functionArguments);
             mentionsDAO = argsString.includes(daoAddress);
             if (mentionsDAO) {
-              console.log(`✅ Found DAO mention in function args: ${tx.hash}`);
             }
           }
           
@@ -1395,7 +1376,6 @@ export class ActivityTracker {
               const hasDAORef = eventData.dao_address === daoAddress || 
                      JSON.stringify(eventData).includes(daoAddress);
               if (hasDAORef) {
-                console.log(`✅ Found DAO mention in event: ${tx.hash}`);
               }
               return hasDAORef;
             });
@@ -1408,14 +1388,12 @@ export class ActivityTracker {
               !activity.dao || activity.dao === 'unknown' || activity.dao === daoAddress
             );
             
-            console.log(`📊 Transaction ${tx.hash} parsed to ${relevantActivities.length} relevant activities`);
             activities.push(...relevantActivities);
             foundCount += relevantActivities.length;
           }
         }
       }
 
-      console.log(`📊 Found ${activities.length} network activities mentioning DAO ${daoAddress}`);
 
     } catch (error) {
       console.error('Error searching network for DAO activities:', error);

@@ -370,7 +370,15 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
         typeArguments: [],
         functionArguments: [dao.id, amountOctas],
       };
-      const tx = await signAndSubmitTransaction({ payload } as any);
+
+      // Add gas options for new RPC compatibility
+      const tx = await signAndSubmitTransaction({
+        payload,
+        options: {
+          max_gas_amount: "200000",
+          gas_unit_price: "100"
+        }
+      } as any);
       if (tx && (tx as any).hash) {
         await aptosClient.waitForTransaction({ transactionHash: (tx as any).hash, options: { checkSuccess: true } });
       }
@@ -455,7 +463,15 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
         typeArguments: [],
         functionArguments: [dao.id, amountOctas],
       };
-      const tx = await signAndSubmitTransaction({ payload } as any);
+
+      // Add gas options for new RPC compatibility
+      const tx = await signAndSubmitTransaction({
+        payload,
+        options: {
+          max_gas_amount: "200000",
+          gas_unit_price: "100"
+        }
+      } as any);
       if (tx && (tx as any).hash) {
         await aptosClient.waitForTransaction({ transactionHash: (tx as any).hash, options: { checkSuccess: true } });
       }
@@ -702,23 +718,10 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
                     <div className="text-right">
                       {movePrice !== null && (
                         <div className="text-xs font-bold text-white">
-                          ${(Math.max(0, daoStakingData.userBalance - 0.02) * movePrice).toLocaleString(undefined, {maximumFractionDigits: 2})}
+                          {Math.max(0, daoStakingData.userBalance - 0.02).toFixed(2)} MOVE
                         </div>
                       )}
-                      <div className="text-white flex items-center space-x-1">
-                        <span>{Math.max(0, daoStakingData.userBalance - 0.02).toFixed(2)}</span>
-                        <img 
-                          src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27" 
-                          alt="MOVE"
-                          className="w-3 h-3 flex-shrink-0"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                            if (fallback) fallback.classList.remove('hidden');
-                          }}
-                        />
-                        <span className="hidden">MOVE</span>
-                      </div>
+                      {/* Token amount line removed as requested */}
                     </div>
                     </div>
                   <div className="text-gray-400">
@@ -726,23 +729,10 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
                     <div className="text-right">
                       {movePrice !== null && (
                         <div className="text-xs font-bold text-white">
-                          ${(daoStakingData.minStakeRequired * movePrice).toLocaleString(undefined, {maximumFractionDigits: 2})}
+                          {daoStakingData.minStakeRequired} MOVE
                         </div>
                       )}
-                      <div className="text-orange-400 flex items-center space-x-1">
-                        <span>{daoStakingData.minStakeRequired}</span>
-                        <img 
-                          src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27" 
-                          alt="MOVE"
-                          className="w-3 h-3 flex-shrink-0"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                            if (fallback) fallback.classList.remove('hidden');
-                          }}
-                        />
-                        <span className="hidden">MOVE</span>
-                      </div>
+                      {/* Token amount line removed as requested */}
                     </div>
                   </div>
                 </div>
@@ -792,23 +782,10 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
                   <div className="text-right">
                     {movePrice !== null && (
                       <div className="text-xs font-bold text-white">
-                        ${(daoStakingData.userDaoStaked * movePrice).toLocaleString(undefined, {maximumFractionDigits: 2})}
+                        {daoStakingData.userDaoStaked.toFixed(2)} MOVE
                       </div>
                     )}
-                    <div className="text-white flex items-center space-x-1">
-                      <span>{daoStakingData.userDaoStaked.toFixed(2)}</span>
-                      <img 
-                        src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27" 
-                        alt="MOVE"
-                        className="w-3 h-3 flex-shrink-0"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                          if (fallback) fallback.classList.remove('hidden');
-                        }}
-                      />
-                      <span className="hidden">MOVE</span>
-                    </div>
+                    {/* Token amount line removed as requested */}
                   </div>
                 </div>
 
@@ -831,7 +808,7 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
             <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-xl p-6 mb-6">
               {movePrice !== null && (
                 <div className="text-lg font-bold text-white mb-1">
-                  ${(Number(daoRewardsData.totalClaimable || 0) * movePrice).toLocaleString(undefined, {maximumFractionDigits: 2})}
+                  {Number(daoRewardsData.totalClaimable || 0).toFixed(2)} MOVE
                 </div>
               )}
               <div className="text-3xl font-bold text-white mb-2 flex items-center justify-center space-x-2">
@@ -865,7 +842,7 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
                 <div className="text-right">
                   {movePrice !== null && (
                     <div className="text-xs font-bold text-white">
-                      ${(daoRewardsData.totalClaimed * movePrice).toLocaleString(undefined, {maximumFractionDigits: 2})}
+                      {daoRewardsData.totalClaimed.toFixed(2)} MOVE
                     </div>
                   )}
                   <div className="text-green-400 flex items-center space-x-1">

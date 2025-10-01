@@ -68,9 +68,20 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProposal, setSelectedProposal] = useState<ProposalData | null>(null);
-  const [proposals, setProposals] = useState<ProposalData[]>([]);
+  // In-memory cache so tab switches are instant (session-scoped)
+  // @ts-ignore
+  const proposalsCache: Map<string, { items: ProposalData[]; timestamp: number }> = (window as any).__proposalsCache || ((window as any).__proposalsCache = new Map());
+  const PROPOSALS_TTL_MS = 60 * 1000;
+  const nowForInit = Date.now();
+  const cachedForInit = proposalsCache.get(dao.id);
+  const initialProposals = cachedForInit && (nowForInit - cachedForInit.timestamp) < PROPOSALS_TTL_MS
+    ? cachedForInit.items
+    : [];
+  const [proposals, setProposals] = useState<ProposalData[]>(initialProposals);
   const [, setProposalCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  // Section-level loader for unified loading state (like Overview)
+  const sectionLoader = useSectionLoader();
   const [isCreating, setIsCreating] = useState(false);
   const [filterCategory, setFilterCategory] = useState('all');
   const [userStatus, setUserStatus] = useState({ isAdmin: false, isMember: false, isCouncil: false, isStaker: false });
@@ -419,9 +430,17 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       // Check cache first unless force refresh
       const cacheKey = `proposals_${dao.id}`;
       if (!forceRefresh) {
-        const cached = proposalCache.get(cacheKey);
-        if (cached && Date.now() - cached.timestamp < PROPOSAL_CACHE_TTL) {
-          setProposals(cached.data);
+        // legacy cache
+        const cachedLegacy = proposalCache.get(cacheKey);
+        if (cachedLegacy && Date.now() - cachedLegacy.timestamp < PROPOSAL_CACHE_TTL) {
+          setProposals(cachedLegacy.data);
+          setIsLoading(false);
+          return;
+        }
+        // session cache
+        const cached = proposalsCache.get(dao.id);
+        if (cached && (Date.now() - cached.timestamp) < PROPOSALS_TTL_MS) {
+          setProposals(cached.items);
           setIsLoading(false);
           return;
         }
@@ -444,7 +463,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       }
 
       // Fetch individual proposals in optimized batches via managed request manager
-      const batchSize = 5; // Process 5 proposals at a time for optimal performance
+      const batchSize = 20; // Increased batch size for faster parallel fetch
       const proposalResults: any[] = [];
 
       for (let i = 0; i < count; i += batchSize) {
@@ -556,6 +575,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       
       // Cache the results
       proposalCache.set(cacheKey, { data: finalProposals, timestamp: Date.now() });
+      proposalsCache.set(dao.id, { items: finalProposals, timestamp: Date.now() });
       
     } catch (error: any) {
       console.error('Failed to fetch proposals:', error);
@@ -573,8 +593,13 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
     }
   };
 
+  // Load proposals once per DAO; avoid reloading on tab switches
+  // Eligibility still updates with account changes
   useEffect(() => {
-    fetchProposals();
+    sectionLoader.executeWithLoader(fetchProposals);
+  }, [dao.id]);
+
+  useEffect(() => {
     checkProposalEligibility();
   }, [dao.id, account?.address]);
 
@@ -1423,10 +1448,10 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
                         ? 'text-gray-900 dark:text-white bg-transparent dark:bg-transparent border-gray-300 dark:border-white/20 hover:bg-transparent dark:hover:bg-transparent'
                         : 'cursor-not-allowed text-gray-500 dark:text-gray-400 bg-transparent dark:bg-transparent border-gray-300 dark:border-white/15'
                     }`}
-                  >
-                    <Plus className="w-4 h-4" />
+            >
+              <Plus className="w-4 h-4" />
                     <span>{label}</span>
-                  </button>
+            </button>
                 </div>
               );
             })()}
@@ -1868,21 +1893,23 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
           </div>
       )}
 
-          {/* Proposals List (compact rows) */}
-      {isLoading ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Loading proposals...</p>
-        </div>
+      {/* Proposals List (compact rows) */}
+      {sectionLoader.isLoading && proposals.length === 0 ? (
+        <div className="text-xs text-blue-300 px-2">Loading...</div>
       ) : filteredProposals.length === 0 ? (
         <div className="text-center py-12">
-          <BarChart3 className="w-16 h-16 text-gray-500 mx-auto mb-4 opacity-50" />
-          <h3 className="text-lg font-medium text-white mb-2">No proposals found</h3>
-          <p className="text-gray-400 mb-4">
-            {proposals.length === 0 
-              ? 'This DAO has no proposals yet. Be the first to create one!'
-              : 'Try adjusting your search filters.'}
-          </p>
+          {proposals.length > 0 ? (
+            // When cached proposals exist but filter yields none, keep the area compact without the big empty-state
+            <p className="text-gray-400">No results match your filters.</p>
+          ) : (
+            <>
+              <BarChart3 className="w-16 h-16 text-gray-500 mx-auto mb-4 opacity-50" />
+              <h3 className="text-lg font-medium text-white mb-2">No proposals found</h3>
+              <p className="text-gray-400 mb-4">
+                This DAO has no proposals yet. Be the first to create one!
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div className="professional-card rounded-xl p-0 overflow-hidden">

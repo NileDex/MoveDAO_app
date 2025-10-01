@@ -59,7 +59,7 @@ export function useUserDAOs(): UseUserDAOsReturn {
         console.log('🚀 Starting DAO fetch for address:', account.address);
         
         // Use the Movement testnet endpoint directly
-        const endpoint = 'https://full.testnet.movementinfra.xyz/v1';
+        const endpoint = 'https://testnet.movementnetwork.xyz/v1';
         
         // Fetch user's DAOs
         console.log('📞 Calling get_user_daos...');

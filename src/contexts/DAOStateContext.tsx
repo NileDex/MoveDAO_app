@@ -151,17 +151,20 @@ export const DAOStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     console.log('Fetching wallet balance for:', walletAddress);
     
     try {
-      // Try direct CoinStore for AptosCoin (MOVE) with retry logic
-      const res: any = await retryWithBackoff(() => aptosClient.getAccountResource({
-        accountAddress: walletAddress,
-        resourceType: `0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>`,
+      // Use view function for new RPC compatibility (more reliable than getAccountResource)
+      const balRes = await retryWithBackoff(() => aptosClient.view({
+        payload: {
+          function: '0x1::coin::balance',
+          typeArguments: ['0x1::aptos_coin::AptosCoin'],
+          functionArguments: [walletAddress]
+        }
       }));
-      const raw = Number(res?.data?.coin?.value ?? 0);
+      const raw = Number(balRes?.[0] ?? 0);
       const balance = toMOVE(raw);
-      console.log('Balance fetched via CoinStore:', balance);
+      console.log('Balance fetched via view function:', balance);
       return balance;
     } catch (error) {
-      console.log('CoinStore method failed, trying alternatives...');
+      console.log('View function method failed, trying alternatives...');
       
       // Fallback 1: Scan resources for any CoinStore with non-zero value (robust on Movement)
       try {

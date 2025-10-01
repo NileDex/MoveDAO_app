@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSectionLoader } from '../../hooks/useSectionLoader';
 import { Search, Filter, Users, Crown, Vote, UserPlus, MoreVertical, Coins, Shield, TrendingUp, RefreshCw } from 'lucide-react';
 import { Member } from '../../types/dao';
 import { DAO } from '../../types/dao';
@@ -13,6 +14,13 @@ interface DAOMembersProps {
 }
 
 const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }) => {
+  // In-memory caches to keep member data stable between tab switches
+  // Cache persists for the app lifetime; TTL avoids serving stale data too long
+  const CACHE_TTL_MS = 60 * 1000; // 60 seconds
+  // @ts-ignore - module-level singleton caches
+  const membersCache: Map<string, { members: Member[]; timestamp: number }> = (window as any).__membersCache || ((window as any).__membersCache = new Map());
+  // @ts-ignore
+  const summaryCache: Map<string, { summary: any; timestamp: number }> = (window as any).__membersSummaryCache || ((window as any).__membersSummaryCache = new Map());
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [membershipData, setMembershipData] = useState({
@@ -27,6 +35,7 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
   const [actualMembers, setActualMembers] = useState<Member[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
+  const sectionLoader = useSectionLoader();
   
   const { account, signAndSubmitTransaction } = useWallet();
   const OCTAS = 1e8;
@@ -66,7 +75,7 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
       (stakeEvents as any[]).forEach(pushIfForDAO);
       (unstakeEvents as any[]).forEach(pushIfForDAO);
 
-      // Also include the connected account if present, to reflect immediate membership
+      // Include the connected account if present, to reflect immediate membership
       if (account?.address) candidateAddresses.add(account.address);
 
       // Validate membership and fetch stake per candidate (limit concurrency to avoid rate limits)
@@ -114,6 +123,8 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
       const members = Array.from(unique.values()).sort((a, b) => a.address.localeCompare(b.address));
       
       setActualMembers(members);
+      // Save to cache
+      membersCache.set(dao.id, { members, timestamp: Date.now() });
     } catch (error) {
       console.error('Failed to fetch actual members:', error);
       setActualMembers([]);
@@ -167,7 +178,7 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
       const rawMinProposalStake = Number(minProposalStakeRes[0] || 0);
       const minProposalStakeInMOVE = rawMinProposalStake > 0 ? toMOVE(rawMinProposalStake) : 6.0; // Default to 6 MOVE if not set
       
-      setMembershipData({
+      const summary = {
         totalMembers: Number(totalMembersRes[0] || 0),
         totalStakers: Number(totalStakersRes[0] || 0),
         totalStaked: toMOVE(Number(totalStakedRes[0] || 0)),
@@ -175,7 +186,10 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
         minProposalStake: minProposalStakeInMOVE,
         userIsMember,
         userStake
-      });
+      };
+      setMembershipData(summary);
+      // Save to cache
+      summaryCache.set(dao.id, { summary, timestamp: Date.now() });
       
     } catch (error) {
       console.error('Failed to fetch membership data:', error);
@@ -220,9 +234,23 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
   };
 
   useEffect(() => {
-    fetchMembershipData();
-    fetchActualMembers();
-  }, [dao.id, account?.address]);
+    const now = Date.now();
+    // Hydrate from cache immediately (no spinner) if fresh
+    const cachedMembers = membersCache.get(dao.id);
+    if (cachedMembers && now - cachedMembers.timestamp < CACHE_TTL_MS) {
+      setActualMembers(cachedMembers.members);
+      setIsLoadingMembers(false);
+    }
+    const cachedSummary = summaryCache.get(dao.id);
+    if (cachedSummary && now - cachedSummary.timestamp < CACHE_TTL_MS) {
+      setMembershipData(cachedSummary.summary);
+      setIsLoading(false);
+    }
+    // Always trigger a background refresh using the section loader
+    sectionLoader.executeWithLoader(async () => {
+      await Promise.all([fetchMembershipData(), fetchActualMembers()]);
+    });
+  }, [dao.id]); // Fetch on DAO change only; cache keeps view instant between tabs
 
   // Use actual members fetched from the blockchain
   const members = actualMembers;
@@ -242,9 +270,14 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
         <div>
           <h2 className="text-2xl font-bold text-white mb-2">Community Members</h2>
         </div>
+        <div className="text-right">
+          {sectionLoader.isLoading && (
+            <div className="text-xs text-blue-300">Loading...</div>
+          )}
+        </div>
       </div>
 
-      {/* Current User Membership Status */}
+      {/* Current User Membership Status - Only show when wallet is connected */}
       {account?.address && (
         <div className={`professional-card rounded-xl p-4 border-2 ${
           membershipData.userIsMember 
@@ -358,27 +391,20 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
               </tr>
             </thead>
             <tbody>
-              {isLoadingMembers ? (
-                <tr>
-                  <td colSpan={4} className="py-8 px-4 text-center">
-                    <div className="flex items-center justify-center space-x-2 text-gray-400">
-                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-                      <span>Loading members...</span>
-                    </div>
-                  </td>
-                </tr>
-              ) : filteredMembers.length === 0 ? (
+              {filteredMembers.length === 0 ? (
+                sectionLoader.isLoading ? null : (
                 <tr>
                   <td colSpan={4} className="py-8 px-4 text-center">
                     <Users className="w-12 h-12 text-gray-500 mx-auto mb-3" />
                     <p className="text-gray-400 text-sm">No members found</p>
                     <p className="text-gray-500 text-xs mt-1">
                       {membershipData.totalMembers > 0 
-                        ? 'Try adjusting your search or connect wallet if you are a member'
+                        ? 'Try adjusting your search'
                         : 'No registered members yet'}
                     </p>
                   </td>
                 </tr>
+                )
               ) : (
                 filteredMembers.map((member, index) => (
                 <tr key={member.id} className="border-b border-white/5 hover:bg-white/5 transition-all">
@@ -432,14 +458,8 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
 
         {/* Mobile Card View */}
         <div className="sm:hidden">
-          {isLoadingMembers ? (
-            <div className="text-center py-8">
-              <div className="flex items-center justify-center space-x-2 text-gray-400">
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-                <span>Loading members...</span>
-              </div>
-            </div>
-          ) : filteredMembers.length === 0 ? (
+          {filteredMembers.length === 0 ? (
+            sectionLoader.isLoading ? null : (
             <div className="text-center py-8">
               <Users className="w-12 h-12 text-gray-500 mx-auto mb-3" />
               <p className="text-gray-400 text-sm">No members found</p>
@@ -449,6 +469,7 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
                   : 'No registered members yet'}
               </p>
             </div>
+            )
           ) : (
             <div className="space-y-1.5">
               {filteredMembers.map((member, index) => (

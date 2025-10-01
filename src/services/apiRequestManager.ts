@@ -28,14 +28,14 @@ class APIRequestManager {
   private requestCount = 0;
   private windowStart = Date.now();
   
-  // Configuration
-  private readonly MAX_CONCURRENT_REQUESTS = 3;
-  private readonly REQUESTS_PER_SECOND = 2;
-  private readonly CIRCUIT_BREAKER_THRESHOLD = 5;
-  private readonly CIRCUIT_BREAKER_TIMEOUT = 30000; // 30 seconds
-  private readonly DEFAULT_CACHE_TTL = 10000; // 10 seconds
-  private readonly MAX_RETRIES = 3;
-  private readonly BASE_DELAY = 1000;
+  // Configuration - More lenient settings for blockchain RPC calls
+  private readonly MAX_CONCURRENT_REQUESTS = 2; // Reduced to be more conservative
+  private readonly REQUESTS_PER_SECOND = 1; // Reduced to 1 request per second
+  private readonly CIRCUIT_BREAKER_THRESHOLD = 15; // Increased from 5 to 15 failures
+  private readonly CIRCUIT_BREAKER_TIMEOUT = 15000; // Reduced to 15 seconds for faster recovery
+  private readonly DEFAULT_CACHE_TTL = 30000; // Increased to 30 seconds for better caching
+  private readonly MAX_RETRIES = 5; // Increased retries
+  private readonly BASE_DELAY = 2000; // Increased base delay to 2 seconds
 
   private activeRequests = 0;
 
@@ -212,9 +212,21 @@ class APIRequestManager {
     this.failureCount++;
     this.lastFailureTime = Date.now();
 
-    if (this.failureCount >= this.CIRCUIT_BREAKER_THRESHOLD) {
+    // Only count certain errors as failures (not all errors should trigger circuit breaker)
+    const isCircuitBreakerError = error.status === 429 || 
+                                 error.code === 'ERR_NETWORK' || 
+                                 error.message?.includes('429') || 
+                                 error.message?.includes('Too Many Requests') ||
+                                 error.message?.includes('timeout') ||
+                                 error.message?.includes('CORS');
+
+    if (isCircuitBreakerError && this.failureCount >= this.CIRCUIT_BREAKER_THRESHOLD) {
       this.circuitBreakerState = 'OPEN';
-      console.warn(`🔥 Circuit breaker opened after ${this.failureCount} failures`);
+      console.warn(`🔥 Circuit breaker opened after ${this.failureCount} network failures`);
+      console.warn(`🔧 Use resetCircuitBreaker() to manually reset if needed`);
+    } else if (!isCircuitBreakerError) {
+      // Reset failure count for non-network errors
+      this.failureCount = Math.max(0, this.failureCount - 1);
     }
   }
 
@@ -322,15 +334,17 @@ export async function managedApiCall<T>(
 }
 
 /**
- * Manually reset the circuit breaker (for admin/debugging purposes)
+ * Manually reset the circuit breaker (internal use only)
  */
-export function resetCircuitBreaker() {
+function resetCircuitBreaker() {
   return apiRequestManager.resetCircuitBreakerManually();
 }
 
 /**
- * Get API manager status (for debugging)
+ * Get API manager status (internal use only)
  */
-export function getAPIStatus() {
+function getAPIStatus() {
   return apiRequestManager.getStatus();
 }
+
+// Note: Manual reset functions are only available internally, not exposed globally for production security

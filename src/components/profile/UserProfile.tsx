@@ -9,9 +9,7 @@ import {
   getDisplayNameOrAddress,
   getAvatarUrlOrDefault
 } from '../../useServices/useProfile';
-import { useFetchCreatedDAOs } from '../../useServices/useFetchDAOs';
-import { useDAOPortfolio } from '../../hooks/useDAOMembership';
-import { useDAOState } from '../../contexts/DAOStateContext';
+import { useUserDAOs } from '../../useServices/useUserDAOs';
 
 interface UserProfileProps {
   className?: string;
@@ -22,7 +20,10 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
   
   // Modal state
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  
+
+  // DAO filter state
+  const [daoFilter, setDaoFilter] = useState<'all' | 'created' | 'joined'>('all');
+
   // Form state for settings modal only
   const [formData, setFormData] = useState({
     displayName: '',
@@ -35,57 +36,13 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
   const { createProfile, isPending: isCreating, error: createError } = useCreateProfile();
   const { updateProfile, isPending: isUpdating, error: updateError } = useUpdateProfile();
   
-  // DAO hooks
-  const { daos: allDAOs, isLoading: allDAOsLoading, error: allDAOsError } = useFetchCreatedDAOs();
-  useDAOPortfolio();
-  const { userState } = useDAOState();
+  // DAO hooks - Use the proper hook that fetches from blockchain
+  const { userDAOs, isLoading: daosLoading, error: daosError } = useUserDAOs();
 
   // Loading and error states
   const isLoading = profileLoading || existsLoading;
   const isPending = isCreating || isUpdating;
   const error = createError || updateError;
-
-  // Get user's DAOs by matching membership data with DAO objects
-  const userDAOs = React.useMemo(() => {
-    if (!allDAOs.length || !account?.address) {
-      return { joined: [], created: [], all: [] };
-    }
-
-    const joinedDAOs: any[] = [];
-    const createdDAOs: any[] = [];
-    const userAddress = account.address.toLowerCase();
-
-    // Check all DAOs to see which ones the user created or joined
-    allDAOs.forEach((dao) => {
-      // Check if user is the creator (DAO ID matches user address)
-      const isCreator = dao.id.toLowerCase() === userAddress;
-      
-      if (isCreator) {
-        console.log(`🏗️ User created DAO: ${dao.name} (${dao.id.slice(0,8)}...)`);
-        createdDAOs.push(dao);
-      } else {
-        // Check if user is a member of this DAO (but not creator)
-        const membership = userState?.daoMemberships?.get(dao.id);
-        if (membership?.isMember) {
-          console.log(`👥 User joined DAO: ${dao.name} (${dao.id.slice(0,8)}...)`);
-          joinedDAOs.push(dao);
-        }
-      }
-    });
-    
-    console.log(`📊 Profile DAO summary: ${createdDAOs.length} created, ${joinedDAOs.length} joined`);
-    
-    const allUserDAOs = [...createdDAOs, ...joinedDAOs];
-    
-    return {
-      joined: joinedDAOs,
-      created: createdDAOs,
-      all: allUserDAOs
-    };
-  }, [userState?.daoMemberships, allDAOs, account?.address]);
-
-  const daosLoading = allDAOsLoading;
-  const daosError = allDAOsError;
 
 
   // Initialize form data only when opening modal (not on every data change)
@@ -368,11 +325,47 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
           )}
         </div>
         
-        <p className="text-gray-400 text-sm mb-6">
-          {account?.address 
+        <p className="text-gray-400 text-sm mb-4">
+          {account?.address
             ? 'DAOs you have created or joined are shown below.'
             : 'Connect your wallet to see your DAO memberships.'}
         </p>
+
+        {/* Filter Tabs */}
+        {!daosLoading && userDAOs.all.length > 0 && (
+          <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
+            <button
+              onClick={() => setDaoFilter('all')}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${
+                daoFilter === 'all'
+                  ? 'bg-indigo-600 text-white shadow-lg'
+                  : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800'
+              }`}
+            >
+              All DAOs ({userDAOs.all.length})
+            </button>
+            <button
+              onClick={() => setDaoFilter('created')}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${
+                daoFilter === 'created'
+                  ? 'bg-indigo-600 text-white shadow-lg'
+                  : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800'
+              }`}
+            >
+              👑 Created ({userDAOs.created.length})
+            </button>
+            <button
+              onClick={() => setDaoFilter('joined')}
+              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${
+                daoFilter === 'joined'
+                  ? 'bg-indigo-600 text-white shadow-lg'
+                  : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800'
+              }`}
+            >
+              ✓ Joined ({userDAOs.joined.length})
+            </button>
+          </div>
+        )}
 
         {/* Loading State */}
         {daosLoading && account?.address && (
@@ -391,21 +384,42 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
         )}
 
         {/* DAOs Grid */}
-        {!daosLoading && userDAOs.all.length > 0 && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {userDAOs.all.map((dao) => {
-              const isCreator = userDAOs.created.some(d => d.id === dao.id);
-              
+        {!daosLoading && userDAOs.all.length > 0 && (() => {
+          // Filter DAOs based on selected tab
+          const filteredDAOs = daoFilter === 'all'
+            ? userDAOs.all
+            : daoFilter === 'created'
+              ? userDAOs.created
+              : userDAOs.joined;
+
+          return (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredDAOs.map((dao) => {
+                const isCreator = userDAOs.created.some(d => d.address === dao.address);
+
+              // Convert logo data to image URL if needed
+              const getImageUrl = () => {
+                if (dao.logo?.is_url) return dao.logo.url;
+                if (dao.logo?.data?.length) {
+                  try {
+                    const bytes = new Uint8Array(dao.logo.data);
+                    const text = new TextDecoder().decode(bytes);
+                    return text.startsWith('http') ? text : null;
+                  } catch { return null; }
+                }
+                return null;
+              };
+
               return (
-                <div key={dao.id} className="professional-card rounded-xl p-4 hover:bg-gray-800/50 transition-colors">
+                <div key={dao.address} className="professional-card rounded-xl p-4 hover:bg-gray-800/50 transition-colors">
                   {/* DAO Header with Logo and Name */}
                   <div className="flex items-center gap-3 mb-3">
                     <div className="relative">
-                      {dao.image ? (
+                      {getImageUrl() ? (
                         <>
-                          <img 
-                            src={dao.image} 
-                            alt={dao.name}
+                          <img
+                            src={getImageUrl()!}
+                            alt={dao.name || 'DAO'}
                             className="w-12 h-12 rounded-lg object-cover shadow-md"
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
@@ -414,12 +428,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                             }}
                           />
                           <div className="hidden w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-lg font-bold">
-                            {dao.name.charAt(0).toUpperCase()}
+                            {(dao.name || 'D').charAt(0).toUpperCase()}
                           </div>
                         </>
                       ) : (
                         <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-lg font-bold">
-                          {dao.name.charAt(0).toUpperCase()}
+                          {(dao.name || 'D').charAt(0).toUpperCase()}
                         </div>
                       )}
                       
@@ -432,7 +446,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                     </div>
                     
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-white truncate">{dao.name}</h3>
+                      <h3 className="font-semibold text-white truncate">{dao.name || 'Unnamed DAO'}</h3>
                       <p className="text-xs text-gray-400">
                         {isCreator ? 'Creator' : 'Member'}
                         {dao.subname && (
@@ -447,16 +461,18 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                   {/* DAO Stats */}
                   <div className="flex items-center justify-between text-xs text-gray-400 mb-2">
                     <div className="flex items-center gap-1">
-                      <Users className="w-3 h-3" />
-                      <span>{dao.members.toLocaleString()}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <FileText className="w-3 h-3" />
-                      <span>{dao.proposals}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3" />
-                      <span>{dao.established.split(' at')[0].split(' ').slice(0, 2).join(' ')}</span>
+                      <span>
+                        {dao.created_at
+                          ? new Date(dao.created_at * 1000).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+                          : 'N/A'
+                        }
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <span className="text-xs text-gray-500">
+                        {dao.address.slice(0, 6)}...{dao.address.slice(-4)}
+                      </span>
                     </div>
                   </div>
 
@@ -470,7 +486,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
               );
             })}
           </div>
-        )}
+          );
+        })()}
 
         {/* Empty State */}
         {!daosLoading && !daosError && userDAOs.all.length === 0 && account?.address && (

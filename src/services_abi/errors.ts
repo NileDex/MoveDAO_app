@@ -162,6 +162,17 @@ export const ABI = {
       ]
     },
     {
+      "name": "fa_transfer_failed",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "u64"
+      ]
+    },
+    {
       "name": "insufficient_balance",
       "visibility": "public",
       "is_entry": false,
@@ -240,6 +251,17 @@ export const ABI = {
     },
     {
       "name": "invalid_apy",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "u64"
+      ]
+    },
+    {
+      "name": "invalid_fa_metadata",
       "visibility": "public",
       "is_entry": false,
       "is_view": false,
@@ -330,6 +352,17 @@ export const ABI = {
     },
     {
       "name": "invalid_unstake_amount",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [],
+      "return": [
+        "u64"
+      ]
+    },
+    {
+      "name": "invalid_vault_address",
       "visibility": "public",
       "is_entry": false,
       "is_view": false,

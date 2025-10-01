@@ -174,29 +174,16 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
     );
   }
 
-  // Only show skeleton on true first load ever (no cached data and never loaded before)
+  // Remove skeleton: show minimal container while loading first time
   if (isLoading && !hasEverLoaded.current && cachedActivities.length === 0) {
     return (
-      <div className={`p-6 ${className}`}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <ActivityIcon className="w-5 h-5" />
-            {title}
+      <div className={`p-4 ${className}`}>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm sm:text-base md:text-lg font-semibold text-white flex items-center gap-2">
+            <ActivityIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="truncate">{title}</span>
           </h3>
-        </div>
-        <div className="space-y-3">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="animate-pulse">
-              <div className="flex items-center space-x-3 p-3 rounded-lg">
-                <div className="w-8 h-8 bg-gray-600/50 rounded-full"></div>
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-gray-600/50 rounded w-3/4"></div>
-                  <div className="h-3 bg-gray-600/30 rounded w-1/2"></div>
-                </div>
-                <div className="w-16 h-4 bg-gray-600/50 rounded"></div>
-              </div>
-            </div>
-          ))}
+          <div className="animate-spin rounded-full h-3 w-3 sm:h-4 sm:w-4 border-b-2 border-blue-400"></div>
         </div>
       </div>
     );

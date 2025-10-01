@@ -9,6 +9,7 @@ import { useTheme } from '../contexts/ThemeContext';
 interface HeaderProps {
   onMenuClick?: () => void;
   onProfileClick?: () => void;
+  currentDAO?: string;
 }
 
 const Header: React.FC<HeaderProps> = ({ onMenuClick, onProfileClick }) => {

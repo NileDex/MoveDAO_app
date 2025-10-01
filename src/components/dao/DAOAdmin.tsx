@@ -152,7 +152,6 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         );
         
         if (creationEvent) {
-          console.log('✅ Found DAO creation event:', creationEvent);
           // Set creator from event data when available
           daoCreator = creationEvent.data?.creator || null;
           
@@ -175,7 +174,6 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
                 // Initial council is typically the 6th argument (index 5) in create_dao
                 if (args.length > 5 && Array.isArray(args[5])) {
                   const initialCouncil = args[5] as string[];
-                  console.log('✅ Found initial council from transaction:', initialCouncil);
                   
                   initialCouncil.forEach((memberAddress, index) => {
                     if (memberAddress && memberAddress.startsWith('0x')) {
@@ -223,7 +221,6 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             status: 'active'
           });
         }
-        console.log('✅ DAO creator included in council list');
       }
       
       // Set council data with discovered information
@@ -232,13 +229,6 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         maxMembers: 10, // Default from contract
         minMembers: 3,  // Default from contract
         members: knownMembers,
-        daoCreator
-      });
-      
-      console.log('✅ Council data set successfully:', { 
-        totalMembers: knownMembers.length, 
-        daoId: dao.id,
-        knownMembers: knownMembers.map(m => ({ address: m.address, role: m.addedAt })),
         daoCreator
       });
     } catch (error: any) {
@@ -1053,34 +1043,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
     fetchStakeSettings();
   }, [dao.id]);
 
-  const renderOverview = () => {
-    // Check if admin system is initialized
-    if (admins.length === 0 && !isAdmin) {
-    return (
-        <div className="space-y-6">
-          <div className="professional-card rounded-xl p-6 text-center">
-            <div className="w-16 h-16 bg-yellow-500/20 rounded-xl flex items-center justify-center mx-auto mb-4">
-              <AlertTriangle className="w-8 h-8 text-yellow-400" />
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2">Admin System Not Initialized</h3>
-            <p className="text-gray-400 mb-4">
-              This DAO was created before automatic admin initialization was implemented. The admin system is required for proper DAO governance and management.
-            </p>
-            {account?.address && (
-              <button
-                onClick={fetchAdminData}
-                className="btn-primary flex items-center justify-center space-x-2 mx-auto"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Check & Initialize Admin System</span>
-              </button>
-            )}
-          </div>
-      </div>
-    );
-  }
-
-  return (
+  const renderOverview = () => (
     <div className="space-y-6">
       {/* Admin Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -1192,8 +1155,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         </div>
       </div>
     </div>
-    );
-  };
+  );
 
   const renderAdminManagement = () => (
     <div className="space-y-6">

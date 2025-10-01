@@ -157,7 +157,7 @@ const PlatformGrowthCharts: React.FC = () => {
               </span>
             ) : (
               <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
-                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                <span className="w-2 h-2 rounded-full animate-pulse" style={{backgroundColor: '#22c55e !important'}}></span>
                 Live
               </span>
             )}

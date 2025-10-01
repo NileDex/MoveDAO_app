@@ -246,7 +246,6 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
     try {
       const optimized = await optimizeImage(file, type);
       
-      console.log(`✅ File accepted for ${type}:`, optimized.name, `${(optimized.size/1024).toFixed(1)}KB`);
       setFormData({...formData, [type]: optimized});
       setErrors({...errors, [type]: ''});
     } catch (error) {
@@ -330,7 +329,6 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
     try {
       console.log('🧪 Testing minimal transaction...');
       const result = await testMinimalTransaction();
-      console.log('✅ Test transaction completed:', result);
       
       showAlert('✅ Test transaction successful! Serialization is working.', 'success');
     } catch (error) {
@@ -484,7 +482,6 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
         
         const result = await createDAO(createDAOParams);
       
-      console.log('✅ DAO creation transaction completed:', result);
       
       // Extract transaction hash from different wallet response formats
       let txHash = ''

@@ -239,10 +239,11 @@ export const useTreasury = (daoId: string) => {
       let dailyWithdrawn = 0;
       let allowsPublicDeposits = false;
       
-      // If legacy balance is available, paint it immediately for faster UI feedback
+      // If legacy balance is available and > 0, paint it immediately for faster UI feedback
       if (legacyBalanceRes.status === 'fulfilled') {
-        const quickBalance = Number((legacyBalanceRes as any).value?.[0] || 0) / 1e8;
-        if (quickBalance !== undefined) {
+        const quickBalanceRaw = (legacyBalanceRes as any).value?.[0];
+        const quickBalance = Number(quickBalanceRaw || 0) / 1e8;
+        if (quickBalance > 0) {
           setTreasuryData(prev => ({
             ...prev,
             balance: quickBalance,
@@ -255,11 +256,14 @@ export const useTreasury = (daoId: string) => {
       // Use treasury object if available
       if (treasuryObjectRes.status === 'fulfilled' && (treasuryObjectRes as any).value) {
         const rawObj = ((treasuryObjectRes as any).value as any)?.[0];
-        // Store the raw object for Move function calls (it's already in Object<Treasury> format)
-        treasuryObject = rawObj;
+        // Normalize to the underlying object address string (handles { inner, value, address } shapes)
+        const objectAddress = typeof rawObj === 'string'
+          ? rawObj
+          : (rawObj?.inner || rawObj?.value || rawObj?.address || rawObj);
+        treasuryObject = objectAddress;
         try {
           // Prefer full info when object is known - use the raw object directly
-          const infoRes = await safeView({ function: `${MODULE_ADDRESS}::treasury::get_treasury_info`, functionArguments: [treasuryObject] }, `treasury_info_${daoId}`);
+          const infoRes = await safeView({ function: `${MODULE_ADDRESS}::treasury::get_treasury_info`, functionArguments: [objectAddress] }, `treasury_info_${daoId}`);
           if (Array.isArray(infoRes) && infoRes.length >= 6) {
             balance = Number(infoRes[0] || 0) / 1e8;
             dailyWithdrawalLimit = Number(infoRes[1] || 0) / 1e8;
@@ -268,7 +272,7 @@ export const useTreasury = (daoId: string) => {
             allowsPublicDeposits = Boolean(infoRes[5]);
           } else {
             // Fallback to balance-only view if needed
-            const balanceResult = await safeView({ function: `${MODULE_ADDRESS}::treasury::get_balance_from_object`, functionArguments: [treasuryObject] }, `treasury_obj_balance_${daoId}`);
+            const balanceResult = await safeView({ function: `${MODULE_ADDRESS}::treasury::get_balance_from_object`, functionArguments: [objectAddress] }, `treasury_obj_balance_${daoId}`);
             balance = Number(balanceResult[0] || 0) / 1e8;
           }
         } catch (error: any) {
@@ -279,7 +283,8 @@ export const useTreasury = (daoId: string) => {
       // Use legacy balance if object approach failed or unavailable
       if (balance === 0 && legacyBalanceRes.status === 'fulfilled') {
         // @ts-ignore
-        balance = Number((legacyBalanceRes as any).value?.[0] || 0) / 1e8;
+        const legacy = Number((legacyBalanceRes as any).value?.[0] || 0) / 1e8;
+        balance = legacy;
       }
 
       // Fallbacks if object path unavailable
@@ -290,7 +295,7 @@ export const useTreasury = (daoId: string) => {
       const remainingDaily = dailyWithdrawalLimit - (lastWithdrawalDay === currentDay ? dailyWithdrawn : 0);
 
       const newTreasuryData = {
-        balance,
+        balance: balance > 0 ? balance : (treasuryData.balance || 0),
         dailyWithdrawalLimit,
         dailyWithdrawn,
         remainingDaily,
