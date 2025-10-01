@@ -1441,19 +1441,19 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             <div className="professional-card p-4 text-center rounded-xl relative">
               <button
                 type="button"
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-gray-200 text-gray-900 shadow-sm dark:bg-white/10 dark:text-gray-200"
+                className="absolute left-1.5 top-1/2 -translate-y-1/2 p-1"
                 onClick={() => setCarouselIndex((i) => (i - 1 + 5) % 5)}
                 aria-label="Previous stat"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-5 h-5 text-black dark:text-white" style={{ color: 'inherit' }} />
               </button>
               <button
                 type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-gray-200 text-gray-900 shadow-sm dark:bg-white/10 dark:text-gray-200"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1"
                 onClick={() => setCarouselIndex((i) => (i + 1) % 5)}
                 aria-label="Next stat"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-5 h-5 text-black dark:text-white" style={{ color: 'inherit' }} />
               </button>
               <div className="text-xl font-bold text-white">{proposalStats.total}</div>
               <div className="text-sm text-gray-400">Total</div>
@@ -1464,19 +1464,19 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             <div className="professional-card p-4 text-center rounded-xl relative">
               <button
                 type="button"
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-gray-200 text-gray-900 shadow-sm dark:bg-white/10 dark:text-gray-200"
+                className="absolute left-1.5 top-1/2 -translate-y-1/2 p-1"
                 onClick={() => setCarouselIndex((i) => (i - 1 + 5) % 5)}
                 aria-label="Previous stat"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-5 h-5 text-black dark:text-white" style={{ color: 'inherit' }} />
               </button>
               <button
                 type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-gray-200 text-gray-900 shadow-sm dark:bg-white/10 dark:text-gray-200"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1"
                 onClick={() => setCarouselIndex((i) => (i + 1) % 5)}
                 aria-label="Next stat"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-5 h-5 text-black dark:text-white" style={{ color: 'inherit' }} />
               </button>
               <div className="text-xl font-bold text-blue-400">{proposalStats.active}</div>
               <div className="text-sm text-gray-400">Active</div>
@@ -1487,19 +1487,19 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             <div className="professional-card p-4 text-center rounded-xl relative">
               <button
                 type="button"
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                className="absolute left-1.5 top-1/2 -translate-y-1/2 p-1"
                 onClick={() => setCarouselIndex((i) => (i - 1 + 5) % 5)}
                 aria-label="Previous stat"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-5 h-5 text-black dark:text-white" style={{ color: 'inherit' }} />
               </button>
               <button
                 type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1"
                 onClick={() => setCarouselIndex((i) => (i + 1) % 5)}
                 aria-label="Next stat"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-5 h-5 text-black dark:text-white" style={{ color: 'inherit' }} />
               </button>
               <div className="text-xl font-bold text-green-400">{proposalStats.passed}</div>
               <div className="text-sm text-gray-400">Passed</div>
@@ -1510,19 +1510,19 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             <div className="professional-card p-4 text-center rounded-xl relative">
               <button
                 type="button"
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                className="absolute left-1.5 top-1/2 -translate-y-1/2 p-1"
                 onClick={() => setCarouselIndex((i) => (i - 1 + 5) % 5)}
                 aria-label="Previous stat"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-5 h-5 text-black dark:text-white" style={{ color: 'inherit' }} />
               </button>
               <button
                 type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1"
                 onClick={() => setCarouselIndex((i) => (i + 1) % 5)}
                 aria-label="Next stat"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-5 h-5 text-black dark:text-white" style={{ color: 'inherit' }} />
               </button>
               <div className="text-xl font-bold text-red-400">{proposalStats.rejected}</div>
               <div className="text-sm text-gray-400">Rejected</div>
@@ -1533,19 +1533,19 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             <div className="professional-card p-4 text-center rounded-xl relative">
               <button
                 type="button"
-                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                className="absolute left-1.5 top-1/2 -translate-y-1/2 p-1"
                 onClick={() => setCarouselIndex((i) => (i - 1 + 5) % 5)}
                 aria-label="Previous stat"
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-5 h-5 text-black dark:text-white" style={{ color: 'inherit' }} />
               </button>
               <button
                 type="button"
-                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1"
                 onClick={() => setCarouselIndex((i) => (i + 1) % 5)}
                 aria-label="Next stat"
               >
-                <ChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-5 h-5 text-black dark:text-white" style={{ color: 'inherit' }} />
               </button>
               <div className="text-xl font-bold text-purple-400">{proposalStats.executed}</div>
               <div className="text-sm text-gray-400">Executed</div>
