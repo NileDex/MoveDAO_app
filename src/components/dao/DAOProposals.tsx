@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  Clock, 
-  Search, 
+import {
+  Plus,
+  Clock,
+  Search,
   XCircle,
   Play,
   Pause,
   Target,
   BarChart3,
   RefreshCw,
-  AlertCircle
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { FaCheckCircle } from 'react-icons/fa';
 import { DAO } from '../../types/dao';
@@ -22,6 +24,8 @@ import { useDAOMembership } from '../../hooks/useDAOMembership';
 import { useDAOState } from '../../contexts/DAOStateContext';
 import { useWalletBalance } from '../../hooks/useWalletBalance';
 import { useAlert } from '../alert/AlertContext';
+import { useSectionLoader } from '../../hooks/useSectionLoader';
+import SectionLoader from '../common/SectionLoader';
 
 interface DAOProposalsProps {
   dao: DAO;
@@ -69,8 +73,6 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [filterCategory, setFilterCategory] = useState('all');
-  const [loadNotice, setLoadNotice] = useState<string>('');
-  const [nextRetryAt, setNextRetryAt] = useState<number | null>(null);
   const [userStatus, setUserStatus] = useState({ isAdmin: false, isMember: false, isCouncil: false, isStaker: false });
   const [newProposal, setNewProposal] = useState({
     title: '',
@@ -559,12 +561,9 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       console.error('Failed to fetch proposals:', error);
       const msg = String(error?.message || error);
       if (msg.includes('Circuit breaker is OPEN') || msg.includes('429') || msg.includes('Too Many Requests')) {
-        setLoadNotice('Network is busy. Auto-retrying shortly…');
+        // Silently retry without showing message to user
         const retryDelay = 5000;
-        setNextRetryAt(Date.now() + retryDelay);
         setTimeout(() => {
-          setLoadNotice('');
-          setNextRetryAt(null);
           fetchProposals(forceRefresh);
         }, retryDelay);
       }
@@ -1222,6 +1221,8 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
   // UI state for mobile icon filters
   const [showStatusFilter, setShowStatusFilter] = useState(false);
   const [showCategoryFilter, setShowCategoryFilter] = useState(false);
+  // Mobile stats carousel index
+  const [carouselIndex, setCarouselIndex] = useState(0);
 
   // Proposal statistics
   const proposalStats = {
@@ -1412,38 +1413,155 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
                 }
               }
               return (
-                <div style={{
-                  background: canCreate ? '#1e1e20' : '#4b5563',
-                  borderRadius: '13px',
-                  padding: '2px',
-                  display: 'inline-block',
-                }}>
+                <div
+                  className={`inline-block rounded-[13px] p-[2px] ${
+                    canCreate
+                      ? 'bg-gray-200 dark:bg-[#1e1e20]'
+                      : 'bg-gray-200 dark:bg-gray-600'
+                  }`}
+                >
                   <button
                     onClick={() => canCreate && setShowCreateForm(true)}
                     disabled={!canCreate}
-                    className="flex items-center space-x-2 px-4 py-2 font-medium text-sm transition-all"
-                    style={{
-                      background: '#121212',
-                      borderRadius: '11px',
-                      border: 'none',
-                      color: canCreate ? '#fff' : '#9ca3af',
-                      cursor: canCreate ? 'pointer' : 'not-allowed',
-                      width: '100%',
-                      height: '100%',
-                    }}
                     title={tooltip}
-            >
-              <Plus className="w-4 h-4" />
+                    className={`flex items-center space-x-2 px-4 py-2 font-medium text-sm transition-all rounded-[11px] w-full h-full border ${
+                      canCreate
+                        ? 'text-gray-900 bg-white border-gray-300 hover:bg-gray-50 dark:text-white dark:bg-[#121212] dark:border-transparent hover:dark:bg-[#1a1a1a]'
+                        : 'text-gray-500 bg-white border-gray-300 cursor-not-allowed dark:text-gray-400 dark:bg-[#121212] dark:border-transparent'
+                    }`}
+                  >
+                    <Plus className="w-4 h-4" />
                     <span>{label}</span>
-            </button>
+                  </button>
                 </div>
               );
             })()}
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4">
+      {/* Stats - single card carousel on mobile, grid on larger screens */}
+      <div className="sm:hidden">
+        <div className="relative">
+          {/* Total */}
+          {carouselIndex === 0 && (
+            <div className="professional-card p-4 text-center rounded-xl relative">
+              <button
+                type="button"
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                onClick={() => setCarouselIndex((i) => (i - 1 + 5) % 5)}
+                aria-label="Previous stat"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                onClick={() => setCarouselIndex((i) => (i + 1) % 5)}
+                aria-label="Next stat"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <div className="text-xl font-bold text-white">{proposalStats.total}</div>
+              <div className="text-sm text-gray-400">Total</div>
+            </div>
+          )}
+          {/* Active */}
+          {carouselIndex === 1 && (
+            <div className="professional-card p-4 text-center rounded-xl relative">
+              <button
+                type="button"
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                onClick={() => setCarouselIndex((i) => (i - 1 + 5) % 5)}
+                aria-label="Previous stat"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                onClick={() => setCarouselIndex((i) => (i + 1) % 5)}
+                aria-label="Next stat"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <div className="text-xl font-bold text-blue-400">{proposalStats.active}</div>
+              <div className="text-sm text-gray-400">Active</div>
+            </div>
+          )}
+          {/* Passed */}
+          {carouselIndex === 2 && (
+            <div className="professional-card p-4 text-center rounded-xl relative">
+              <button
+                type="button"
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                onClick={() => setCarouselIndex((i) => (i - 1 + 5) % 5)}
+                aria-label="Previous stat"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                onClick={() => setCarouselIndex((i) => (i + 1) % 5)}
+                aria-label="Next stat"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <div className="text-xl font-bold text-green-400">{proposalStats.passed}</div>
+              <div className="text-sm text-gray-400">Passed</div>
+            </div>
+          )}
+          {/* Rejected */}
+          {carouselIndex === 3 && (
+            <div className="professional-card p-4 text-center rounded-xl relative">
+              <button
+                type="button"
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                onClick={() => setCarouselIndex((i) => (i - 1 + 5) % 5)}
+                aria-label="Previous stat"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                onClick={() => setCarouselIndex((i) => (i + 1) % 5)}
+                aria-label="Next stat"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <div className="text-xl font-bold text-red-400">{proposalStats.rejected}</div>
+              <div className="text-sm text-gray-400">Rejected</div>
+            </div>
+          )}
+          {/* Executed */}
+          {carouselIndex === 4 && (
+            <div className="professional-card p-4 text-center rounded-xl relative">
+              <button
+                type="button"
+                className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                onClick={() => setCarouselIndex((i) => (i - 1 + 5) % 5)}
+                aria-label="Previous stat"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white/70 dark:bg-white/10 text-gray-800 dark:text-gray-200 shadow-sm"
+                onClick={() => setCarouselIndex((i) => (i + 1) % 5)}
+                aria-label="Next stat"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+              <div className="text-xl font-bold text-purple-400">{proposalStats.executed}</div>
+              <div className="text-sm text-gray-400">Executed</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Grid for tablets and up */}
+      <div className="hidden sm:grid grid-cols-3 md:grid-cols-5 gap-3 sm:gap-4">
         <div className="professional-card p-3 sm:p-4 text-center rounded-xl">
           <div className="text-lg sm:text-xl font-bold text-white">{proposalStats.total}</div>
           <div className="text-xs sm:text-sm text-gray-400">Total</div>
@@ -1757,11 +1875,6 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       )}
 
           {/* Proposals List (compact rows) */}
-      {loadNotice && (
-        <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-amber-200 text-sm">
-          {loadNotice} {nextRetryAt ? `(retry at ${new Date(nextRetryAt).toLocaleTimeString()})` : ''}
-        </div>
-      )}
       {isLoading ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>

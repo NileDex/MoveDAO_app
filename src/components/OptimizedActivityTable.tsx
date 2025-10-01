@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Activity, OptimizedActivityTracker } from '../useServices/useOptimizedActivityTracker';
-import { Clock, ExternalLink, RefreshCw, AlertCircle, Activity as ActivityIcon, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock, ExternalLink, RefreshCw, AlertCircle, Activity as ActivityIcon, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getActivityColor } from '../constants/activityConstants';
 import { useGetProfile, getDisplayNameOrAddress, getAvatarUrlOrDefault } from '../useServices/useProfile';
 import { truncateAddress } from '../utils/addressUtils';
@@ -10,6 +10,11 @@ interface OptimizedActivityTableProps {
   isLoading?: boolean;
   error?: string | null;
   onRefresh?: () => void;
+  onNextPage?: () => void;
+  onPrevPage?: () => void;
+  hasNextPage?: boolean;
+  hasPrevPage?: boolean;
+  showingCountText?: string; // optional custom text like "Showing 10 of 12 activities"
   showUserColumn?: boolean;
   showDAOColumn?: boolean;
   showAmountColumn?: boolean;
@@ -77,6 +82,11 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
   isLoading = false,
   error = null,
   onRefresh,
+  onNextPage,
+  onPrevPage,
+  hasNextPage,
+  hasPrevPage,
+  showingCountText,
   showUserColumn = false,
   showDAOColumn = false,
   showAmountColumn = true,
@@ -376,12 +386,45 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
         )}
       </div>
 
-      {/* Show More Link */}
-      {maxRows && activities.length > maxRows && (
-        <div className="text-center mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/10">
-          <p className="text-gray-400 text-xs sm:text-sm">
-            Showing {maxRows} of {activities.length} activities
-          </p>
+      {/* Footer: count and pagination */}
+      {(showingCountText || hasNextPage || hasPrevPage || (maxRows && activities.length > maxRows)) && (
+        <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200 dark:border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
+            {showingCountText
+              ? showingCountText
+              : maxRows && activities.length > maxRows
+                ? `Showing ${maxRows} of ${activities.length} activities`
+                : null}
+          </div>
+
+          {(onPrevPage || onNextPage) && (
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-center sm:justify-end">
+              {onPrevPage && (
+                <button
+                  onClick={onPrevPage}
+                  disabled={isLoading || !hasPrevPage}
+                  className="px-3 py-1.5 text-xs sm:text-sm rounded-lg border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-50 whitespace-nowrap inline-flex items-center gap-1"
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Previous page</span>
+                  <span className="sm:hidden">Prev</span>
+                </button>
+              )}
+              {onNextPage && (
+                <button
+                  onClick={onNextPage}
+                  disabled={isLoading || !hasNextPage}
+                  className="px-3 py-1.5 text-xs sm:text-sm rounded-lg border border-gray-200 dark:border-white/10 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-50 whitespace-nowrap inline-flex items-center gap-1"
+                  aria-label="Next page"
+                >
+                  <span className="hidden sm:inline">Next page</span>
+                  <span className="sm:hidden">Next</span>
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
