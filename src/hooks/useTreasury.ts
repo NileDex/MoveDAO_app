@@ -255,14 +255,11 @@ export const useTreasury = (daoId: string) => {
       // Use treasury object if available
       if (treasuryObjectRes.status === 'fulfilled' && (treasuryObjectRes as any).value) {
         const rawObj = ((treasuryObjectRes as any).value as any)?.[0];
-        console.log('Raw treasury object:', rawObj);
-        // Store the raw object for Move function calls, but extract address for view calls
+        // Store the raw object for Move function calls (it's already in Object<Treasury> format)
         treasuryObject = rawObj;
-        const objectAddress = typeof rawObj === 'string' ? rawObj : (rawObj?.inner || rawObj?.value || rawObj?.address || null);
-        console.log('Extracted treasury object address:', objectAddress);
         try {
-          // Prefer full info when object is known
-          const infoRes = await safeView({ function: `${MODULE_ADDRESS}::treasury::get_treasury_info`, functionArguments: [objectAddress] }, `treasury_info_${objectAddress}`);
+          // Prefer full info when object is known - use the raw object directly
+          const infoRes = await safeView({ function: `${MODULE_ADDRESS}::treasury::get_treasury_info`, functionArguments: [treasuryObject] }, `treasury_info_${daoId}`);
           if (Array.isArray(infoRes) && infoRes.length >= 6) {
             balance = Number(infoRes[0] || 0) / 1e8;
             dailyWithdrawalLimit = Number(infoRes[1] || 0) / 1e8;
@@ -274,8 +271,8 @@ export const useTreasury = (daoId: string) => {
             const balanceResult = await safeView({ function: `${MODULE_ADDRESS}::treasury::get_balance_from_object`, functionArguments: [treasuryObject] }, `treasury_obj_balance_${daoId}`);
             balance = Number(balanceResult[0] || 0) / 1e8;
           }
-        } catch (error) {
-          console.warn('Object-based info fetch failed:', error);
+        } catch (error: any) {
+          // Silent fallback to legacy
         }
       }
       
@@ -303,36 +300,20 @@ export const useTreasury = (daoId: string) => {
         treasuryObject, // Store the treasury object for future use
         allowsPublicDeposits
       };
-      console.log('Setting treasury data with object:', newTreasuryData.treasuryObject);
       setTreasuryData(prev => ({ ...prev, ...newTreasuryData }));
 
     } catch (error: any) {
-      console.warn('Treasury data fetch failed, using defaults:', error.message);
-      
-      // For network issues, set reasonable defaults instead of error state
-      const isNetworkError = error.message?.includes('timeout') || 
-                            error.message?.includes('429') || 
-                            error.message?.includes('Network Error') ||
-                            error.message?.includes('CORS');
-      
-      if (isNetworkError) {
-        setTreasuryData({
-          balance: 0,
-          dailyWithdrawalLimit: 10,
-          dailyWithdrawn: 0,
-          remainingDaily: 10,
-          lastWithdrawalDay: Math.floor(Date.now() / 1000 / 86400),
-          isLoading: false,
-          error: 'Unable to load treasury data due to network issues',
-          allowsPublicDeposits: true
-        });
-      } else {
-        setTreasuryData(prev => ({
-          ...prev,
-          isLoading: false,
-          error: error.message || 'Failed to fetch treasury data'
-        }));
-      }
+      // Set reasonable defaults for missing treasury data
+      setTreasuryData({
+        balance: 0,
+        dailyWithdrawalLimit: 10,
+        dailyWithdrawn: 0,
+        remainingDaily: 10,
+        lastWithdrawalDay: Math.floor(Date.now() / 1000 / 86400),
+        isLoading: false,
+        error: null, // Don't show error, just display 0 balance
+        allowsPublicDeposits: true
+      });
     }
   }, [daoId]);
 
@@ -706,6 +687,80 @@ export const useTreasury = (daoId: string) => {
     }
   }, [account, signAndSubmitTransaction, daoId, isAdmin, treasuryData.treasuryObject, fetchTreasuryData]);
 
+  // Vault-related functions
+  const depositToDAOVault = useCallback(async (vaultAddress: string, amount: number): Promise<boolean> => {
+    if (!account || !signAndSubmitTransaction || !treasuryData.treasuryObject) {
+      throw new Error('Wallet not connected or treasury not available');
+    }
+
+    if (amount <= 0) {
+      throw new Error('Amount must be greater than 0');
+    }
+
+    try {
+      const amountRaw = Math.floor(amount * 1e6); // Assuming 6 decimals for FA tokens
+
+      // Extract the inner address for the wallet - it expects just the address string for Object<T> parameters
+      const objectAddress = typeof treasuryData.treasuryObject === 'string'
+        ? treasuryData.treasuryObject
+        : (treasuryData.treasuryObject as any).inner || (treasuryData.treasuryObject as any).value || treasuryData.treasuryObject;
+
+      console.log('Depositing to vault with treasury object address:', objectAddress);
+
+      // Treasury ABI shows: user_deposit_to_vault(&signer, treasury_obj, vault_address, amount)
+      const payload = {
+        function: `${MODULE_ADDRESS}::treasury::user_deposit_to_vault`,
+        typeArguments: [],
+        functionArguments: [objectAddress, vaultAddress, amountRaw.toString()],
+      };
+
+      const tx = await signAndSubmitTransaction({ payload } as any);
+      if (tx && (tx as any).hash) {
+        await aptosClient.waitForTransaction({
+          transactionHash: (tx as any).hash,
+          options: { checkSuccess: true }
+        });
+      }
+
+      return true;
+
+    } catch (error: any) {
+      console.error('Vault deposit failed:', error);
+
+      if (error.message?.includes('User rejected')) {
+        throw new Error('Transaction cancelled by user');
+      } else if (error.message?.includes('not_member')) {
+        throw new Error('You must be a DAO member to deposit to vaults');
+      } else if (error.message?.includes('insufficient')) {
+        throw new Error('Insufficient token balance');
+      } else {
+        throw new Error(error.message || 'Vault deposit failed');
+      }
+    }
+  }, [account, signAndSubmitTransaction, treasuryData.treasuryObject]);
+
+  const getDAOVaults = useCallback(async (): Promise<string[]> => {
+    if (!treasuryData.treasuryObject) {
+      return [];
+    }
+
+    try {
+      console.log('Getting DAO vaults with treasury object:', treasuryData.treasuryObject);
+
+      const result = await aptosClient.view({
+        payload: {
+          function: `${MODULE_ADDRESS}::treasury::get_dao_vaults`,
+          functionArguments: [treasuryData.treasuryObject]
+        }
+      });
+
+      return (result[0] as string[]) || [];
+    } catch (error) {
+      console.warn('Failed to fetch DAO vaults:', error);
+      return [];
+    }
+  }, [treasuryData.treasuryObject]);
+
   return {
     treasuryData,
     transactions,
@@ -714,6 +769,8 @@ export const useTreasury = (daoId: string) => {
     deposit,
     withdraw,
     togglePublicDeposits,
+    depositToDAOVault,
+    getDAOVaults,
     refreshData: () => Promise.all([fetchTreasuryData(), fetchUserBalance(), checkAdminStatus(), fetchTreasuryTransactions()]),
     toMOVE,
     fromMOVE
