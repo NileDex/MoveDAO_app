@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Coins, 
-  Lock, 
+import {
+  Coins,
+  Lock,
   Unlock,
   AlertCircle,
   Award
@@ -14,6 +14,8 @@ import { useDAOMembership, useDAOPortfolio } from '../../hooks/useDAOMembership'
 import { BalanceService } from '../../useServices/useBalance';
 import { useWalletBalance } from '../../hooks/useWalletBalance';
 import { useAlert } from '../alert/AlertContext';
+import { useSectionLoader } from '../../hooks/useSectionLoader';
+import SectionLoader from '../common/SectionLoader';
 
 interface DAOStakingProps {
   dao: DAO;
@@ -26,8 +28,6 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
   const [isStaking, setIsStaking] = useState(false);
   const [isUnstaking, setIsUnstaking] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
-  const [showStakeForm, setShowStakeForm] = useState(false);
-  const [showUnstakeForm, setShowUnstakeForm] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const { showAlert } = useAlert();
   const [rewardsState, setRewardsState] = useState({ totalClaimable: 0, totalClaimed: 0, lastDistribution: '' });
@@ -38,6 +38,9 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
   const [independentMinStake, setIndependentMinStake] = useState<number | null>(null);
   const [minStakeFetchAttempted, setMinStakeFetchAttempted] = useState(false);
   const [movePrice, setMovePrice] = useState<number | null>(null);
+
+  // Section loader for Staking tab
+  const sectionLoader = useSectionLoader();
   
   // Use BalanceService for consistent OCTAS conversion
   const toMOVE = (u64: number): number => BalanceService.octasToMove(u64);
@@ -217,7 +220,7 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
     }
   }, [dao.id]); // Removed account?.address dependency to prevent refetching
 
-  // Lightweight readiness checker to absorb indexer lag when opening the stake form
+  // Lightweight readiness checker to absorb indexer lag
   const checkStakingReadiness = async () => {
     try {
       const vaultAddrRes = await aptosClient.view({ payload: { function: `${MODULE_ADDRESS}::staking::get_vault_addr`, functionArguments: [dao.id] } });
@@ -254,7 +257,6 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
   };
 
   useEffect(() => {
-    if (!showStakeForm) return;
     let canceled = false;
     let attempts = 0;
     const run = async () => {
@@ -266,7 +268,7 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
     };
     run();
     return () => { canceled = true; };
-  }, [showStakeForm, dao.id]);
+  }, [dao.id]);
 
   const daoRewardsData = {
     votingRewards: 0,
@@ -601,25 +603,75 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
 
   const unstakingStatus = getUnstakingStatus();
 
+  // Initialize section loading
+  useEffect(() => {
+    const loadStakingData = async () => {
+      // Only refresh if wallet is connected, otherwise just load basic data
+      if (account?.address) {
+        try {
+          // Add timeout to prevent hanging
+          const timeout = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Loading timeout')), 10000)
+          );
+
+          await Promise.race([
+            Promise.all([refreshMembership(), refreshPortfolio()]),
+            timeout
+          ]);
+        } catch (error) {
+          console.warn('Failed to refresh membership/portfolio:', error);
+          // Continue anyway - don't block the UI
+        }
+      }
+      // Always complete loading even if no wallet
+    };
+
+    sectionLoader.executeWithLoader(loadStakingData);
+  }, [dao.id, account?.address]);
+
+  const retryStakingData = () => {
+    const loadStakingData = async () => {
+      if (account?.address) {
+        await refreshMembership();
+        await refreshPortfolio();
+      }
+    };
+    sectionLoader.executeWithLoader(loadStakingData);
+  };
 
   return (
     <div className="w-full px-4 space-y-6">
-      {/* Small membership notice — top-right */}
-      {!daoStakingData.isMember && (
-        <div className="flex justify-end">
-          <div className="text-right space-y-1">
-            <div className="text-xs font-semibold text-orange-300">Not a Member</div>
-            <div className="text-[11px] text-orange-200">Need {Number(daoStakingData.minStakeRequired||0).toFixed(0)} MOVE to join</div>
-                  <button
-                    onClick={handleJoinDAO}
-                    disabled={isJoining || daoStakingData.userDaoStaked < daoStakingData.minStakeRequired}
-              className="inline-flex items-center px-2.5 py-1 text-[11px] rounded-md border border-orange-500/30 text-orange-300 hover:bg-orange-500/10 disabled:opacity-50"
-            >
-              {isJoining ? 'Joining…' : 'Join DAO'}
-                  </button>
-          </div>
+      {/* Top-right status area */}
+      <div className="flex justify-end">
+        <div className="text-right space-y-1">
+          {/* Loading indicator */}
+          {sectionLoader.isLoading && (
+            <div className="text-xs text-blue-300 mb-2">Loading...</div>
+          )}
+
+          {/* Error indicator */}
+          {sectionLoader.error && (
+            <div className="text-xs text-red-300 mb-2 cursor-pointer" onClick={retryStakingData}>
+              Error - Click to retry
+            </div>
+          )}
+
+          {/* Membership notice */}
+          {!daoStakingData.isMember && (
+            <>
+              <div className="text-xs font-semibold text-orange-300">Not a Member</div>
+              <div className="text-[11px] text-orange-200">Need {Number(daoStakingData.minStakeRequired||0).toFixed(0)} MOVE to join</div>
+              <button
+                onClick={handleJoinDAO}
+                disabled={isJoining || daoStakingData.userDaoStaked < daoStakingData.minStakeRequired}
+                className="inline-flex items-center px-2.5 py-1 text-[11px] rounded-md border border-orange-500/30 text-orange-300 hover:bg-orange-500/10 disabled:opacity-50"
+              >
+                {isJoining ? 'Joining…' : 'Join DAO'}
+              </button>
+            </>
+          )}
         </div>
-      )}
+      </div>
       {/* Clean, minimal two-column layout: left = Stake, right = Rewards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Stake Column */}
@@ -627,16 +679,9 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
           <div className="rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-white">Stake MOVE</h3>
-              <button
-                onClick={() => setShowStakeForm(!showStakeForm)}
-                className="px-4 py-2 text-green-400 border border-green-500/30 rounded-xl font-medium hover:bg-green-500/10"
-              >
-                {showStakeForm ? 'Cancel' : 'Stake'}
-              </button>
             </div>
 
-            {showStakeForm && (
-              <div className="space-y-4">
+            <div className="space-y-4">
                 <div>
                     <input
                       type="number"
@@ -705,28 +750,21 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
                 <button
                   onClick={handleStake}
                   disabled={isStaking || !stakeAmount || parseFloat(stakeAmount) <= 0}
-                  className="w-full px-6 py-3 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-xl font-medium"
+                  className="w-full px-6 py-3 disabled:opacity-50 text-black rounded-xl font-medium"
+                  style={{ backgroundColor: '#faca20' }}
                 >
                   {isStaking ? 'Staking...' : 'Stake MOVE'}
                 </button>
               </div>
-            )}
           </div>
 
           {/* Unstake Section */}
           <div className="rounded-xl p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-white">Unstake MOVE</h3>
-              <button
-                onClick={() => setShowUnstakeForm(!showUnstakeForm)}
-                className="px-4 py-2 text-red-400 border border-red-500/30 rounded-xl font-medium hover:bg-red-500/10"
-              >
-                {showUnstakeForm ? 'Cancel' : 'Unstake'}
-              </button>
             </div>
 
-            {showUnstakeForm && (
-              <div className="space-y-4">
+            <div className="space-y-4">
                 <div>
                     <input
                       type="number"
@@ -782,7 +820,6 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
                   {isUnstaking ? 'Unstaking...' : 'Unstake MOVE'}
                 </button>
               </div>
-            )}
               </div>
               </div>
 
