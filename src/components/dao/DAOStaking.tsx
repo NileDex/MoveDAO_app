@@ -395,23 +395,25 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
 
       // Update last stake time to current time (for unstaking timer)
       setLastStakeTime(Math.floor(Date.now() / 1000));
-      
+
       // Optimistically update wallet balance in the global state
       // Note: We'll refresh from blockchain shortly, this is just for immediate UI feedback
-      
-      setShowStakeForm(false);
+
       setStakeAmount('');
-      
+
+      // Reset loading state immediately after successful transaction
+      setIsStaking(false);
+
       // Show success alert
       showAlert(`✅ Successfully staked ${stakeAmountNumber.toFixed(2)} MOVE in ${dao.name}!`, 'success');
-      
-      // Refresh to get accurate on-chain state
-      await Promise.all([
+
+      // Refresh to get accurate on-chain state (in background, don't block UI)
+      Promise.all([
         refreshOnChain(),
         refreshPortfolio(), // Refresh wallet balance
         refreshBalance(), // Refresh wallet balance using hook
-      ]);
-      
+      ]).catch(err => console.warn('Background refresh failed:', err));
+
     } catch (error: any) {
       const msg = String(error?.message || error || '');
       console.error('Staking failed:', error);
@@ -488,20 +490,22 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
       
       // Optimistically update wallet balance in the global state
       // Note: We'll refresh from blockchain shortly, this is just for immediate UI feedback
-      
-      setShowUnstakeForm(false);
+
       setUnstakeAmount('');
-      
+
+      // Reset loading state immediately after successful transaction
+      setIsUnstaking(false);
+
       // Show success alert
       showAlert(`✅ Successfully unstaked ${unstakeAmountNumber.toFixed(2)} MOVE from ${dao.name}!`, 'success');
-      
-      // Refresh to get accurate on-chain state
-      await Promise.all([
+
+      // Refresh to get accurate on-chain state (in background, don't block UI)
+      Promise.all([
         refreshOnChain(),
         refreshPortfolio(), // Refresh wallet balance
         refreshBalance(), // Refresh wallet balance using hook
-      ]);
-      
+      ]).catch(err => console.warn('Background refresh failed:', err));
+
     } catch (error: any) {
       const msg = String(error?.message || error || '');
       if (msg.includes('User rejected') || msg.includes('0x131')) {
