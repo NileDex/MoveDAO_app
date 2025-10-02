@@ -28,6 +28,8 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
   const [isStaking, setIsStaking] = useState(false);
   const [isUnstaking, setIsUnstaking] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const [wasEverMember, setWasEverMember] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const { showAlert } = useAlert();
   const [rewardsState, setRewardsState] = useState({ totalClaimable: 0, totalClaimed: 0, lastDistribution: '' });
@@ -203,11 +205,18 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
     return () => clearInterval(interval);
   }, []);
 
+  // Track if user was ever a member (to detect inactive state)
+  useEffect(() => {
+    if (isMember) {
+      setWasEverMember(true);
+    }
+  }, [isMember]);
+
   // Initial load - this will use cached data if available
-  useEffect(() => { 
+  useEffect(() => {
     // Always fetch minimum stake independently (only once per DAO)
     fetchMinStakeIndependently();
-    
+
     if (account?.address) {
       // Refresh both DAO-specific data and wallet balance
       Promise.all([
@@ -580,6 +589,48 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
     }
   };
 
+  const handleLeaveDAO = async () => {
+    try {
+      if (!account || !signAndSubmitTransaction) throw new Error('Wallet not connected');
+
+      setIsLeaving(true);
+      const payload = {
+        function: `${MODULE_ADDRESS}::membership::leave`,
+        typeArguments: [],
+        functionArguments: [dao.id],
+      };
+
+      const tx = await signAndSubmitTransaction({ payload } as any);
+      if (tx && (tx as any).hash) {
+        await aptosClient.waitForTransaction({ transactionHash: (tx as any).hash, options: { checkSuccess: true } });
+      }
+
+      // Optimistically update - user is now fully removed from registry
+      updateLocalState({
+        isMember: false,
+        memberSince: undefined
+      });
+
+      showAlert(`✅ Successfully left ${dao.name}. You can rejoin anytime by staking.`, 'success');
+
+      await Promise.all([
+        refreshOnChain(),
+        refreshPortfolio(),
+        refreshBalance(),
+      ]);
+    } catch (e: any) {
+      console.error('Leave DAO failed:', e);
+      const msg = String(e?.message || e || '');
+      if (msg.includes('User rejected') || msg.includes('0x131')) {
+        console.info('Leave canceled by user');
+      } else {
+        showAlert('Failed to leave DAO. Please try again.', 'error');
+      }
+    } finally {
+      setIsLeaving(false);
+    }
+  };
+
   const calculateProjectedRewards = () => {
     // Note: Rewards would be calculated based on participation in THIS DAO
     // but staking amount is global, so this is an estimate for this DAO only
@@ -661,41 +712,20 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
 
   return (
     <div className="w-full px-4 space-y-6">
-      {/* Top-right status area */}
-      <div className="flex justify-end">
-        <div className="text-right space-y-1">
-          {/* Loading indicator */}
-          {sectionLoader.isLoading && (
-            <div className="text-xs text-blue-300 mb-2">Loading...</div>
-          )}
+      {/* Loading and Error indicators */}
+      {sectionLoader.isLoading && (
+        <div className="text-center text-sm text-blue-300 mb-4">Loading staking data...</div>
+      )}
 
-          {/* Error indicator */}
-          {sectionLoader.error && (
-            <div className="text-xs text-red-300 mb-2 cursor-pointer" onClick={retryStakingData}>
-              Error - Click to retry
-            </div>
-          )}
-
-          {/* Membership notice */}
-          {!daoStakingData.isMember && (
-            <>
-              <div className="text-xs font-semibold text-orange-300">Not a Member</div>
-              <div className="text-[11px] text-orange-200">Need {Number(daoStakingData.minStakeRequired||0).toFixed(0)} MOVE to join</div>
-              <button
-                onClick={handleJoinDAO}
-                disabled={isJoining || daoStakingData.userDaoStaked < daoStakingData.minStakeRequired}
-                className="inline-flex items-center px-2.5 py-1 text-[11px] rounded-md border border-orange-500/30 text-orange-300 hover:bg-orange-500/10 disabled:opacity-50"
-              >
-                {isJoining ? 'Joining…' : 'Join DAO'}
-              </button>
-            </>
-          )}
+      {sectionLoader.error && (
+        <div className="text-center text-sm text-red-300 mb-4 cursor-pointer" onClick={retryStakingData}>
+          Error loading data - Click to retry
         </div>
-      </div>
-      {/* Clean, minimal two-column layout: left = Stake, right = Rewards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Stake Column */}
-        <div className="space-y-6">
+      )}
+      {/* Staking layout with side membership notice */}
+        <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6">
+        {/* Stake and Unstake sections - 3 columns */}
+        <div className="lg:col-span-3 space-y-6">
           <div className="rounded-xl p-6">
         <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-white">Stake MOVE</h3>
@@ -717,27 +747,21 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
                 </div>
 
                   <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div className="text-gray-400">
-                    Balance: 
-                    <div className="text-right">
-                      {movePrice !== null && (
-                        <div className="text-xs font-bold text-white">
-                          {Math.max(0, daoStakingData.userBalance - 0.02).toFixed(2)} MOVE
-                        </div>
-                      )}
-                      {/* Token amount line removed as requested */}
-                    </div>
-                    </div>
-                  <div className="text-gray-400">
-                    Required: 
-                    <div className="text-right">
-                      {movePrice !== null && (
-                        <div className="text-xs font-bold text-white">
-                          {daoStakingData.minStakeRequired} MOVE
-                        </div>
-                      )}
-                      {/* Token amount line removed as requested */}
-                    </div>
+                  <div>
+                    <div className="text-gray-400 mb-1">Balance:</div>
+                    {movePrice !== null && (
+                      <div className="text-xs font-bold text-white">
+                        {Math.max(0, daoStakingData.userBalance - 0.02).toFixed(2)} MOVE
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <div className="text-gray-400 mb-1">Required:</div>
+                    {movePrice !== null && (
+                      <div className="text-xs font-bold text-white">
+                        {daoStakingData.minStakeRequired} MOVE
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -781,16 +805,13 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
                   </div>
                 )}
 
-                <div className="text-gray-400 text-sm">
-                  Available: 
-                  <div className="text-right">
-                    {movePrice !== null && (
-                      <div className="text-xs font-bold text-white">
-                        {daoStakingData.userDaoStaked.toFixed(2)} MOVE
-                      </div>
-                    )}
-                    {/* Token amount line removed as requested */}
-                  </div>
+                <div className="text-sm">
+                  <div className="text-gray-400 mb-1">Available:</div>
+                  {movePrice !== null && (
+                    <div className="text-xs font-bold text-white">
+                      {daoStakingData.userDaoStaked.toFixed(2)} MOVE
+                    </div>
+                  )}
                 </div>
 
                 <button
@@ -802,73 +823,64 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
                 </button>
               </div>
               </div>
-              </div>
+        </div>
 
-        {/* Rewards Column */}
-        <div className="space-y-6">
-          <div className="rounded-xl p-6 text-center">
-            <h3 className="text-xl font-bold text-white mb-6">Your Rewards</h3>
-            
-            <div className="bg-gradient-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-xl p-6 mb-6">
-              {movePrice !== null && (
-                <div className="text-lg font-bold text-white mb-1">
-                  {Number(daoRewardsData.totalClaimable || 0).toFixed(2)} MOVE
-                </div>
-              )}
-              <div className="text-3xl font-bold text-white mb-2 flex items-center justify-center space-x-2">
-                <span>{Number(daoRewardsData.totalClaimable || 0).toFixed(2)}</span>
-                <img 
-                  src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27" 
-                  alt="MOVE"
-                  className="w-6 h-6 flex-shrink-0"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                    if (fallback) fallback.classList.remove('hidden');
-                  }}
-                />
-                <span className="hidden">MOVE</span>
-              </div>
-              <div className="text-yellow-300">Available to Claim</div>
-              </div>
-
-              <button
-                onClick={handleClaimRewards}
-                disabled={daoRewardsData.totalClaimable === 0}
-              className="px-8 py-3 bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 text-white rounded-xl font-medium"
-              >
-              Claim Rewards
-              </button>
-
-            <div className="mt-6 pt-6 border-t border-white/10">
-              <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Total Claimed</span>
-                <div className="text-right">
-                  {movePrice !== null && (
-                    <div className="text-xs font-bold text-white">
-                      {daoRewardsData.totalClaimed.toFixed(2)} MOVE
-                    </div>
-                  )}
-                  <div className="text-green-400 flex items-center space-x-1">
-                    <span>{daoRewardsData.totalClaimed.toFixed(2)}</span>
-                    <img 
-                      src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27" 
-                      alt="MOVE"
-                      className="w-3 h-3 flex-shrink-0"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.classList.remove('hidden');
-                      }}
-                    />
-                    <span className="hidden">MOVE</span>
-                  </div>
-                </div>
-                </div>
-                </div>
+        {/* Membership Notice - Right side column - Always visible */}
+        <div className="lg:col-span-2">
+          <div className="rounded-xl p-6">
+            {daoStakingData.isMember ? (
+              // User is a full member (in registry AND meets min stake)
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center">
+                <div className="text-lg font-bold text-green-400 mb-3">✓ Member</div>
+                <div className="text-sm text-gray-300">
+                  You are a member of this DAO
                 </div>
               </div>
-            </div>
+            ) : !daoStakingData.isMember && daoStakingData.userDaoStaked < daoStakingData.minStakeRequired && membershipData?.memberSince ? (
+              // User is in registry (has memberSince) but stake dropped below minimum - Inactive member
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center">
+                <div className="text-lg font-bold text-yellow-400 mb-3">⚠ Inactive Member</div>
+                <div className="text-sm text-gray-300 mb-4">
+                  Your stake ({daoStakingData.userDaoStaked.toFixed(2)} MOVE) is below <span className="font-bold text-white">{Number(daoStakingData.minStakeRequired||0).toFixed(0)} MOVE</span> minimum. Stake more to regain privileges, or fully leave.
+                </div>
+                <button
+                  onClick={handleLeaveDAO}
+                  disabled={isLeaving}
+                  className="w-full px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors hover:brightness-110"
+                  style={{ backgroundColor: '#2b2b2d' }}
+                >
+                  {isLeaving ? 'Leaving...' : 'Leave DAO Completely'}
+                </button>
+              </div>
+            ) : (
+              // User is not in registry at all
+              <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center">
+                <div className="text-lg font-bold text-orange-400 mb-3">Not a Member</div>
+                <div className="text-sm text-gray-300 mb-4">
+                  Stake at least <span className="font-bold text-white">{Number(daoStakingData.minStakeRequired||0).toFixed(0)} MOVE</span> to join
+                </div>
+                <button
+                  onClick={handleJoinDAO}
+                  disabled={isJoining || daoStakingData.userDaoStaked < daoStakingData.minStakeRequired}
+                  className={`w-full px-6 py-3 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors ${daoStakingData.userDaoStaked === 0 ? 'mb-3' : ''}`}
+                >
+                  {isJoining ? 'Joining...' : daoStakingData.userDaoStaked < daoStakingData.minStakeRequired ? `Stake ${Number(daoStakingData.minStakeRequired||0).toFixed(0)} MOVE First` : 'Join DAO'}
+                </button>
+                {daoStakingData.userDaoStaked === 0 && (
+                  <button
+                    onClick={handleLeaveDAO}
+                    disabled={isLeaving}
+                    className="w-full px-6 py-3 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors hover:brightness-110"
+                    style={{ backgroundColor: '#2b2b2d' }}
+                  >
+                    {isLeaving ? 'Leaving...' : 'Leave DAO Completely'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
 
       {/* Bottom status blocks removed; top-right notice remains */}
     </div>

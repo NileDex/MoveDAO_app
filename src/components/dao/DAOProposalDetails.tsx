@@ -221,8 +221,11 @@ const DAOProposalDetails: React.FC<ProposalDetailsProps> = ({
                 </div>
                 <div className="w-full bg-white/10 rounded-full h-2">
                   <div
-                    className="h-2 rounded-full bg-gray-600"
-                    style={{ width: `${Math.min((quorumCurrentPercent / Math.max(quorumRequiredPercent, 0.001)) * 100, 100)}%` }}
+                    className="h-2 rounded-full"
+                    style={{
+                      width: `${Math.min((quorumCurrentPercent / Math.max(quorumRequiredPercent, 0.001)) * 100, 100)}%`,
+                      backgroundColor: '#ffdd40'
+                    }}
                   />
                 </div>
                 <div className="flex justify-between text-sm text-gray-400">

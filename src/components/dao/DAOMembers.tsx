@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useSectionLoader } from '../../hooks/useSectionLoader';
-import { Search, Filter, Users, Crown, Vote, UserPlus, MoreVertical, Coins, Shield, TrendingUp, RefreshCw } from 'lucide-react';
+import { Users, RefreshCw } from 'lucide-react';
 import { Member } from '../../types/dao';
 import { DAO } from '../../types/dao';
 import { useWallet } from '@razorlabs/razorkit';
 import { aptosClient } from '../../movement_service/movement-client';
 import { MODULE_ADDRESS } from '../../movement_service/constants';
-import { safeView, safeGetAccountResource, safeGetModuleEventsByEventType } from '../../utils/rpcUtils';
+import { safeView, safeGetModuleEventsByEventType } from '../../utils/rpcUtils';
 
 interface DAOMembersProps {
   dao: DAO;
@@ -21,8 +21,6 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
   const membersCache: Map<string, { members: Member[]; timestamp: number }> = (window as any).__membersCache || ((window as any).__membersCache = new Map());
   // @ts-ignore
   const summaryCache: Map<string, { summary: any; timestamp: number }> = (window as any).__membersSummaryCache || ((window as any).__membersSummaryCache = new Map());
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterRole, setFilterRole] = useState('all');
   const [membershipData, setMembershipData] = useState({
     totalMembers: 0,
     totalStakers: 0,
@@ -277,56 +275,10 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
         </div>
       </div>
 
-      {/* Current User Membership Status - Only show when wallet is connected */}
-      {account?.address && (
-        <div className={`professional-card rounded-xl p-4 border-2 ${
-          membershipData.userIsMember 
-            ? 'border-green-500/30 bg-green-500/10' 
-            : 'border-orange-500/30 bg-orange-500/10'
-        }`}>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center space-x-3">
-              <div className={`p-2 rounded-full ${
-                membershipData.userIsMember ? 'bg-green-500/20' : 'bg-orange-500/20'
-              }`}>
-                <Users className={`w-5 h-5 ${
-                  membershipData.userIsMember ? 'text-green-400' : 'text-orange-400'
-                }`} />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className={`font-medium text-sm sm:text-base ${
-                  membershipData.userIsMember ? 'text-green-300' : 'text-orange-300'
-                }`}>
-                  {membershipData.userIsMember ? '✓ You are a member' : '⚠️ Not a member'} of {dao.name}
-                </p>
-                <p className="text-xs sm:text-sm text-gray-400">
-                  Your stake: {membershipData.userStake.toFixed(2)} MOVE 
-                  {!membershipData.userIsMember && ` (need ${membershipData.minStakeRequired.toFixed(0)} MOVE)`}
-                </p>
-              </div>
-            </div>
-            {membershipData.userIsMember ? (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className="text-green-400 font-bold text-lg text-center sm:text-left">
-                  {membershipData.userStake.toFixed(0)} VP
-                </div>
-                <button
-                  onClick={handleLeaveDAO}
-                  disabled={isLeaving}
-                  className="w-full sm:w-auto px-3 py-2 rounded-lg text-sm border border-red-500/40 text-red-300 bg-red-500/10 hover:bg-red-500/20 disabled:opacity-50 transition-colors"
-                  title="Leave this DAO"
-                >
-                  {isLeaving ? 'Leaving…' : 'Leave DAO'}
-                </button>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      )}
 
       {/* Stats removed per request */}
 
-      {/* Search and Filters */}
+      {/* Member Directory */}
       <div className="bg-white/3 border border-white/5 rounded-xl p-4 w-full max-w-full overflow-hidden">
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <div className="flex items-center gap-2">
@@ -350,32 +302,6 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
             >
               <RefreshCw className={`w-4 h-4 ${(isLoading || isLoadingMembers) ? 'animate-spin' : ''}`} />
             </button>
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-4 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search by address..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2 pl-10 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-            />
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Filter className="w-4 h-4 text-gray-400" />
-            <select
-              value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value)}
-              className="px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Members</option>
-              <option value="active">Active Only</option>
-              <option value="inactive">Inactive Only</option>
-            </select>
           </div>
         </div>
 
