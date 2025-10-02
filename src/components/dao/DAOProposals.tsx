@@ -962,15 +962,18 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       }
 
       // Enhanced membership and voting power checks using persistent state
-      if (!isMember) {
+      // Admins can always vote regardless of membership status
+      const isAdmin = userStatus.isAdmin || stakeRequirements.isAdmin;
+
+      if (!isAdmin && !isMember) {
         if (!isStaker) {
           throw new Error(`You are not a member of ${dao.name}. You need to stake at least ${membershipData?.minStakeRequired || 'some'} MOVE tokens to join this DAO and participate in governance.`);
         } else {
           throw new Error(`You have staked tokens but are not yet a member of ${dao.name}. Please join the DAO first to participate in governance voting.`);
         }
       }
-      
-      if (proposal.userVotingPower <= 0) {
+
+      if (!isAdmin && proposal.userVotingPower <= 0) {
         throw new Error(`You do not have sufficient voting power in ${dao.name}. Current voting power: ${membershipData?.votingPower || 0} MOVE. You may need to stake more tokens to participate in governance.`);
       }
 
@@ -995,19 +998,24 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       console.error('Failed to cast vote:', error);
       
       // Handle user-friendly error messages for voting with enhanced membership context
+      const isAdmin = userStatus.isAdmin || stakeRequirements.isAdmin;
       let errorMessage = `Unable to cast vote on this ${dao.name} proposal. `;
-      
-      // Add specific membership context to the error
-      if (!isMember) {
-        if (!isStaker) {
-          errorMessage += `You are not a member - you need to stake at least ${membershipData?.minStakeRequired || 'some'} MOVE tokens to join and vote.`;
+
+      // Add specific membership context to the error (skip membership check for admins)
+      if (!isAdmin) {
+        if (!isMember) {
+          if (!isStaker) {
+            errorMessage += `You are not a member - you need to stake at least ${membershipData?.minStakeRequired || 'some'} MOVE tokens to join and vote.`;
+          } else {
+            errorMessage += `You have ${membershipData?.stakedAmount || 0} MOVE staked but need to join the DAO to vote.`;
+          }
+        } else if ((membershipData?.votingPower || 0) <= 0) {
+          errorMessage += `You are a member but have no voting power. Current stake: ${membershipData?.stakedAmount || 0} MOVE.`;
         } else {
-          errorMessage += `You have ${membershipData?.stakedAmount || 0} MOVE staked but need to join the DAO to vote.`;
+          errorMessage += 'Please check your membership status and try again.';
         }
-      } else if ((membershipData?.votingPower || 0) <= 0) {
-        errorMessage += `You are a member but have no voting power. Current stake: ${membershipData?.stakedAmount || 0} MOVE.`;
       } else {
-        errorMessage += 'Please check your membership status and try again.';
+        errorMessage += 'Please try again or check the contract logs for details.';
       }
       if (error?.message || error?.toString()) {
         const errorString = error.message || error.toString();
