@@ -149,26 +149,25 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
       <div className="fixed inset-0 z-50 bg-black/60 sm:hidden" onClick={onClose} />
       {/* Sidebar Modal */}
       <div
-        className="fixed inset-y-0 left-0 z-[60] w-4/5 max-w-xs backdrop-blur-md flex flex-col py-8 px-4 space-y-6 animate-slide-in sm:hidden"
+        className="fixed inset-y-0 left-0 z-[60] w-4/5 max-w-xs flex flex-col py-4 px-2 space-y-2 animate-slide-in sm:hidden bg-[#1a1a1c]"
         style={{
-          background: 'var(--card-bg)',
           borderRight: '1px solid var(--border)'
         }}
       >
         {/* Close Button */}
         <button
-          className="absolute top-4 right-4 rounded-full p-2 z-[1100] hover:bg-white/10 transition-colors"
+          className="absolute top-2 right-2 rounded-full p-1.5 z-[1100] hover:bg-[#2b2b2d] transition-colors"
           style={{ color: 'var(--text)' }}
           onClick={onClose}
           aria-label="Close Sidebar"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
 
         {/* Menu Items Container - Centered */}
-        <div className="flex flex-col gap-3 mt-12 px-2">
+        <div className="flex flex-col gap-1 mt-10 px-1">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentView === item.id;
@@ -179,70 +178,36 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
                   onViewChange(item.id);
                   onClose?.();
                 }}
-                className={`flex items-center gap-4 px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${
-                  isActive ? 'bg-white/10 shadow-lg' : 'hover:bg-white/5'
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  isActive ? 'bg-[#2b2b2d]' : 'hover:bg-[#2b2b2d]'
                 }`}
                 style={{ color: 'var(--text)' }}
               >
-                <Icon className={`w-6 h-6 flex-shrink-0 ${isActive ? item.color : ''}`}
+                <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? item.color : ''}`}
                       style={{ color: 'var(--text)' }} />
-                <span className="text-base">{item.label}</span>
+                <span className="text-sm">{item.label}</span>
               </button>
             );
           })}
-
-          {/* DAO Tabs - Only on Mobile */}
-          {daoTabs && daoTabs.length > 0 && (
-            <>
-              <div
-                className="my-4"
-                style={{
-                  borderTop: '1px solid var(--border)',
-                  opacity: 0.5
-                }}
-              />
-              {daoTabs.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => {
-                      onTabChange?.(tab.id);
-                      onClose?.();
-                    }}
-                    className={`flex items-center gap-4 px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${
-                      isActive ? 'bg-white/10 shadow-lg' : 'hover:bg-white/5'
-                    }`}
-                    style={{ color: 'var(--text)' }}
-                  >
-                    <Icon className={`w-6 h-6 flex-shrink-0 ${isActive ? tab.color : ''}`}
-                          style={{ color: 'var(--text)' }} />
-                    <span className="text-base">{tab.label}</span>
-                  </button>
-                );
-              })}
-            </>
-          )}
         </div>
 
         {/* Spacer */}
         <div className="flex-1"></div>
 
         {/* Trending Button at Bottom - Centered */}
-        <div className="px-2">
+        <div className="px-1">
           <button
             onClick={() => {
               onViewChange('trending');
               onClose?.();
             }}
-            className={`flex items-center gap-4 w-full px-4 py-3 rounded-xl font-semibold transition-all duration-200 ${
-              currentView === 'trending' ? 'bg-white/10 shadow-lg' : 'hover:bg-white/5'
+            className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg font-medium transition-all duration-200 ${
+              currentView === 'trending' ? 'bg-[#2b2b2d]' : 'hover:bg-[#2b2b2d]'
             }`}
             style={{ color: 'var(--text)' }}
           >
-            <TrendingUp className="w-6 h-6 flex-shrink-0" style={{ color: currentView === 'trending' ? '#fbbf24' : 'var(--text)' }} />
-            <span className="text-base">Trending</span>
+            <TrendingUp className="w-5 h-5 flex-shrink-0" style={{ color: currentView === 'trending' ? '#fbbf24' : 'var(--text)' }} />
+            <span className="text-sm">Trending</span>
           </button>
         </div>
       </div>

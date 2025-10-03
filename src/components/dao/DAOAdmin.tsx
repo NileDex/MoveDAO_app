@@ -1047,7 +1047,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
     <div className="space-y-6">
       {/* Admin Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="professional-card rounded-xl p-4">
+        <div className="border border-white/10 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-400">Total Admins</p>
@@ -1056,8 +1056,8 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             <Shield className="w-8 h-8 text-purple-400" />
           </div>
         </div>
-        
-        <div className="professional-card rounded-xl p-4">
+
+        <div className="border border-white/10 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-400">Super Admins</p>
@@ -1068,8 +1068,8 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             </div>
           </div>
         </div>
-        
-        <div className="professional-card rounded-xl p-4">
+
+        <div className="border border-white/10 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-400">Standard</p>
@@ -1080,8 +1080,8 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             </div>
           </div>
         </div>
-        
-        <div className="professional-card rounded-xl p-4">
+
+        <div className="border border-white/10 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-400">Temporary</p>
@@ -1095,13 +1095,13 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
       </div>
 
       {/* Current User Info */}
-      <div className="professional-card rounded-xl p-4 sm:p-6">
+      <div className="border border-white/10 rounded-xl p-4 sm:p-6">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
           <FaCheckCircle className="w-5 h-5 text-green-400" />
           <span>Your Admin Status</span>
         </h3>
-        
-        <div className="bg-white/5 rounded-xl p-4">
+
+        <div className="border border-white/10 rounded-xl p-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
@@ -1122,14 +1122,14 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
       </div>
 
       {/* Admin Rules */}
-      <div className="professional-card rounded-xl p-6">
+      <div className="border border-white/10 rounded-xl p-6">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
           <AlertTriangle className="w-5 h-5 text-yellow-400" />
           <span>Admin Rules & Permissions</span>
         </h3>
         
         <div className="space-y-3">
-          <div className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
+          <div className="flex items-start space-x-3 p-3 border border-white/10 rounded-lg">
             <Shield className="w-5 h-5 text-red-400 mt-0.5" />
             <div>
               <p className="text-white font-medium">Super Admins (Role 255)</p>
@@ -1137,7 +1137,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             </div>
           </div>
           
-          <div className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
+          <div className="flex items-start space-x-3 p-3 border border-white/10 rounded-lg">
             <Users className="w-5 h-5 text-blue-400 mt-0.5" />
             <div>
               <p className="text-white font-medium">Standard Admins (Role 100)</p>
@@ -1145,7 +1145,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             </div>
           </div>
           
-          <div className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
+          <div className="flex items-start space-x-3 p-3 border border-white/10 rounded-lg">
             <Clock className="w-5 h-5 text-yellow-400 mt-0.5" />
             <div>
               <p className="text-white font-medium">Temporary Admins (Role 50)</p>
@@ -1171,16 +1171,16 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
       )}
       {/* Add Admin Form */}
       {showAddAdmin && (
-        <div className="professional-card rounded-xl p-4 sm:p-6">
+        <div className="border border-white/10 rounded-xl p-4 sm:p-6">
           <h4 className="text-lg font-semibold text-white mb-4">Add New Admin</h4>
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">Admin Address</label>
-              <input type="text" value={newAdminForm.address} onChange={(e) => setNewAdminForm({ ...newAdminForm, address: e.target.value })} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="0x..." />
+              <input type="text" value={newAdminForm.address} onChange={(e) => setNewAdminForm({ ...newAdminForm, address: e.target.value })} className="w-full px-4 py-3 border border-white/10 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="0x..." />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-2">Admin Role</label>
-              <select value={newAdminForm.role} onChange={(e) => setNewAdminForm({ ...newAdminForm, role: e.target.value as any })} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
+              <select value={newAdminForm.role} onChange={(e) => setNewAdminForm({ ...newAdminForm, role: e.target.value as any })} className="w-full px-4 py-3 border border-white/10 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
                 <option value="standard">Standard Admin</option>
                 <option value="temporary">Temporary Admin</option>
                 {currentRole === 'super' && <option value="super">Super Admin</option>}
@@ -1189,23 +1189,23 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             {newAdminForm.role === 'temporary' && (
               <div>
                 <label className="block text-sm font-medium text-gray-400 mb-2">Expires in (days)</label>
-                <input type="number" value={newAdminForm.expiresInDays} onChange={(e) => setNewAdminForm({ ...newAdminForm, expiresInDays: parseInt(e.target.value) })} className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="7" min="1" />
+                <input type="number" value={newAdminForm.expiresInDays} onChange={(e) => setNewAdminForm({ ...newAdminForm, expiresInDays: parseInt(e.target.value) })} className="w-full px-4 py-3 border border-white/10 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="7" min="1" />
                 <p className="text-xs text-gray-500 mt-1">Minimum 5 minutes required by contract</p>
               </div>
             )}
             <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
               <button onClick={handleAddAdmin} className="btn-primary flex-1 w-full sm:w-auto">Add Admin</button>
-              <button onClick={() => setShowAddAdmin(false)} className="px-6 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl transition-all w-full sm:w-auto">Cancel</button>
+              <button onClick={() => setShowAddAdmin(false)} className="px-6 py-3 border border-white/10 hover:bg-white/10 text-gray-300 rounded-xl transition-all w-full sm:w-auto">Cancel</button>
             </div>
           </div>
         </div>
       )}
       {/* Admins List */}
-      <div className="professional-card rounded-xl p-4 sm:p-6">
+      <div className="border border-white/10 rounded-xl p-4 sm:p-6">
         <div className="flex items-center justify-between mb-6">
           <h4 className="text-lg font-semibold text-white">Current Admins</h4>
           <div className="text-sm text-gray-400">{admins.length} admins</div>
-          <button onClick={fetchAdminData} title="Refresh" className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg">
+          <button onClick={fetchAdminData} title="Refresh" className="p-2 text-gray-400 hover:text-white hover:border border-white/10 rounded-lg">
             <RefreshCw className={`w-4 h-4 ${isRefreshingAdmins ? 'animate-spin' : ''}`} />
           </button>
           </div>
@@ -1222,7 +1222,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             </thead>
             <tbody>
               {admins.map((admin, index) => (
-                <tr key={index} className="border-b border-white/5 hover:bg-white/5 transition-all">
+                <tr key={index} className="border-b border-white/5 hover:border border-white/10 transition-all">
                   <td className="py-4 px-4">
                     <div className="flex items-center space-x-3">
                       <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">{admin.address.slice(2, 4).toUpperCase()}</div>
@@ -1256,7 +1256,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         {/* Card layout for mobile */}
         <div className="sm:hidden space-y-4">
           {admins.map((admin, index) => (
-            <div key={index} className="bg-white/5 rounded-xl p-4 flex flex-col space-y-3 shadow border border-white/10">
+            <div key={index} className="border border-white/10 rounded-xl p-4 flex flex-col space-y-3 shadow border border-white/10">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center text-white font-bold text-sm">{admin.address.slice(2, 4).toUpperCase()}</div>
                 <div className="flex-1 min-w-0">
@@ -1312,48 +1312,17 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
               </button>
                 <button
             onClick={() => setShowAddCouncilMember(true)}
-            className="flex items-center justify-center space-x-2 w-full sm:w-auto"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '2px',
-              border: 'none',
-              background: 'linear-gradient(45deg, #ffc30d, #b80af7)',
-              borderRadius: '16px',
-              height: '36px',
-              minWidth: '0',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '14px',
-              color: '#fff',
-              overflow: 'hidden',
-            }}
+            className="flex items-center space-x-2 px-4 py-2 border border-white/20 hover:bg-white/5 text-white rounded-xl transition-all font-medium"
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                background: '#121212',
-                borderRadius: '14px',
-                padding: '0 10px',
-                height: '32px',
-                minWidth: '0',
-                overflow: 'hidden',
-                width: '100%',
-              }}
-            >
               <UserPlus className="w-4 h-4" />
               <span>Add Council Member</span>
-            </div>
                 </button>
             </div>
           </div>
 
       {/* Council Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="professional-card rounded-xl p-4">
+        <div className="border border-white/10 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-400">Total Members</p>
@@ -1363,7 +1332,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
           </div>
         </div>
         
-        <div className="professional-card rounded-xl p-4">
+        <div className="border border-white/10 rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-400">Available Slots</p>
@@ -1375,7 +1344,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
           </div>
         </div>
         
-        <div className="professional-card rounded-xl p-4">
+        <div className="border border-white/10 rounded-xl p-4">
           <div className="flex items-center justify-between">
               <div>
               <p className="text-sm text-gray-400">Min Required</p>
@@ -1390,7 +1359,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
 
       {/* Add Council Member Form */}
       {showAddCouncilMember && (
-        <div className="professional-card rounded-xl p-4 sm:p-6">
+        <div className="border border-white/10 rounded-xl p-4 sm:p-6">
           <h4 className="text-lg font-semibold text-white mb-4">Add New Council Member</h4>
           <div className="space-y-4">
             <div>
@@ -1399,7 +1368,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
                 type="text"
                 value={newCouncilMemberForm.address}
                 onChange={(e) => setNewCouncilMemberForm({ ...newCouncilMemberForm, address: e.target.value })}
-                className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-4 py-3 border border-white/10 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 placeholder="0x..."
               />
             </div>
@@ -1413,7 +1382,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
               </button>
               <button
                 onClick={() => setShowAddCouncilMember(false)}
-                className="px-6 py-3 bg-white/5 hover:bg-white/10 text-gray-300 rounded-xl transition-all w-full sm:w-auto"
+                className="px-6 py-3 border border-white/10 hover:bg-white/10 text-gray-300 rounded-xl transition-all w-full sm:w-auto"
               >
                 Cancel
             </button>
@@ -1423,7 +1392,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
       )}
 
       {/* Council Members List */}
-      <div className="professional-card rounded-xl p-4 sm:p-6">
+      <div className="border border-white/10 rounded-xl p-4 sm:p-6">
         <div className="flex items-center justify-between mb-6">
           <h4 className="text-lg font-semibold text-white">Council Members</h4>
               <div className="flex items-center space-x-3">
@@ -1433,7 +1402,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             <button 
               onClick={fetchCouncilData} 
               title="Refresh Council Data" 
-              className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg"
+              className="p-2 text-gray-400 hover:text-white hover:border border-white/10 rounded-lg"
             >
               <RefreshCw className="w-4 h-4" />
             </button>
@@ -1448,7 +1417,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
                 <h4 className="text-md font-semibold text-white">Known Council Members</h4>
                 <div className="space-y-2">
               {councilData.members.map((member, index) => (
-                    <div key={index} className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
+                    <div key={index} className="flex items-center justify-between p-4 border border-white/10 rounded-lg border border-white/10">
                     <div className="flex items-center space-x-3">
                         <div className="w-8 h-8 bg-gradient-to-br from-yellow-500/20 to-orange-600/20 rounded-full flex items-center justify-center">
                           <Crown className="w-4 h-4 text-yellow-400" />
@@ -1483,40 +1452,6 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         </div>
               </div>
             )}
-            
-            {/* Stats and Check Tool */}
-            <div className="bg-gradient-to-br from-blue-500/10 to-purple-600/10 rounded-xl p-6 border border-blue-500/20">
-              <div className="flex items-center space-x-2 mb-4">
-                <Crown className="w-6 h-6 text-yellow-400" />
-                <h4 className="text-lg font-semibold text-white">Council Overview</h4>
-                </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-white">{councilData.totalMembers}</p>
-                  <p className="text-sm text-gray-400">Total Members</p>
-                </div>
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-white">{councilData.members.length}</p>
-                  <p className="text-sm text-gray-400">Known Members</p>
-                </div>
-              </div>
-              
-              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
-                <div className="flex items-center space-x-2 mb-2">
-                  <AlertTriangle className="w-5 h-5 text-blue-400" />
-                  <span className="text-blue-400 font-medium">Council Information Discovery</span>
-                </div>
-                <p className="text-blue-200 text-sm">
-                  The system automatically discovers initial council members from the DAO creation transaction. 
-                  Council members displayed above were specified during DAO creation and are active in governance.
-                </p>
-                {councilData.members.length > 1 && (
-                  <p className="text-green-200 text-sm mt-2">
-                    ✅ Found {councilData.members.length} council members from DAO creation records.
-                  </p>
-                )}
-              </div>
-                      </div>
                     </div>
         ) : (
           <div className="text-center py-12">
@@ -1539,14 +1474,14 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
                   </div>
 
       {/* Council Info */}
-      <div className="professional-card rounded-xl p-4 sm:p-6">
+      <div className="border border-white/10 rounded-xl p-4 sm:p-6">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
           <AlertTriangle className="w-5 h-5 text-yellow-400" />
           <span>Council Information</span>
         </h3>
         
         <div className="space-y-3">
-          <div className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
+          <div className="flex items-start space-x-3 p-3 border border-white/10 rounded-lg">
             <Crown className="w-5 h-5 text-yellow-400 mt-0.5" />
             <div>
               <p className="text-white font-medium">Object-Based System</p>
@@ -1554,7 +1489,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
               </div>
           </div>
 
-          <div className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
+          <div className="flex items-start space-x-3 p-3 border border-white/10 rounded-lg">
             <UserCheck className="w-5 h-5 text-green-400 mt-0.5" />
             <div>
               <p className="text-white font-medium">Initialization Required</p>
@@ -1562,7 +1497,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             </div>
           </div>
           
-          <div className="flex items-start space-x-3 p-3 bg-white/5 rounded-lg">
+          <div className="flex items-start space-x-3 p-3 border border-white/10 rounded-lg">
             <Shield className="w-5 h-5 text-blue-400 mt-0.5" />
             <div>
               <p className="text-white font-medium">Admin Required</p>
@@ -1573,7 +1508,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
       </div>
 
       {/* Council Information & Contract Limitations */}
-      <div className="professional-card rounded-xl p-4 sm:p-6">
+      <div className="border border-white/10 rounded-xl p-4 sm:p-6">
         <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
           <AlertTriangle className="w-5 h-5 text-yellow-400" />
           <span>Council System Information</span>
@@ -1629,7 +1564,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
     return (
       <div className="space-y-6">
       {/* Current Stake Settings */}
-      <div className="professional-card rounded-xl p-4 sm:p-6">
+      <div className="border border-white/10 rounded-xl p-4 sm:p-6">
         <div className="flex items-center justify-between mb-6">
           <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
             <DollarSign className="w-5 h-5 text-green-400" />
@@ -1638,48 +1573,17 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
           <div className="flex items-center space-x-3">
             <button
               onClick={fetchStakeSettings}
-              className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm flex items-center space-x-2"
+              className="px-3 py-2 border border-white/20 hover:bg-white/5 text-white rounded-xl text-sm flex items-center space-x-2 transition-all"
             >
               <RefreshCw className="w-4 h-4" />
               <span>Refresh</span>
             </button>
             <button
               onClick={() => setShowEditStake(true)}
-              className="flex items-center space-x-2"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '2px',
-                border: 'none',
-                background: 'linear-gradient(45deg, #ffc30d, #b80af7)',
-                borderRadius: '16px',
-                height: '36px',
-                minWidth: '0',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '14px',
-                color: '#fff',
-                overflow: 'hidden',
-              }}
+              className="flex items-center space-x-2 px-4 py-2 border border-white/20 hover:bg-white/5 text-white rounded-xl transition-all font-medium"
             >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: '#121212',
-                  borderRadius: '14px',
-                  padding: '0 10px',
-                  height: '32px',
-                  minWidth: '0',
-                  overflow: 'hidden',
-                  width: '100%',
-                }}
-              >
                 <Edit className="w-4 h-4" />
                 <span>Edit Settings</span>
-              </div>
             </button>
           </div>
         </div>
@@ -1691,7 +1595,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white/5 rounded-lg p-4">
+            <div className="border border-white/10 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Users className="w-4 h-4 text-blue-400" />
@@ -1706,7 +1610,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
               </div>
             </div>
 
-            <div className="bg-white/5 rounded-lg p-4">
+            <div className="border border-white/10 rounded-lg p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <Settings className="w-4 h-4 text-green-400" />
@@ -1726,7 +1630,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
 
       {/* Edit Stake Settings Form */}
       {showEditStake && (
-        <div className="professional-card rounded-xl p-4 sm:p-6">
+        <div className="border border-white/10 rounded-xl p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
             <h4 className="text-lg font-semibold text-white flex items-center space-x-2">
               <Edit className="w-5 h-5 text-purple-400" />
@@ -1743,7 +1647,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
                 setNewMinProposalStake(stakeSettings.minStakeToPropose.toString());
                 setErrors({});
                 }}
-                className="p-2 text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all"
+                className="p-2 text-gray-400 hover:text-white hover:border border-white/10 rounded-lg transition-all"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -1861,7 +1765,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
 
       {/* Quick Info */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-white/5 rounded-lg p-3">
+        <div className="border border-white/10 rounded-lg p-3">
           <div className="flex items-center space-x-2 mb-1">
             <Users className="w-4 h-4 text-blue-400" />
             <span className="text-white text-sm font-medium">Membership</span>
@@ -1869,7 +1773,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
           <p className="text-xs text-gray-400">Required to join DAO and vote</p>
         </div>
         
-        <div className="bg-white/5 rounded-lg p-3">
+        <div className="border border-white/10 rounded-lg p-3">
           <div className="flex items-center space-x-2 mb-1">
             <Settings className="w-4 h-4 text-green-400" />
             <span className="text-white text-sm font-medium">Proposals</span>
@@ -1877,7 +1781,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
           <p className="text-xs text-gray-400">Required to create governance proposals</p>
         </div>
         
-        <div className="bg-white/5 rounded-lg p-3">
+        <div className="border border-white/10 rounded-lg p-3">
           <div className="flex items-center space-x-2 mb-1">
             <Shield className="w-4 h-4 text-purple-400" />
             <span className="text-white text-sm font-medium">Admins</span>
@@ -1885,7 +1789,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
           <p className="text-xs text-gray-400">Can create proposals regardless of stake</p>
         </div>
         
-        <div className="bg-white/5 rounded-lg p-3">
+        <div className="border border-white/10 rounded-lg p-3">
           <div className="flex items-center space-x-2 mb-1">
             <DollarSign className="w-4 h-4 text-yellow-400" />
             <span className="text-white text-sm font-medium">Dynamic</span>
@@ -1915,7 +1819,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
   return (
     <div className="w-full max-w-none px-4 sm:px-6 space-y-6 sm:space-y-8 overflow-hidden flex-shrink min-w-0">
       {/* Navigation */}
-      <div className="flex flex-wrap gap-1 bg-white/5 rounded-lg p-1">
+      <div className="flex flex-wrap gap-1 border border-white/10 rounded-lg p-1">
         {sections.map((section) => {
           const Icon = section.icon;
           const isActive = activeSection === section.id;
@@ -1926,7 +1830,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
               className={`flex items-center space-x-2 px-3 py-2 rounded-md font-medium transition-all text-sm ${
                 isActive
                   ? 'bg-white/10 text-white shadow-sm'
-                  : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  : 'text-gray-400 hover:text-white hover:border border-white/10'
               }`}
             >
               <Icon className={`w-4 h-4 ${isActive ? 'text-purple-400' : ''}`} />

@@ -78,7 +78,7 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
 
       // Validate membership and fetch stake per candidate (limit concurrency to avoid rate limits)
       const addresses = Array.from(candidateAddresses);
-      const batchSize = 2; // Further reduced batch size to avoid 429 errors
+      const batchSize = 5; // Increased batch size for faster loading
       const collected: Member[] = [];
 
       for (let i = 0; i < addresses.length; i += batchSize) {
@@ -108,10 +108,10 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
           }
         });
         await Promise.allSettled(batchPromises);
-        
+
         // Add delay between batches to avoid overwhelming the RPC
         if (i + batchSize < addresses.length) {
-          await new Promise(resolve => setTimeout(resolve, 1200)); // Increased to 1.2s delay between batches
+          await new Promise(resolve => setTimeout(resolve, 500)); // Reduced to 500ms for faster loading
         }
       }
 
@@ -252,11 +252,7 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
 
   // Use actual members fetched from the blockchain
   const members = actualMembers;
-
-  const filteredMembers = members.filter(member => {
-    const matchesSearch = member.shortAddress.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+  const filteredMembers = members; // No filtering since search was removed
 
   const totalVotingPower = members.reduce((sum, member) => sum + member.votingPower, 0);
   const activeMembers = members.filter(m => m.isActive).length;
@@ -271,6 +267,9 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
         <div className="text-right">
           {sectionLoader.isLoading && (
             <div className="text-xs text-blue-300">Loading...</div>
+          )}
+          {sectionLoader.error && (
+            <div className="text-xs text-red-300">Error loading members</div>
           )}
         </div>
       </div>
@@ -347,9 +346,9 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center space-x-1">
-                      <span className="text-sm text-green-400 font-medium">{member.tokensHeld.toFixed(3)}</span>
-                      <img 
-                        src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27" 
+                      <span className="text-sm text-white font-medium">{member.tokensHeld.toFixed(3)}</span>
+                      <img
+                        src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27"
                         alt="MOVE"
                         className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0"
                         onError={(e) => {
@@ -427,9 +426,9 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
                     </div>
                     <div className="text-right flex-shrink-0">
                       <div className="flex items-center space-x-1">
-                        <span className="text-sm font-medium text-green-400">{member.tokensHeld.toFixed(3)}</span>
-                        <img 
-                          src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27" 
+                        <span className="text-sm font-medium text-white">{member.tokensHeld.toFixed(3)}</span>
+                        <img
+                          src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27"
                           alt="MOVE"
                           className="w-3 h-3 flex-shrink-0"
                           onError={(e) => {

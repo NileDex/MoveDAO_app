@@ -373,12 +373,14 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                 <div className="text-left w-full sm:max-w-xl">
                   <h1 className="text-3xl font-bold text-white mb-2">{dao.name}</h1>
                   <p className="text-white text-sm sm:text-base max-w-xl mx-0">{dao.description}</p>
-                  <div className="flex flex-wrap justify-start items-center space-x-2 sm:space-x-4 mt-3 text-sm sm:text-base text-gray-400">
-                    <span>Established {dao.established}</span>
-                    <span>|</span>
-                    <span className="text-white">{dao.members} members</span>
-                    <span>|</span>
-                    <span className="text-white">{dao.proposals} proposals</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 md:gap-4 mt-3 text-xs sm:text-sm md:text-base text-gray-400">
+                    <span className="whitespace-nowrap">Established {dao.established}</span>
+                    <div className="flex items-center gap-2 sm:gap-4">
+                      <span className="hidden sm:inline">|</span>
+                      <span className="text-white whitespace-nowrap">{dao.members} members</span>
+                      <span>|</span>
+                      <span className="text-white whitespace-nowrap">{dao.proposals} proposals</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -395,8 +397,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
             </div>
 
             {/* Navigation Tabs */}
-            {/* Desktop Navigation - Hidden on Mobile */}
-            <nav className={`hidden md:flex flex-row flex-wrap gap-2 mt-8`}>
+            <nav className={`flex flex-row flex-wrap gap-1.5 md:gap-2 mt-6 md:mt-8`}>
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -404,14 +405,20 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-lg font-medium justify-center ${
+                    className={`flex items-center space-x-1 md:space-x-1.5 px-2 py-1 md:px-3 md:py-1.5 rounded-lg font-medium justify-center transition-colors`}
+                    style={
                       isActive
-                        ? 'bg-white/10 text-white shadow-lg'
-                        : 'text-gray-400'
-                    }`}
+                        ? {
+                            background: 'var(--card-bg)',
+                            color: 'var(--text)'
+                          }
+                        : {
+                            color: 'var(--text-dim)'
+                          }
+                    }
                   >
-                    <Icon className={`w-3.5 h-3.5 ${isActive ? tab.color : ''}`} />
-                    <span className="text-xs">{tab.label}</span>
+                    <Icon className={`w-3 h-3 md:w-3.5 md:h-3.5 ${isActive ? tab.color : ''}`} />
+                    <span className="text-[10px] md:text-xs">{tab.label}</span>
                   </button>
                 );
               })}
@@ -443,18 +450,14 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
             <div className="mb-4">
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-extrabold text-white">{formattedVotingPower}</span>
-                <span className="text-sm text-gray-400">{tokenSymbol}</span>
-              </div>
-              <div className="mt-1 flex items-center gap-2 text-gray-300 text-sm">
-                <Zap className="w-4 h-4 text-blue-300" />
-                <span>Governance Power</span>
               </div>
             </div>
 
             {/* Deposit / Withdraw */}
             <div className="grid grid-cols-2 gap-3">
               <button
-                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-b from-blue-600 to-blue-700 text-white font-medium shadow-inner"
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-black font-medium shadow-inner"
+                style={{ backgroundColor: '#ffdd40' }}
                 onClick={() => { setShowStakeForm(true); setShowUnstakeForm(false); }}
               >
                 <ArrowDown className="w-4 h-4" />
@@ -475,15 +478,20 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                   type="number"
                   min="0"
                   step="0.01"
-                  placeholder={`Amount (${tokenSymbol})`}
+                  placeholder="Amount"
                   value={stakeAmount}
                   onChange={(e)=>setStakeAmount(e.target.value)}
                   className="w-full professional-input px-3 py-2 rounded-lg"
                 />
                 {stakeError && <div className="text-red-400 text-xs">{stakeError}</div>}
-                <button onClick={handleQuickStake} disabled={isStaking} className="w-full px-3 py-2 rounded-lg bg-blue-600 text-white font-medium disabled:opacity-50">
-                  {isStaking ? 'Staking…' : 'Confirm Stake'}
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={handleQuickStake} disabled={isStaking} className="px-2 py-1.5 rounded-lg text-black text-sm font-medium disabled:opacity-50" style={{ backgroundColor: '#ffdd40' }}>
+                    {isStaking ? 'Staking…' : 'Confirm Stake'}
+                  </button>
+                  <button onClick={() => { setShowStakeForm(false); setStakeAmount(''); setStakeError(''); }} className="px-2 py-1.5 rounded-lg bg-white/5 text-gray-300 text-sm font-medium border border-white/10 hover:bg-white/10 transition-colors">
+                    Cancel
+                  </button>
+                </div>
               </div>
             )}
 
@@ -493,15 +501,20 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                   type="number"
                   min="0"
                   step="0.01"
-                  placeholder={`Amount (${tokenSymbol})`}
+                  placeholder="Amount"
                   value={unstakeAmount}
                   onChange={(e)=>setUnstakeAmount(e.target.value)}
                   className="w-full professional-input px-3 py-2 rounded-lg"
                 />
                 {unstakeError && <div className="text-red-400 text-xs">{unstakeError}</div>}
-                <button onClick={handleQuickUnstake} disabled={isUnstaking} className="w-full px-3 py-2 rounded-lg bg-white/10 text-white font-medium border border-white/10 disabled:opacity-50">
-                  {isUnstaking ? 'Unstaking…' : 'Confirm Unstake'}
-                </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button onClick={handleQuickUnstake} disabled={isUnstaking} className="px-2 py-1.5 rounded-lg bg-white/10 text-white text-sm font-medium border border-white/10 disabled:opacity-50">
+                    {isUnstaking ? 'Unstaking…' : 'Confirm Unstake'}
+                  </button>
+                  <button onClick={() => { setShowUnstakeForm(false); setUnstakeAmount(''); setUnstakeError(''); }} className="px-2 py-1.5 rounded-lg bg-white/5 text-gray-300 text-sm font-medium border border-white/10 hover:bg-white/10 transition-colors">
+                    Cancel
+                  </button>
+                </div>
               </div>
             )}
 
@@ -551,7 +564,6 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                       </div>
                       <div>
                         <div className="text-white text-sm font-medium">MOVE</div>
-                        <div className="text-gray-400 text-xs">Move Coin</div>
                       </div>
                     </div>
                     <div className="text-right">
@@ -586,10 +598,6 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-sm font-semibold text-white">Suggestions</h4>
               <button className="text-gray-400 hover:text-white text-xs">View All</button>
-            </div>
-            <div className="flex items-center gap-2 text-gray-400 text-sm">
-              <span>?</span>
-              <span>No suggestions...</span>
             </div>
           </div>
         </div>

@@ -14,13 +14,6 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
   const [backgroundError, setBackgroundError] = useState(false);
   const backgroundRetryRef = React.useRef(0);
 
-  // Helper function to reduce displayed values for better UX
-  const getDisplayValue = (value: number): number => {
-    if (value <= 3) return value; // Keep small values as-is
-    if (value <= 10) return Math.max(3, Math.ceil(value * 0.6)); // Reduce by 40%
-    if (value <= 50) return Math.max(5, Math.ceil(value * 0.4)); // Reduce by 60%
-    return Math.max(8, Math.ceil(value * 0.2)); // Reduce large values by 80%
-  };
 
   // Debug logging for subname (reduced verbosity)
   React.useEffect(() => {
@@ -214,7 +207,7 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
           <div className="flex items-start justify-between">
             <div>
               <div className="text-white text-xl font-bold drop-shadow-sm">
-                {getDisplayValue(dao.proposals)}
+                {dao.proposals}
               </div>
               <div className="text-gray-300 text-xs drop-shadow-sm">
                 Proposals
@@ -222,7 +215,7 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
             </div>
             <div>
               <div className="text-white text-xl font-bold drop-shadow-sm">
-                {getDisplayValue(dao.members)}
+                {dao.members}
               </div>
               <div className="text-gray-300 text-xs drop-shadow-sm">
                 Members

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   Plus,
   Clock,
-  Search,
   XCircle,
   Play,
   Pause,
@@ -65,8 +64,6 @@ const PROPOSAL_CACHE_TTL = 30000; // 30 seconds
 
 const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = false }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedProposal, setSelectedProposal] = useState<ProposalData | null>(null);
   // In-memory cache so tab switches are instant (session-scoped)
   // @ts-ignore
@@ -83,7 +80,6 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
   // Section-level loader for unified loading state (like Overview)
   const sectionLoader = useSectionLoader();
   const [isCreating, setIsCreating] = useState(false);
-  const [filterCategory, setFilterCategory] = useState('all');
   const [userStatus, setUserStatus] = useState({ isAdmin: false, isMember: false, isCouncil: false, isStaker: false });
   const [newProposal, setNewProposal] = useState({
     title: '',
@@ -1241,19 +1237,9 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
     }
   };
 
-  // Filter proposals based on status, category, and search
-  const filteredProposals = proposals.filter(proposal => {
-    const matchesStatus = filterStatus === 'all' || proposal.status === filterStatus;
-    const matchesCategory = filterCategory === 'all' || proposal.category === filterCategory;
-    const matchesSearch = searchTerm === '' || 
-      proposal.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      proposal.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesStatus && matchesCategory && matchesSearch;
-  });
+  // No filtering - show all proposals
+  const filteredProposals = proposals;
 
-  // UI state for mobile icon filters
-  const [showStatusFilter, setShowStatusFilter] = useState(false);
-  const [showCategoryFilter, setShowCategoryFilter] = useState(false);
   // Mobile stats carousel index
   const [carouselIndex, setCarouselIndex] = useState(0);
 
@@ -1386,8 +1372,8 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
           
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text.White mb-2">Proposals</h1>
+        <div className="w-full sm:w-auto">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Proposals</h1>
           <p className="text-gray-400">Community governance proposals for {dao.name}</p>
           {account?.address && (
             <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -1409,7 +1395,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             </div>
           )}
         </div>
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
           <button
             onClick={() => fetchProposals(true)}
             disabled={isLoading}
@@ -1511,7 +1497,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
               >
                 <ChevronRight className="w-5 h-5 text-black dark:text-white" style={{ color: 'inherit' }} />
               </button>
-              <div className="text-xl font-bold text-blue-400">{proposalStats.active}</div>
+              <div className="text-xl font-bold text-white">{proposalStats.active}</div>
               <div className="text-sm text-gray-400">Active</div>
             </div>
           )}
@@ -1534,7 +1520,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
               >
                 <ChevronRight className="w-5 h-5 text-black dark:text-white" style={{ color: 'inherit' }} />
               </button>
-              <div className="text-xl font-bold text-green-400">{proposalStats.passed}</div>
+              <div className="text-xl font-bold text-white">{proposalStats.passed}</div>
               <div className="text-sm text-gray-400">Passed</div>
             </div>
           )}
@@ -1557,7 +1543,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
               >
                 <ChevronRight className="w-5 h-5 text-black dark:text-white" style={{ color: 'inherit' }} />
               </button>
-              <div className="text-xl font-bold text-red-400">{proposalStats.rejected}</div>
+              <div className="text-xl font-bold text-white">{proposalStats.rejected}</div>
               <div className="text-sm text-gray-400">Rejected</div>
             </div>
           )}
@@ -1580,7 +1566,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
               >
                 <ChevronRight className="w-5 h-5 text-black dark:text-white" style={{ color: 'inherit' }} />
               </button>
-              <div className="text-xl font-bold text-purple-400">{proposalStats.executed}</div>
+              <div className="text-xl font-bold text-white">{proposalStats.executed}</div>
               <div className="text-sm text-gray-400">Executed</div>
             </div>
           )}
@@ -1594,63 +1580,23 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
           <div className="text-xs sm:text-sm text-gray-400">Total</div>
         </div>
         <div className="professional-card p-3 sm:p-4 text-center rounded-xl">
-          <div className="text-lg sm:text-xl font-bold text-blue-400">{proposalStats.active}</div>
+          <div className="text-lg sm:text-xl font-bold text-white">{proposalStats.active}</div>
           <div className="text-xs sm:text-sm text-gray-400">Active</div>
         </div>
         <div className="professional-card p-3 sm:p-4 text-center rounded-xl">
-          <div className="text-lg sm:text-xl font-bold text-green-400">{proposalStats.passed}</div>
+          <div className="text-lg sm:text-xl font-bold text-white">{proposalStats.passed}</div>
           <div className="text-xs sm:text-sm text-gray-400">Passed</div>
         </div>
         <div className="professional-card p-3 sm:p-4 text-center rounded-xl">
-          <div className="text-lg sm:text-xl font-bold text-red-400">{proposalStats.rejected}</div>
+          <div className="text-lg sm:text-xl font-bold text-white">{proposalStats.rejected}</div>
           <div className="text-xs sm:text-sm text-gray-400">Rejected</div>
         </div>
         <div className="professional-card p-3 sm:p-4 text-center rounded-xl">
-          <div className="text-lg sm:text-xl font-bold text-purple-400">{proposalStats.executed}</div>
+          <div className="text-lg sm:text-xl font-bold text-white">{proposalStats.executed}</div>
           <div className="text-xs sm:text-sm text-gray-400">Executed</div>
         </div>
       </div>
 
-      {/* Search and Filter */}
-      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-          <input
-            type="text"
-            placeholder="Search proposals..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="professional-input pl-10 pr-4 py-2 w-full rounded-xl text-sm"
-          />
-        </div>
-        {/* Desktop selects only (icons removed) */}
-        <div className="flex items-center space-x-2">
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="professional-input px-3 py-2 rounded-xl text-sm"
-          >
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="passed">Passed</option>
-            <option value="rejected">Rejected</option>
-            <option value="executed">Executed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="professional-input px-3 py-2 rounded-xl text-sm"
-          >
-            <option value="all">All Categories</option>
-            <option value="general">General</option>
-            <option value="governance">Governance</option>
-            <option value="treasury">Treasury</option>
-            <option value="technical">Technical</option>
-            <option value="community">Community</option>
-          </select>
-        </div>
-      </div>
 
       {/* Create Proposal Inline (non-modal) */}
       {showCreateForm && (
@@ -1928,42 +1874,61 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
                 className="p-4 hover:bg-white/5 transition-all cursor-pointer"
                 onClick={() => setSelectedProposal(proposal)}
               >
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 min-w-0">
-                    <span className="text-xs sm:text-sm font-mono text-gray-400 w-16 shrink-0">{formatProposalId(proposal.id)}</span>
-                    <Pill className={`${getStatusColor(proposal.status)} border-0 shrink-0`} icon={getStatusIcon(proposal.status)}>
-                      <span className="capitalize">{proposal.status}</span>
-                    </Pill>
-                    <h3 className="text-white font-medium break-words text-sm sm:text-base">{proposal.title}</h3>
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2 sm:gap-4 min-w-0">
+                      <span className="text-xs sm:text-sm font-mono text-gray-400 w-16 shrink-0">{formatProposalId(proposal.id)}</span>
+                      <Pill className={`${getStatusColor(proposal.status)} border-0 shrink-0`} icon={getStatusIcon(proposal.status)}>
+                        <span className="capitalize">{proposal.status}</span>
+                      </Pill>
+                      <h3 className="text-white font-medium break-words text-sm sm:text-base">{proposal.title}</h3>
+                    </div>
+                    <div className="flex items-center gap-2 sm:gap-3 sm:self-auto self-start">
+                      {/* Finalize button for active proposals that have ended */}
+                      {proposal.needsFinalization && (userStatus.isAdmin || stakeRequirements.canPropose) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleFinalizeProposal(proposal.id);
+                          }}
+                          className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-medium transition-all"
+                          title="Finalize proposal - voting period has ended"
+                        >
+                          Finalize
+                        </button>
+                      )}
+                      {/* Activation button for draft proposals */}
+                      {proposal.needsActivation && (proposal.proposer === account?.address || userStatus.isAdmin) && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartVoting(proposal.id);
+                          }}
+                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-all"
+                          title="Start voting for this proposal"
+                        >
+                          Start Voting
+                        </button>
+                      )}
+                    <span className="text-xs sm:text-sm text-gray-400 whitespace-nowrap">{formatShortDate(proposal.created || proposal.votingEnd)}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 sm:gap-3 sm:self-auto self-start">
-                    {/* Finalize button for active proposals that have ended */}
-                    {proposal.needsFinalization && (userStatus.isAdmin || stakeRequirements.canPropose) && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleFinalizeProposal(proposal.id);
+
+                  {/* Quorum Progress Bar */}
+                  <div className="w-full">
+                    <div className="flex items-center justify-between text-xs text-gray-400 mb-1">
+                      <span>Quorum Progress</span>
+                      <span>{proposal.quorumCurrent.toFixed(1)}% / {proposal.quorumRequired.toFixed(1)}%</span>
+                    </div>
+                    <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-300"
+                        style={{
+                          width: `${Math.min((proposal.quorumCurrent / Math.max(proposal.quorumRequired, 0.001)) * 100, 100)}%`,
+                          backgroundColor: '#ffdd40'
                         }}
-                        className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white rounded-lg text-xs font-medium transition-all"
-                        title="Finalize proposal - voting period has ended"
-                      >
-                        Finalize
-                      </button>
-                    )}
-                    {/* Activation button for draft proposals */}
-                    {proposal.needsActivation && (proposal.proposer === account?.address || userStatus.isAdmin) && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStartVoting(proposal.id);
-                        }}
-                        className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-medium transition-all"
-                        title="Start voting for this proposal"
-                      >
-                        Start Voting
-                      </button>
-                    )}
-                  <span className="text-xs sm:text-sm text-gray-400 whitespace-nowrap">{formatShortDate(proposal.created || proposal.votingEnd)}</span>
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

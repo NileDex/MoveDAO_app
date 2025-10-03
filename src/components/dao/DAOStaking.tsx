@@ -48,7 +48,7 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
   const toMOVE = (u64: number): number => BalanceService.octasToMove(u64);
 
   const { account, signAndSubmitTransaction } = useWallet();
-  
+
   // Use the new persistent state hooks
   const { 
     membershipData, 
@@ -768,8 +768,7 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
                 <button
                   onClick={handleStake}
                   disabled={isStaking || !stakeAmount || parseFloat(stakeAmount) <= 0}
-                  className="w-full px-6 py-3 disabled:opacity-50 text-black rounded-xl font-medium"
-                  style={{ backgroundColor: '#faca20' }}
+                  className={`w-full px-6 py-3 disabled:opacity-50 rounded-xl font-medium transition-colors bg-[#faca20] text-black hover:bg-[#fbd84f]`}
                 >
                   {isStaking ? 'Staking...' : 'Stake MOVE'}
                 </button>
@@ -866,7 +865,7 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
                 >
                   {isJoining ? 'Joining...' : daoStakingData.userDaoStaked < daoStakingData.minStakeRequired ? `Stake ${Number(daoStakingData.minStakeRequired||0).toFixed(0)} MOVE First` : 'Join DAO'}
                 </button>
-                {daoStakingData.userDaoStaked === 0 && (
+                {daoStakingData.userDaoStaked === 0 && account?.address && (
                   <button
                     onClick={handleLeaveDAO}
                     disabled={isLeaving}
