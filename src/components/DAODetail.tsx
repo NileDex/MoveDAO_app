@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowDown, ArrowUp, Home, FileText, Wallet, Users, Zap, Coins, Shield, Menu, X } from 'lucide-react';
-import { FaShare } from 'react-icons/fa';
 import { DAO } from '../types/dao';
 import DAOHome from './dao/DAOHome';
 import DAOProposals from './dao/DAOProposals';
@@ -8,7 +7,6 @@ import DAOTreasury from './dao/DAOTreasury';
 import DAOMembers from './dao/DAOMembers';
 import DAOStaking from './dao/DAOStaking';
 import DAOAdmin from './dao/DAOAdmin';
-import ShareModal from './ShareModal';
 import { updateMetaTags, generateDAOMetaTags, resetToDefaultMetaTags } from '../utils/metaTags';
 import { useDAOMembership } from '../hooks/useDAOMembership';
 import { useDAOState } from '../contexts/DAOStateContext';
@@ -162,7 +160,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
       setAvatarError(true);
     }
   }, [dao.image]);
-  const [showShareModal, setShowShareModal] = useState(false);
+  
 
   // Prevent body scroll when mobile menu is open
   useEffect(() => {
@@ -313,28 +311,24 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
           )}
           
           <div className="relative z-10 max-w-7xl 2xl:mx-auto px-6 no-px-override py-6">
-            {/* Breadcrumb */}
+            {/* Back button and mobile share */}
             <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center space-x-3 text-sm">
+              <div className="flex items-center text-sm">
                 <button
                   onClick={onBack}
-                  className="p-2 text-white hover:text-gray-300 hover:bg-white/5 rounded-xl transition-all"
+                  className="p-2 rounded-lg transition-all"
+                  style={{
+                    background: 'var(--card-bg)',
+                    color: 'var(--text)',
+                    border: '1px solid var(--border)'
+                  }}
+                  title="Back"
                 >
                   <ArrowLeft className="w-4 h-4" />
                 </button>
-                <span className="text-white">Dashboard</span>
-                <span className="text-white/60">/</span>
-                <span className="text-white font-medium">{dao.name}</span>
               </div>
-              
-              {/* Mobile Share Button */}
-              <button 
-                onClick={() => setShowShareModal(true)}
-                className="sm:hidden p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl transition-all"
-                title="Share this DAO"
-              >
-                <FaShare className="w-4 h-4" />
-              </button>
+
+              {/* Share button removed */}
             </div>
 
             {/* DAO Header */}
@@ -385,15 +379,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                 </div>
               </div>
               
-              <div className="hidden sm:flex items-center space-x-3">
-                <button 
-                  onClick={() => setShowShareModal(true)}
-                  className="p-3 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-xl transition-all"
-                  title="Share this DAO"
-                >
-                  <FaShare className="w-4 h-4" />
-                </button>
-              </div>
+              {/* Share button removed */}
             </div>
 
             {/* Navigation Tabs */}
@@ -603,13 +589,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
         </div>
       </div>
 
-
-      {/* Share Modal */}
-      <ShareModal 
-        dao={dao}
-        isOpen={showShareModal}
-        onClose={() => setShowShareModal(false)}
-      />
+      {/* Share modal removed */}
     </div>
   );
 };

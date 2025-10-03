@@ -102,7 +102,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
             >
               <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? item.color : ''}`} style={{ color: 'var(--text)' }} />
               {!isCollapsed && (
-                <span className="text-sm font-medium whitespace-nowrap">{item.label}</span>
+                <span className="text-[0.95rem] font-medium whitespace-nowrap">{item.label}</span>
               )}
             </button>
           );
@@ -135,7 +135,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
         >
           <TrendingUp className="w-5 h-5 flex-shrink-0" style={{ color: currentView === 'trending' ? '#fbbf24' : 'var(--text)' }} />
           {!isCollapsed && (
-            <span className="text-sm font-medium whitespace-nowrap">Trending</span>
+            <span className="text-[0.95rem] font-medium whitespace-nowrap">Trending</span>
           )}
         </button>
       </div>
@@ -149,14 +149,15 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
       <div className="fixed inset-0 z-50 bg-black/60 sm:hidden" onClick={onClose} />
       {/* Sidebar Modal */}
       <div
-        className="fixed inset-y-0 left-0 z-[60] w-4/5 max-w-xs flex flex-col py-4 px-2 space-y-2 animate-slide-in sm:hidden bg-[#1a1a1c]"
+        className="fixed inset-y-0 left-0 z-[60] w-4/5 max-w-xs flex flex-col py-4 px-2 space-y-2 animate-slide-in sm:hidden"
         style={{
+          background: 'var(--card-bg)',
           borderRight: '1px solid var(--border)'
         }}
       >
         {/* Close Button */}
         <button
-          className="absolute top-2 right-2 rounded-full p-1.5 z-[1100] hover:bg-[#2b2b2d] transition-colors"
+          className="absolute top-2 right-2 rounded-full p-1.5 z-[1100] transition-colors"
           style={{ color: 'var(--text)' }}
           onClick={onClose}
           aria-label="Close Sidebar"
@@ -178,14 +179,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
                   onViewChange(item.id);
                   onClose?.();
                 }}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-all duration-200 ${
-                  isActive ? 'bg-[#2b2b2d]' : 'hover:bg-[#2b2b2d]'
-                }`}
-                style={{ color: 'var(--text)' }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-all duration-200`}
+                style={{ color: 'var(--text)', background: isActive ? 'var(--card-bg)' : 'transparent' }}
               >
                 <Icon className={`w-5 h-5 flex-shrink-0 ${isActive ? item.color : ''}`}
                       style={{ color: 'var(--text)' }} />
-                <span className="text-sm">{item.label}</span>
+                <span className="text-base">{item.label}</span>
               </button>
             );
           })}
@@ -201,13 +200,11 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
               onViewChange('trending');
               onClose?.();
             }}
-            className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg font-medium transition-all duration-200 ${
-              currentView === 'trending' ? 'bg-[#2b2b2d]' : 'hover:bg-[#2b2b2d]'
-            }`}
-            style={{ color: 'var(--text)' }}
+            className={`flex items-center gap-2 w-full px-3 py-2 rounded-lg font-medium transition-all duration-200`}
+            style={{ color: 'var(--text)', background: currentView === 'trending' ? 'var(--card-bg)' : 'transparent' }}
           >
             <TrendingUp className="w-5 h-5 flex-shrink-0" style={{ color: currentView === 'trending' ? '#fbbf24' : 'var(--text)' }} />
-            <span className="text-sm">Trending</span>
+            <span className="text-base">Trending</span>
           </button>
         </div>
       </div>

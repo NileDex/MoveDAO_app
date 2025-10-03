@@ -1127,26 +1127,11 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
                 }
               }}
               disabled={isSubmitting}
-              className="px-6 py-3 font-medium disabled:opacity-50 order-1 sm:order-2"
+              className="px-6 py-3 font-medium disabled:opacity-50 order-1 sm:order-2 rounded-xl hover:brightness-110 transition-all"
               style={{
-                background: '#1e1e20',
-                borderRadius: '12px',
-                border: 'none',
-                color: '#fff',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-              }}
-              onMouseEnter={(e) => {
-                if (!isSubmitting) {
-                  e.currentTarget.style.background = '#2a2a2c';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isSubmitting) {
-                  e.currentTarget.style.background = '#1e1e20';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }
+                background: 'var(--card-bg)',
+                color: 'var(--text)',
+                border: '1px solid var(--border)'
               }}
             >
               Continue
@@ -1167,26 +1152,11 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="px-8 py-3 font-medium disabled:opacity-50 flex items-center space-x-2"
+                className="px-8 py-3 font-medium disabled:opacity-50 flex items-center space-x-2 rounded-xl hover:brightness-110 transition-all"
                 style={{
-                  background: '#1e1e20',
-                  borderRadius: '12px',
-                  border: 'none',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSubmitting) {
-                    e.currentTarget.style.background = '#2a2a2c';
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSubmitting) {
-                    e.currentTarget.style.background = '#1e1e20';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }
+                  background: 'var(--card-bg)',
+                  color: 'var(--text)',
+                  border: '1px solid var(--border)'
                 }}
               >
                 {isSubmitting ? (
