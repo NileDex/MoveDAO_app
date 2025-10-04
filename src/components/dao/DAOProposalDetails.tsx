@@ -315,7 +315,7 @@ const DAOProposalDetails: React.FC<ProposalDetailsProps> = ({
               <div className="mt-6 pt-6 border-t border-white/10">
                 <div className="text-center py-4">
                   <FaCheckCircle className="w-8 h-8 text-green-400 mx-auto mb-2" />
-                  <p className="text-green-400 font-medium">You have already voted on this proposal</p>
+                  <p className="text-green-400 font-medium">You have voted on this proposal</p>
                 </div>
               </div>
             )}
