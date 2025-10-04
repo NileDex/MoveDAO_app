@@ -10,21 +10,21 @@ const PlatformGrowthCharts: React.FC = () => {
     console.log('📊 Current platform stats:', stats);
   }, [stats]);
 
-  // Create time-series data for charts using current stats
-  // Since we don't have historical data, we'll show trend data based on current values
-  const generateTrendData = (currentValue: number, label: string = 'Current') => {
-    // Create a simple upward trend for visualization
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-    return months.map((month, index) => ({
-      name: month,
-      value: Math.max(0, Math.floor((currentValue * (index + 1)) / months.length))
+  // Create time-series data for charts showing daily activity
+  // Since we don't have historical data, we'll show daily trend based on current values
+  const generateDailyTrendData = (currentValue: number) => {
+    // Create daily activity data for the last 7 days
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return days.map((day, index) => ({
+      name: day,
+      value: Math.max(0, Math.floor((currentValue * (index + 1)) / days.length))
     }));
   };
 
-  const daoGrowthData = generateTrendData(stats.totalDAOs);
-  const userGrowthData = generateTrendData(stats.totalMembers);
-  const votingActivityData = generateTrendData(stats.totalVotes);
-  const proposalActivityData = generateTrendData(stats.activeProposals);
+  const daoGrowthData = generateDailyTrendData(stats.totalDAOs);
+  const userGrowthData = generateDailyTrendData(stats.totalMembers);
+  const votingActivityData = generateDailyTrendData(stats.totalVotes);
+  const proposalActivityData = generateDailyTrendData(stats.activeProposals);
 
   const chartCards = [
     {
@@ -191,28 +191,28 @@ const PlatformGrowthCharts: React.FC = () => {
       </div>
 
       {/* Chart Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
         {chartCards.map((card, index) => {
           const Icon = card.icon;
           return (
             <div
               key={index}
-              className="rounded-lg p-3 sm:p-4"
+              className="rounded-lg p-4 sm:p-6"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
               {/* Header */}
-              <div className="mb-3">
+              <div className="mb-4">
                 <div className="flex items-center gap-2 mb-1">
-                  <div className={`p-1 rounded-md ${card.bgColor} flex items-center justify-center`}>
-                    <Icon className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                  <div className={`p-2 rounded-md ${card.bgColor} flex items-center justify-center`}>
+                    <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
-                  <h3 className="text-xs sm:text-sm font-semibold text-white">{card.title}</h3>
+                  <h3 className="text-sm sm:text-base font-semibold text-white">{card.title}</h3>
                 </div>
-                <p className="text-xs text-green-400 font-medium">{card.subtitle}</p>
+                <p className="text-sm text-green-400 font-medium">{card.subtitle}</p>
               </div>
 
               {/* Chart */}
-              <div className="h-12 sm:h-16 mb-2 w-full max-w-full overflow-hidden">
+              <div className="h-32 sm:h-40 mb-2 w-full max-w-full overflow-hidden">
                 {card.chart}
               </div>
 
@@ -222,15 +222,6 @@ const PlatformGrowthCharts: React.FC = () => {
         })}
       </div>
 
-      {/* Additional Info */}
-      <div className="mt-6 sm:mt-8 text-center">
-        <p className="text-xs sm:text-sm text-gray-500">
-          Live analytics data • Updates every 30 seconds • Real statistics from blockchain • Powered by Movement Network
-        </p>
-        <p className="text-xs text-gray-600 mt-1">
-          Currently tracking {stats.totalDAOs} DAOs • {stats.totalMembers} members • {stats.totalVotes} votes • {stats.activeProposals} active proposals
-        </p>
-      </div>
     </div>
   );
 };

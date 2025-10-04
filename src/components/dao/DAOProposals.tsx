@@ -423,9 +423,11 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         }
       } catch {}
 
-      // Check cache first unless force refresh
+      // Skip cache - always fetch fresh to check voting status
+      // This ensures userVoted is always up-to-date
       const cacheKey = `proposals_${dao.id}`;
-      if (!forceRefresh) {
+      if (!forceRefresh && !account?.address) {
+        // Only use cache if user is not connected (no need to check voting status)
         // legacy cache
         const cachedLegacy = proposalCache.get(cacheKey);
         if (cachedLegacy && Date.now() - cachedLegacy.timestamp < PROPOSAL_CACHE_TTL) {
@@ -491,16 +493,47 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         let userVoteType = null;
         
         if (account?.address) {
-          // Check if user has already voted by examining the votes array first (faster)
-          const votes = proposalData.votes || [];
-          const userVote = votes.find((vote: any) => vote.voter === account.address);
-          if (userVote) {
-            userVoted = true;
-            userVoteType = userVote.vote_type.value;
-            userCanVote = true; // If they voted, they must be a member
-          } else {
-            // Use persistent membership state instead of querying blockchain each time
-            userCanVote = isMember && isStaker;
+          // Use the dedicated ABI function to check if user has voted
+          try {
+            const hasVotedResult = await safeView({
+              function: `${MODULE_ADDRESS}::proposal::has_user_voted_on_proposal`,
+              functionArguments: [dao.id, i, account.address]
+            });
+            userVoted = Boolean(hasVotedResult[0]);
+            console.log(`Proposal ${i} - User has voted:`, userVoted);
+
+            if (userVoted) {
+              // Get the vote details if they voted
+              try {
+                const voteDetails = await safeView({
+                  function: `${MODULE_ADDRESS}::proposal::get_user_vote_on_proposal`,
+                  functionArguments: [dao.id, i, account.address]
+                });
+                if (voteDetails && voteDetails[0]) {
+                  userVoteType = Number(voteDetails[1] || 0);
+                  userCanVote = true;
+                  console.log(`User vote type:`, userVoteType);
+                }
+              } catch (err) {
+                console.warn(`Could not get vote details for proposal ${i}`, err);
+              }
+            } else {
+              // Use persistent membership state
+              userCanVote = isMember && isStaker;
+              console.log(`User can vote:`, userCanVote);
+            }
+          } catch (error) {
+            console.warn(`Error checking if user voted on proposal ${i}:`, error);
+            // Fallback to old method
+            const votes = proposalData.votes || [];
+            const userVote = votes.find((vote: any) => vote.voter === account.address);
+            if (userVote) {
+              userVoted = true;
+              userVoteType = userVote.vote_type.value;
+              userCanVote = true;
+            } else {
+              userCanVote = isMember && isStaker;
+            }
           }
         }
 
@@ -957,21 +990,8 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         throw new Error('You have already voted on this proposal. Each member can only vote once per proposal.');
       }
 
-      // Enhanced membership and voting power checks using persistent state
-      // Admins can always vote regardless of membership status
-      const isAdmin = userStatus.isAdmin || stakeRequirements.isAdmin;
-
-      if (!isAdmin && !isMember) {
-        if (!isStaker) {
-          throw new Error(`You are not a member of ${dao.name}. You need to stake at least ${membershipData?.minStakeRequired || 'some'} MOVE tokens to join this DAO and participate in governance.`);
-        } else {
-          throw new Error(`You have staked tokens but are not yet a member of ${dao.name}. Please join the DAO first to participate in governance voting.`);
-        }
-      }
-
-      if (!isAdmin && proposal.userVotingPower <= 0) {
-        throw new Error(`You do not have sufficient voting power in ${dao.name}. Current voting power: ${membershipData?.votingPower || 0} MOVE. You may need to stake more tokens to participate in governance.`);
-      }
+      // Let the contract validate membership and voting power on-chain
+      // Frontend checks can use stale cached data, so we skip them and let the contract decide
 
       const payload = {
           function: `${MODULE_ADDRESS}::proposal::cast_vote`,
@@ -984,20 +1004,66 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       };
 
       const response = await signAndSubmitTransaction({ payload } as any);
-      console.log('Vote cast:', response);
+      console.log('Vote cast response:', response);
+      console.log('Response type:', typeof response);
+      console.log('Response keys:', response ? Object.keys(response) : 'null');
 
-      // Update selected proposal to reflect voting status immediately
+      // Check if transaction was rejected by user - handle various rejection formats
+      if (!response ||
+          response?.status === 'Rejected' ||
+          response?.status === 'rejected' ||
+          String(response?.status || '').toLowerCase().includes('reject')) {
+        console.log('Transaction rejected by user - exiting without success message');
+        return; // Exit silently without showing success message
+      }
+
+      // Only proceed if we have a valid successful response
+      if (!response?.hash && !response?.success) {
+        console.log('No valid transaction hash - transaction may have failed');
+        return;
+      }
+
+      // Update selected proposal to reflect voting status immediately (optimistic update)
       if (selectedProposal && selectedProposal.id === proposalId) {
         setSelectedProposal(prev => prev ? { ...prev, userVoted: true } : null);
       }
 
-      // Refresh proposals
-      await fetchProposals();
-
       showAlert('Vote cast successfully!', 'success');
+
+      // Refresh proposals with force refresh to bypass cache and update from blockchain
+      console.log('Refreshing proposals after successful vote...');
+      await fetchProposals(true); // Force refresh to bypass cache
+
+      // Keep userVoted true - don't let refresh override it
+      setSelectedProposal(prev => prev ? { ...prev, userVoted: true } : null);
     } catch (error: any) {
       console.error('Failed to cast vote:', error);
-      
+      console.log('Error code:', error?.code);
+      console.log('Error message:', error?.message);
+
+      // Check if user rejected/cancelled the transaction
+      const errorString = error?.message || error?.toString() || '';
+      const lowerErrorString = errorString.toLowerCase();
+
+      // Check for various wallet rejection patterns
+      if (
+        lowerErrorString.includes('user rejected') ||
+        lowerErrorString.includes('user cancelled') ||
+        lowerErrorString.includes('user denied') ||
+        lowerErrorString.includes('rejected by user') ||
+        lowerErrorString.includes('cancelled by user') ||
+        lowerErrorString.includes('user disapproved') ||
+        lowerErrorString.includes('request rejected') ||
+        lowerErrorString.includes('transaction rejected') ||
+        lowerErrorString.includes('declined') ||
+        error?.code === 4001 || // Standard wallet rejection code
+        error?.code === 'ACTION_REJECTED'
+      ) {
+        // User cancelled - don't show error, just exit silently
+        console.log('Transaction cancelled by user');
+        return;
+      }
+
       // Handle user-friendly error messages for voting with enhanced membership context
       const isAdmin = userStatus.isAdmin || stakeRequirements.isAdmin;
       let errorMessage = `Unable to cast vote on this ${dao.name} proposal. `;
@@ -1018,35 +1084,32 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       } else {
         errorMessage += 'Please try again or check the contract logs for details.';
       }
-      if (error?.message || error?.toString()) {
-        const errorString = error.message || error.toString();
-        
-        // If it's already a user-friendly error (like voting time validation), use it directly
-        if (errorString.includes('Voting has not started yet') || errorString.includes('Voting begins on')) {
-          errorMessage = errorString;
-        } else if (errorString.includes('0xc8') || errorString.includes('200')) {
-          errorMessage = 'Voting has not started yet for this proposal. Please wait for the voting period to begin before casting your vote.';
-        } else if (errorString.includes('0xc9') || errorString.includes('201')) {
-          errorMessage = 'Voting has ended for this proposal. This proposal is no longer accepting votes.';
-        } else if (errorString.includes('0xca') || errorString.includes('202')) {
-          errorMessage = 'You have already voted on this proposal. Each member can only vote once per proposal.';
-        } else if (errorString.includes('0xcb') || errorString.includes('203')) {
-          errorMessage = 'Proposal not found. The proposal may have been removed or the ID is invalid. Please refresh and try again.';
-        } else if (errorString.includes('0xd0') || errorString.includes('208')) {
-          errorMessage = 'Invalid vote selection. Please choose a valid voting option (Yes, No, or Abstain).';
-        } else if (errorString.includes('0x9') || errorString.includes('not_authorized')) {
-          errorMessage = 'You are not authorized to vote on this proposal. You may need to stake tokens to become a DAO member.';
-        } else if (errorString.includes('0x97') || errorString.includes('151')) {
-          errorMessage = 'You are not a member of this DAO. Only DAO members can participate in governance voting.';
-        } else if (errorString.includes('0x99') || errorString.includes('153')) {
-          errorMessage = 'Insufficient stake to vote. You need to stake more tokens to participate in DAO governance.';
-        }
+
+      // If it's already a user-friendly error (like voting time validation), use it directly
+      if (errorString.includes('Voting has not started yet') || errorString.includes('Voting begins on')) {
+        errorMessage = errorString;
+      } else if (errorString.includes('0xc8') || errorString.includes('200')) {
+        errorMessage = 'Voting has not started yet for this proposal. Please wait for the voting period to begin before casting your vote.';
+      } else if (errorString.includes('0xc9') || errorString.includes('201')) {
+        errorMessage = 'Voting has ended for this proposal. This proposal is no longer accepting votes.';
+      } else if (errorString.includes('0xca') || errorString.includes('202')) {
+        errorMessage = 'You have already voted on this proposal. Each member can only vote once per proposal.';
+      } else if (errorString.includes('0xcb') || errorString.includes('203')) {
+        errorMessage = 'Proposal not found. The proposal may have been removed or the ID is invalid. Please refresh and try again.';
+      } else if (errorString.includes('0xd0') || errorString.includes('208')) {
+        errorMessage = 'Invalid vote selection. Please choose a valid voting option (Yes, No, or Abstain).';
+      } else if (errorString.includes('0x9') || errorString.includes('not_authorized')) {
+        errorMessage = 'You are not authorized to vote on this proposal. You may need to stake tokens to become a DAO member.';
+      } else if (errorString.includes('0x97') || errorString.includes('151')) {
+        errorMessage = 'You are not a member of this DAO. Only DAO members can participate in governance voting.';
+      } else if (errorString.includes('0x99') || errorString.includes('153')) {
+        errorMessage = 'Insufficient stake to vote. You need to stake more tokens to participate in DAO governance.';
       }
-      
+
       // Show error to user instead of throwing
       setVotingError(errorMessage);
       setShowVotingError(true);
-      
+
       // Auto-hide error after 8 seconds for longer messages
       setTimeout(() => {
         setShowVotingError(false);
@@ -1340,7 +1403,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             proposalId={selectedProposal.id}
             createdAt={selectedProposal.created}
             daoName={dao.name}
-            onVote={(voteType) => handleVoteWithActivation(selectedProposal.id, voteType)}
+            onVote={(voteType: number) => handleVoteWithActivation(selectedProposal.id, voteType)}
             onStartVoting={() => handleStartVoting(selectedProposal.id)}
             onFinalize={() => handleFinalizeProposal(selectedProposal.id)}
             canVote={selectedProposal.userVotingPower > 0}

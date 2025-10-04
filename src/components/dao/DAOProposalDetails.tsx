@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { FaCheckCircle } from 'react-icons/fa';
 
 interface ProposalDetailsProps {
@@ -125,6 +125,16 @@ const DAOProposalDetails: React.FC<ProposalDetailsProps> = ({
   userIsMember
 }) => {
   const total = votesFor + votesAgainst + votesAbstain;
+  const [isVoting, setIsVoting] = useState(false);
+
+  const handleVoteClick = async (voteType: number) => {
+    setIsVoting(true);
+    try {
+      await onVote?.(voteType);
+    } finally {
+      setIsVoting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -258,23 +268,26 @@ const DAOProposalDetails: React.FC<ProposalDetailsProps> = ({
               <div className="mt-6 pt-6 border-t border-white/10">
                 <h4 className="text-white font-medium mb-4">Cast your vote</h4>
                 <div className="flex space-x-3">
-                  <button 
-                    onClick={() => onVote?.(1)}
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-medium transition-all"
+                  <button
+                    onClick={() => handleVoteClick(1)}
+                    disabled={isVoting}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white py-3 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Vote Yes
+                    {isVoting ? 'Voting...' : 'Vote Yes'}
                   </button>
-                  <button 
-                    onClick={() => onVote?.(2)}
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-medium transition-all"
+                  <button
+                    onClick={() => handleVoteClick(2)}
+                    disabled={isVoting}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Vote No
+                    {isVoting ? 'Voting...' : 'Vote No'}
                   </button>
-                  <button 
-                    onClick={() => onVote?.(3)}
-                    className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-3 rounded-lg font-medium transition-all"
+                  <button
+                    onClick={() => handleVoteClick(3)}
+                    disabled={isVoting}
+                    className="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-3 rounded-lg font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Abstain
+                    {isVoting ? 'Voting...' : 'Abstain'}
                   </button>
                 </div>
               </div>
