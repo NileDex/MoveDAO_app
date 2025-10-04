@@ -985,10 +985,15 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
 
       const response = await signAndSubmitTransaction({ payload } as any);
       console.log('Vote cast:', response);
-      
+
+      // Update selected proposal to reflect voting status immediately
+      if (selectedProposal && selectedProposal.id === proposalId) {
+        setSelectedProposal(prev => prev ? { ...prev, userVoted: true } : null);
+      }
+
       // Refresh proposals
       await fetchProposals();
-      
+
       showAlert('Vote cast successfully!', 'success');
     } catch (error: any) {
       console.error('Failed to cast vote:', error);
