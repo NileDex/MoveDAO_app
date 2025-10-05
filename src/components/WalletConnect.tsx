@@ -544,7 +544,7 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
     gap: 8,
     padding: '8px 16px',
     border: 'none',
-    background: 'var(--card-bg)',
+    background: '#252527',
     borderRadius: '12px',
     height: 'auto',
     minWidth: 120,
@@ -653,14 +653,6 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
           ...buttonStyle,
         }}
         onClick={handleButtonClick}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = theme === 'dark' ? '#2a2a2c' : 'rgba(0,0,0,0.1)';
-          e.currentTarget.style.transform = 'translateY(-1px)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'var(--card-bg)';
-          e.currentTarget.style.transform = 'translateY(0)';
-        }}
         tabIndex={0}
       >
         {connected && account ? (
@@ -713,13 +705,12 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
               top: '100%',
               right: 0,
               marginTop: 4,
-              background: 'var(--card-bg)',
+              background: '#252527',
               border: '1px solid var(--border)',
               borderRadius: 12,
               padding: 8,
               minWidth: 160,
               boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-              backdropFilter: 'blur(20px)',
               zIndex: 1001
             }}
           >
@@ -734,20 +725,18 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
               style={{
                 width: '100%',
                 padding: '8px 12px',
-                background: 'none',
+                background: '#252527',
                 border: 'none',
                 color: 'var(--text)',
                 fontSize: 14,
                 cursor: 'pointer',
-                borderRadius: 8,
+                borderRadius: 12,
                 transition: 'background 0.2s',
                 textAlign: 'left',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
             >
               <User size={16} />
               Profile
@@ -761,20 +750,18 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
               style={{
                 width: '100%',
                 padding: '8px 12px',
-                background: 'none',
+                background: '#252527',
                 border: 'none',
                 color: 'var(--text)',
                 fontSize: 14,
                 cursor: 'pointer',
-                borderRadius: 8,
+                borderRadius: 12,
                 transition: 'background 0.2s',
                 textAlign: 'left',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px'
               }}
-              onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'}
-              onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
             >
               <X size={16} />
               Disconnect

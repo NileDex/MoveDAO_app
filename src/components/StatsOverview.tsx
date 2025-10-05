@@ -2,30 +2,53 @@ import React, { useState, useEffect } from 'react';
 import { Building2, FileText, Vote, Users, DollarSign, TrendingUp, Globe } from 'lucide-react';
 import { usePlatformStats } from '../useServices/usePlatformStats';
 import { NETWORK_CONFIG } from '../movement_service/constants';
+import { useTheme } from '../contexts/ThemeContext';
 
 const StatsOverview: React.FC = () => {
   const { stats: platformStats, isLoading, error, lastUpdated } = usePlatformStats();
   const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'checking'>('checking');
+  const { isDark } = useTheme();
 
   // Check network status periodically
   useEffect(() => {
+    let isMounted = true;
+
     const checkNetworkStatus = async () => {
       try {
-        // Use a simple health check endpoint (NETWORK_CONFIG.fullnode already includes /v1)
-        const response = await fetch(NETWORK_CONFIG.fullnode, { 
-          method: 'GET',
-          signal: AbortSignal.timeout(5000) // 5 second timeout
+        // Use the GraphQL endpoint which is more reliable for health checks
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
+        const response = await fetch(NETWORK_CONFIG.indexer, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: '{ __typename }' }), // Minimal introspection query
+          signal: controller.signal
         });
-        setNetworkStatus(response.ok ? 'online' : 'offline');
+
+        clearTimeout(timeoutId);
+
+        if (isMounted) {
+          setNetworkStatus(response.ok ? 'online' : 'offline');
+        }
       } catch (error) {
-        console.warn('Network status check failed:', error);
-        setNetworkStatus('offline');
+        // Only log if it's not an abort error
+        if (error instanceof Error && error.name !== 'AbortError') {
+          console.warn('Network status check failed:', error.message);
+        }
+        if (isMounted) {
+          setNetworkStatus('offline');
+        }
       }
     };
 
     checkNetworkStatus();
-    const interval = setInterval(checkNetworkStatus, 30000); // Check every 30 seconds
-    return () => clearInterval(interval);
+    const interval = setInterval(checkNetworkStatus, 45000); // Check every 45 seconds (less frequent)
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const formatNumber = (num: number) => {
@@ -114,17 +137,16 @@ const StatsOverview: React.FC = () => {
           return (
             <div
               key={index}
-              className="min-w-0 from-white/10 to-white/5 backdrop-blur-xl border border-white/10 shadow-lg rounded-lg p-3 sm:p-4 flex flex-col items-center justify-center text-center transition-transform duration-300"
+              className="min-w-0 from-white/10 to-white/5 backdrop-blur-xl border border-white/10 rounded-lg p-3 sm:p-4 transition-all duration-300 hover:border-white/20 relative overflow-hidden group"
               style={{ animationDelay: `${index * 0.07}s` }}
             >
-              <div className={`mb-1 p-1.5 sm:mb-2 sm:p-2 rounded-full flex items-center justify-center`}>
-                <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow" />
-              </div>
-              <div className="mb-0.5 text-base sm:text-lg font-extrabold text-white">{stat.value}</div>
-              <div className="mb-0.5 text-[10px] sm:text-xs text-gray-300 font-medium">{stat.label}</div>
-              <div className="flex items-center justify-center gap-1 text-[10px] sm:text-xs text-green-400">
-                <TrendingUp className="w-3 h-3" />
-                <span>{stat.change}</span>
+              <Icon
+                className="absolute -bottom-2 -right-2 w-10 h-10 sm:-bottom-3 sm:-right-3 sm:w-20 sm:h-20 pointer-events-none transition-all duration-300"
+                style={{ color: isDark ? '#ffda34' : '#000000', opacity: 0.2 }}
+              />
+              <div className="flex flex-col items-start text-left relative z-10">
+                <div className="mb-0.5 text-base sm:text-lg font-extrabold text-white">{stat.value}</div>
+                <div className="text-[10px] sm:text-xs text-gray-300 font-medium">{stat.label}</div>
               </div>
             </div>
           );

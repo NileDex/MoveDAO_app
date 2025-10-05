@@ -10,6 +10,8 @@ import {
   getAvatarUrlOrDefault
 } from '../../useServices/useProfile';
 import { useUserDAOs } from '../../useServices/useUserDAOs';
+import { useTheme } from '../../contexts/ThemeContext';
+import defaultAvatar from '../../assets/avatar.jpg';
 
 interface UserProfileProps {
   className?: string;
@@ -17,7 +19,8 @@ interface UserProfileProps {
 
 const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
   const { account } = useWallet();
-  
+  const { isDark } = useTheme();
+
   // Modal state
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
@@ -95,14 +98,14 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
     if (profileData) {
       return {
         displayName: profileData.displayName || getDisplayNameOrAddress(null, account?.address || ''),
-        avatar: profileData.avatarUrl || '',
+        avatar: profileData.avatarUrl || defaultAvatar,
         hasProfile: true
       };
     }
-    
+
     return {
       displayName: account?.address ? getDisplayNameOrAddress(null, account.address) : 'Connect Wallet',
-      avatar: '',
+      avatar: defaultAvatar,
       hasProfile: false
     };
   };
@@ -139,7 +142,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
 
           {/* Display Name Section */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
               Display Name *
             </label>
             <input
@@ -154,7 +157,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
 
           {/* Profile Picture Section */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text)' }}>
               Profile Picture URL
             </label>
             <input
@@ -168,7 +171,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
             {/* Avatar Preview */}
             {(formData.avatar || formData.displayName) && (
               <div className="mt-3 flex items-center gap-3">
-                <span className="text-sm text-gray-400">Preview:</span>
+                <span className="text-sm" style={{ color: 'var(--text-dim)' }}>Preview:</span>
                 <div className="relative">
                   {formData.avatar ? (
                     <>
@@ -182,12 +185,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                           if (fallback) fallback.classList.remove('hidden');
                         }}
                       />
-                      <div className="hidden w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-sm font-bold">
+                      <div className="hidden w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center text-white text-sm font-bold">
                         {formData.displayName.charAt(0).toUpperCase()}
                       </div>
                     </>
                   ) : (
-                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-sm font-bold">
+                    <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center text-white text-sm font-bold">
                       {formData.displayName.charAt(0).toUpperCase()}
                     </div>
                   )}
@@ -202,13 +205,23 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
         <div className="flex gap-3 p-6 border-t border-white/10">
           <button
             onClick={() => setShowSettingsModal(false)}
-            className="flex-1 px-4 py-2 bg-gray-700/50 hover:bg-gray-600/50 text-gray-300 rounded-lg font-medium transition-colors border border-white/10"
+            style={{
+              background: 'transparent',
+              border: '1px solid var(--border)',
+              color: 'var(--text)'
+            }}
+            className="flex-1 px-4 py-2 rounded-xl font-medium transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSaveProfile}
-            className="flex-1 btn-primary px-4 py-2 text-white rounded-lg font-medium flex items-center justify-center gap-2"
+            style={{
+              background: isDark ? '#252527' : '#f1f5f9',
+              border: '1px solid var(--border)',
+              color: isDark ? '#ffffff' : '#0f172a'
+            }}
+            className="flex-1 px-4 py-2 rounded-xl font-medium flex items-center justify-center gap-2 transition-colors"
             disabled={!formData.displayName.trim()}
           >
             {isPending ? (
@@ -239,35 +252,24 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
 
         {/* Profile Avatar and Edit Button */}
         <div className="relative inline-block mb-4">
-          {displayData.avatar ? (
-            <>
-              <img 
-                src={displayData.avatar} 
-                alt={displayData.displayName}
-                className="w-24 h-24 rounded-xl object-cover shadow-lg"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                  if (fallback) fallback.classList.remove('hidden');
-                }}
-              />
-              <div className="hidden w-24 h-24 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-2xl font-bold">
-                {displayData.displayName.charAt(0).toUpperCase()}
-              </div>
-            </>
-          ) : (
-            <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-2xl font-bold">
-              {displayData.displayName.charAt(0).toUpperCase()}
-            </div>
-          )}
-          
+          <img
+            src={displayData.avatar}
+            alt={displayData.displayName}
+            className="w-24 h-24 rounded-xl object-cover shadow-lg"
+          />
+
           {account?.address && (
-            <button 
+            <button
               onClick={() => setShowSettingsModal(true)}
-              className="absolute -bottom-1 -right-1 bg-indigo-600 hover:bg-indigo-700 p-2 rounded-full shadow-lg transition-colors"
+              className={`absolute -bottom-1 -right-1 p-2 rounded-full shadow-lg transition-colors ${
+                isDark
+                  ? 'hover:bg-gray-800'
+                  : 'bg-white hover:bg-gray-100'
+              }`}
+              style={isDark ? { backgroundColor: '#141416' } : {}}
               disabled={isLoading}
             >
-              <Edit3 className="w-4 h-4 text-white" />
+              <Edit3 className={`w-4 h-4 ${isDark ? 'text-white' : 'text-gray-800'}`} />
             </button>
           )}
         </div>
@@ -336,31 +338,34 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
           <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
             <button
               onClick={() => setDaoFilter('all')}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${
-                daoFilter === 'all'
-                  ? 'bg-indigo-600 text-white shadow-lg'
-                  : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800'
-              }`}
+              style={{
+                background: daoFilter === 'all' ? (isDark ? '#252527' : '#f1f5f9') : 'transparent',
+                color: daoFilter === 'all' ? (isDark ? '#ffffff' : '#0f172a') : 'var(--text-dim)',
+                border: daoFilter === 'all' ? '1px solid var(--border)' : '1px solid transparent'
+              }}
+              className="px-4 py-2 rounded-xl font-medium text-sm transition-all whitespace-nowrap"
             >
               All DAOs ({userDAOs.all.length})
             </button>
             <button
               onClick={() => setDaoFilter('created')}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${
-                daoFilter === 'created'
-                  ? 'bg-indigo-600 text-white shadow-lg'
-                  : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800'
-              }`}
+              style={{
+                background: daoFilter === 'created' ? (isDark ? '#252527' : '#f1f5f9') : 'transparent',
+                color: daoFilter === 'created' ? (isDark ? '#ffffff' : '#0f172a') : 'var(--text-dim)',
+                border: daoFilter === 'created' ? '1px solid var(--border)' : '1px solid transparent'
+              }}
+              className="px-4 py-2 rounded-xl font-medium text-sm transition-all whitespace-nowrap"
             >
               👑 Created ({userDAOs.created.length})
             </button>
             <button
               onClick={() => setDaoFilter('joined')}
-              className={`px-4 py-2 rounded-lg font-medium text-sm transition-all whitespace-nowrap ${
-                daoFilter === 'joined'
-                  ? 'bg-indigo-600 text-white shadow-lg'
-                  : 'bg-gray-800/50 text-gray-400 hover:bg-gray-800'
-              }`}
+              style={{
+                background: daoFilter === 'joined' ? (isDark ? '#252527' : '#f1f5f9') : 'transparent',
+                color: daoFilter === 'joined' ? (isDark ? '#ffffff' : '#0f172a') : 'var(--text-dim)',
+                border: daoFilter === 'joined' ? '1px solid var(--border)' : '1px solid transparent'
+              }}
+              className="px-4 py-2 rounded-xl font-medium text-sm transition-all whitespace-nowrap"
             >
               ✓ Joined ({userDAOs.joined.length})
             </button>
@@ -427,12 +432,12 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
                               if (fallback) fallback.classList.remove('hidden');
                             }}
                           />
-                          <div className="hidden w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-lg font-bold">
+                          <div className="hidden w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center text-white text-lg font-bold">
                             {(dao.name || 'D').charAt(0).toUpperCase()}
                           </div>
                         </>
                       ) : (
-                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-lg font-bold">
+                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-600 to-indigo-700 flex items-center justify-center text-white text-lg font-bold">
                           {(dao.name || 'D').charAt(0).toUpperCase()}
                         </div>
                       )}

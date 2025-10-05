@@ -206,7 +206,7 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
         <div className="space-y-3">
           <div className="flex items-start justify-between">
             <div>
-              <div className="text-white text-xl font-bold drop-shadow-sm">
+              <div className="text-white text-base font-bold drop-shadow-sm">
                 {dao.proposals}
               </div>
               <div className="text-gray-300 text-xs drop-shadow-sm">
@@ -214,7 +214,7 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
               </div>
             </div>
             <div>
-              <div className="text-white text-xl font-bold drop-shadow-sm">
+              <div className="text-white text-base font-bold drop-shadow-sm">
                 {dao.members}
               </div>
               <div className="text-gray-300 text-xs drop-shadow-sm">

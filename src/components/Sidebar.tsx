@@ -151,7 +151,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange, isOpen = f
       <div
         className="fixed inset-y-0 left-0 z-[60] w-4/5 max-w-xs flex flex-col py-4 px-2 space-y-2 animate-slide-in sm:hidden"
         style={{
-          background: 'var(--card-bg)',
+          background: '#252527',
           borderRight: '1px solid var(--border)'
         }}
       >

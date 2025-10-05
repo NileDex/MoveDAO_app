@@ -51,7 +51,7 @@ const FeaturedDAOs: React.FC<FeaturedDAOsProps> = ({ onDAOSelect, onCreateDAO, s
     <div className="mb-12 w-full">
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <h2 className="text-2xl font-bold text-white">All DAOs</h2>
-        <button 
+        <button
           onClick={() => {
             console.log('🔄 Manual refresh triggered by user')
             refetch()
@@ -62,11 +62,6 @@ const FeaturedDAOs: React.FC<FeaturedDAOsProps> = ({ onDAOSelect, onCreateDAO, s
         >
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
         </button>
-        {daos.length > 0 && (
-          <div className="text-sm text-gray-400 ml-auto">
-            {daos.length} DAO{daos.length !== 1 ? 's' : ''} on Movement Network
-          </div>
-        )}
       </div>
       
       {error && (
