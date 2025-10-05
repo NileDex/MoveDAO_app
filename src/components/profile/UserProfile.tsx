@@ -11,7 +11,9 @@ import {
 } from '../../useServices/useProfile';
 import { useUserDAOs } from '../../useServices/useUserDAOs';
 import { useTheme } from '../../contexts/ThemeContext';
-import defaultAvatar from '../../assets/avatar.jpg';
+
+// Use a placeholder avatar URL
+const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default';
 
 interface UserProfileProps {
   className?: string;
@@ -98,14 +100,14 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
     if (profileData) {
       return {
         displayName: profileData.displayName || getDisplayNameOrAddress(null, account?.address || ''),
-        avatar: profileData.avatarUrl || defaultAvatar || '',
+        avatar: profileData.avatarUrl || defaultAvatar,
         hasProfile: true
       };
     }
 
     return {
       displayName: account?.address ? getDisplayNameOrAddress(null, account.address) : 'Connect Wallet',
-      avatar: defaultAvatar || '',
+      avatar: defaultAvatar,
       hasProfile: false
     };
   };
