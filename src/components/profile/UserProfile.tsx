@@ -98,14 +98,14 @@ const UserProfile: React.FC<UserProfileProps> = ({ className = '' }) => {
     if (profileData) {
       return {
         displayName: profileData.displayName || getDisplayNameOrAddress(null, account?.address || ''),
-        avatar: profileData.avatarUrl || defaultAvatar,
+        avatar: profileData.avatarUrl || defaultAvatar || '',
         hasProfile: true
       };
     }
 
     return {
       displayName: account?.address ? getDisplayNameOrAddress(null, account.address) : 'Connect Wallet',
-      avatar: defaultAvatar,
+      avatar: defaultAvatar || '',
       hasProfile: false
     };
   };
