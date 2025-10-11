@@ -1,19 +1,61 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSectionLoader } from '../../hooks/useSectionLoader';
-import { Users, RefreshCw } from 'lucide-react';
+import { Users, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Member } from '../../types/dao';
 import { DAO } from '../../types/dao';
 import { useWallet } from '@razorlabs/razorkit';
 import { aptosClient } from '../../movement_service/movement-client';
 import { MODULE_ADDRESS } from '../../movement_service/constants';
 import { safeView, safeGetModuleEventsByEventType } from '../../utils/rpcUtils';
+import { useGetProfile } from '../../useServices/useProfile';
+import MemberProfileCard from '../MemberProfileCard';
+import LockedFeatureOverlay from '../LockedFeatureOverlay';
+import { useTradePortKeys } from '../../useServices/useTradePortKeys';
 
 interface DAOMembersProps {
   dao: DAO;
-  sidebarCollapsed?: boolean;
 }
 
-const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }) => {
+// Member Avatar Component with Profile Image - Clickable
+const MemberAvatar: React.FC<{
+  address: string;
+  shortAddress: string;
+  onClick: (ref: React.RefObject<HTMLDivElement>) => void;
+}> = ({ address, shortAddress, onClick }) => {
+  const { data: profileData, isLoading } = useGetProfile(address || null);
+  const avatarRef = useRef<HTMLDivElement>(null);
+
+  if (isLoading) {
+    return (
+      <div className="w-8 h-8 bg-gray-600/50 rounded-lg animate-pulse"></div>
+    );
+  }
+
+  const content = profileData?.avatarUrl ? (
+    <img
+      src={profileData.avatarUrl}
+      alt={profileData.displayName || shortAddress}
+      className="w-8 h-8 rounded-lg object-cover cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+      onError={(e) => {
+        e.currentTarget.style.display = 'none';
+        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+        if (fallback) fallback.classList.remove('hidden');
+      }}
+    />
+  ) : (
+    <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-lg flex items-center justify-center text-white text-xs font-bold cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all">
+      {shortAddress.slice(2, 4).toUpperCase()}
+    </div>
+  );
+
+  return (
+    <div ref={avatarRef} onClick={() => onClick(avatarRef)}>
+      {content}
+    </div>
+  );
+};
+
+const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
   // In-memory caches to keep member data stable between tab switches
   // Cache persists for the app lifetime; TTL avoids serving stale data too long
   const CACHE_TTL_MS = 60 * 1000; // 60 seconds
@@ -34,8 +76,27 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMembers, setIsLoadingMembers] = useState(true);
   const sectionLoader = useSectionLoader();
-  
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const MEMBERS_PER_PAGE = 10;
+
+  // Profile card popup state
+  const [selectedMember, setSelectedMember] = useState<{ address: string; shortAddress: string; memberNumber: number; ref: React.RefObject<HTMLDivElement> } | null>(null);
+  const [isProfileCardOpen, setIsProfileCardOpen] = useState(false);
+
+  const handleAvatarClick = (member: Member, memberNumber: number, ref: React.RefObject<HTMLDivElement>) => {
+    setSelectedMember({ address: member.address, shortAddress: member.shortAddress, memberNumber, ref });
+    setIsProfileCardOpen(true);
+  };
+
   const { account, signAndSubmitTransaction } = useWallet();
+
+  // Check if user owns Smurf NFT
+  const { data: tradePortKeysData, isLoading: isCheckingNFT } = useTradePortKeys(account?.address);
+
+  // Lock if user doesn't have the NFT, but show content while checking
+  const isLocked = !isCheckingNFT && !tradePortKeysData?.hasNFT;
   const OCTAS = 1e8;
   const toMOVE = (u64: number): number => u64 / OCTAS;
 
@@ -59,8 +120,8 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
 
       // Prefer module-level events (widely available), then filter by dao id
       const [stakeEvents, unstakeEvents] = await Promise.all([
-        safeGetModuleEventsByEventType({ eventType: stakeType, options: { limit: 200 } }).catch(() => []),
-        safeGetModuleEventsByEventType({ eventType: unstakeType, options: { limit: 200 } }).catch(() => []),
+        safeGetModuleEventsByEventType({ eventType: stakeType, options: { limit: 100 } }).catch(() => []),
+        safeGetModuleEventsByEventType({ eventType: unstakeType, options: { limit: 100 } }).catch(() => []),
       ]);
 
       const pushIfForDAO = (ev: any) => {
@@ -76,9 +137,9 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
       // Include the connected account if present, to reflect immediate membership
       if (account?.address) candidateAddresses.add(account.address);
 
-      // Validate membership and fetch stake per candidate (limit concurrency to avoid rate limits)
+      // Validate membership and fetch stake per candidate (optimized for maximum speed)
       const addresses = Array.from(candidateAddresses);
-      const batchSize = 5; // Increased batch size for faster loading
+      const batchSize = 30; // Much larger batch size for faster loading
       const collected: Member[] = [];
 
       for (let i = 0; i < addresses.length; i += batchSize) {
@@ -108,11 +169,7 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
           }
         });
         await Promise.allSettled(batchPromises);
-
-        // Add delay between batches to avoid overwhelming the RPC
-        if (i + batchSize < addresses.length) {
-          await new Promise(resolve => setTimeout(resolve, 500)); // Reduced to 500ms for faster loading
-        }
+        // No delay between batches for maximum speed
       }
 
       // Deduplicate by address
@@ -233,6 +290,8 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
 
   useEffect(() => {
     const now = Date.now();
+    // Reset page when DAO changes
+    setCurrentPage(1);
     // Hydrate from cache immediately (no spinner) if fresh
     const cachedMembers = membersCache.get(dao.id);
     if (cachedMembers && now - cachedMembers.timestamp < CACHE_TTL_MS) {
@@ -253,6 +312,13 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
   // Use actual members fetched from the blockchain
   const members = actualMembers;
   const filteredMembers = members; // No filtering since search was removed
+
+  // Pagination logic
+  const totalMembers = filteredMembers.length;
+  const totalPages = Math.ceil(totalMembers / MEMBERS_PER_PAGE);
+  const startIndex = (currentPage - 1) * MEMBERS_PER_PAGE;
+  const endIndex = startIndex + MEMBERS_PER_PAGE;
+  const paginatedMembers = filteredMembers.slice(startIndex, endIndex);
 
   const totalVotingPower = members.reduce((sum, member) => sum + member.votingPower, 0);
   const activeMembers = members.filter(m => m.isActive).length;
@@ -278,7 +344,14 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
       {/* Stats removed per request */}
 
       {/* Member Directory */}
-      <div className="bg-white/3 border border-white/5 rounded-xl p-4 w-full max-w-full overflow-hidden">
+      <div className="bg-white/3 border border-white/5 rounded-xl p-4 w-full max-w-full overflow-hidden relative min-h-[600px]">
+        {/* Locked Feature Overlay */}
+        <LockedFeatureOverlay
+          title="Locked Feature"
+          description="You must hold a Holders Tab Key NFT to unlock + view the holders stats"
+          showOverlay={isLocked}
+        />
+
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <div className="flex items-center gap-2">
             <h3 className="text-sm sm:text-base md:text-lg font-semibold text-white flex items-center gap-2">
@@ -316,14 +389,14 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
               </tr>
             </thead>
             <tbody>
-              {filteredMembers.length === 0 ? (
+              {paginatedMembers.length === 0 ? (
                 sectionLoader.isLoading ? null : (
                 <tr>
                   <td colSpan={4} className="py-8 px-4 text-center">
                     <Users className="w-12 h-12 text-gray-500 mx-auto mb-3" />
                     <p className="text-gray-400 text-sm">No members found</p>
                     <p className="text-gray-500 text-xs mt-1">
-                      {membershipData.totalMembers > 0 
+                      {membershipData.totalMembers > 0
                         ? 'Try adjusting your search'
                         : 'No registered members yet'}
                     </p>
@@ -331,18 +404,14 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
                 </tr>
                 )
               ) : (
-                filteredMembers.map((member, index) => (
+                paginatedMembers.map((member, index) => (
                 <tr key={member.id} className="border-b border-white/5 hover:bg-white/5 transition-all">
                   <td className="py-4 px-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                        {member.shortAddress.slice(2, 4).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <h4 className="text-white font-medium text-sm leading-tight">{member.shortAddress}</h4>
-                        <p className="text-gray-400 text-xs leading-tight">Member #{index + 1}</p>
-                      </div>
-                    </div>
+                    <MemberAvatar
+                      address={member.address}
+                      shortAddress={member.shortAddress}
+                      onClick={(ref) => handleAvatarClick(member, startIndex + index + 1, ref)}
+                    />
                   </td>
                   <td className="py-4 px-4">
                     <div className="flex items-center space-x-1">
@@ -383,13 +452,13 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
 
         {/* Mobile Card View */}
         <div className="sm:hidden">
-          {filteredMembers.length === 0 ? (
+          {paginatedMembers.length === 0 ? (
             sectionLoader.isLoading ? null : (
             <div className="text-center py-8">
               <Users className="w-12 h-12 text-gray-500 mx-auto mb-3" />
               <p className="text-gray-400 text-sm">No members found</p>
               <p className="text-gray-500 text-xs mt-1">
-                {membershipData.totalMembers > 0 
+                {membershipData.totalMembers > 0
                   ? 'Try adjusting your search'
                   : 'No registered members yet'}
               </p>
@@ -397,34 +466,18 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
             )
           ) : (
             <div className="space-y-1.5">
-              {filteredMembers.map((member, index) => (
+              {paginatedMembers.map((member, index) => (
                 <div
                   key={member.id}
                   className="rounded-lg p-2.5 hover:bg-white/5 transition-all border-b border-white/5 last:border-b-0"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2 flex-1 min-w-0">
-                      <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                        {member.shortAddress.slice(2, 4).toUpperCase()}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center space-x-2 mb-1">
-                          <h4 className="text-white font-medium text-sm leading-tight truncate">{member.shortAddress}</h4>
-                          <span className={`px-1.5 py-0.5 rounded-full text-[10px] border flex-shrink-0 ${
-                            member.isActive 
-                              ? 'text-green-400 border-green-500/30 bg-green-500/10' 
-                              : 'text-gray-400 border-gray-500/30 bg-gray-500/10'
-                          }`}>
-                            {member.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
-                        <div className="flex items-center space-x-3 text-xs text-gray-400">
-                          <span>Member #{index + 1}</span>
-                          <span>{new Date().toLocaleDateString()}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right flex-shrink-0">
+                    <MemberAvatar
+                      address={member.address}
+                      shortAddress={member.shortAddress}
+                      onClick={(ref) => handleAvatarClick(member, startIndex + index + 1, ref)}
+                    />
+                    <div className="flex items-center gap-3">
                       <div className="flex items-center space-x-1">
                         <span className="text-sm font-medium text-white">{member.tokensHeld.toFixed(3)}</span>
                         <img
@@ -439,6 +492,14 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
                         />
                         <span className="hidden">MOVE</span>
                       </div>
+                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] border flex-shrink-0 ${
+                        member.isActive
+                          ? 'text-green-400 border-green-500/30 bg-green-500/10'
+                          : 'text-gray-400 border-gray-500/30 bg-gray-500/10'
+                      }`}>
+                        {member.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                      <span className="text-xs text-gray-400">{new Date().toLocaleDateString()}</span>
                     </div>
                   </div>
                 </div>
@@ -446,7 +507,46 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao, sidebarCollapsed = false }
             </div>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalMembers > MEMBERS_PER_PAGE && (
+          <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
+            <div className="text-sm text-gray-400">
+              Showing {startIndex + 1} to {Math.min(endIndex, totalMembers)} of {totalMembers} members
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                <span>Previous</span>
+              </button>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-400 hover:text-white hover:bg-white/5 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span>Next</span>
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Member Profile Card Popup */}
+      {selectedMember && (
+        <MemberProfileCard
+          address={selectedMember.address}
+          shortAddress={selectedMember.shortAddress}
+          memberNumber={selectedMember.memberNumber}
+          isOpen={isProfileCardOpen}
+          onClose={() => setIsProfileCardOpen(false)}
+          anchorRef={selectedMember.ref}
+        />
+      )}
     </div>
   );
 };

@@ -44,10 +44,10 @@ const UserDisplay: React.FC<{ address: string; isCompact?: boolean }> = ({ addre
     return (
       <div className={`flex items-center space-x-2 ${isCompact ? 'max-w-[120px]' : ''}`}>
         {profileData.avatarUrl ? (
-          <img 
-            src={profileData.avatarUrl} 
+          <img
+            src={profileData.avatarUrl}
             alt={profileData.displayName}
-            className="w-6 h-6 rounded-full object-cover flex-shrink-0"
+            className="w-6 h-6 rounded-lg object-cover flex-shrink-0"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
               const fallback = e.currentTarget.nextElementSibling as HTMLElement;
@@ -55,7 +55,7 @@ const UserDisplay: React.FC<{ address: string; isCompact?: boolean }> = ({ addre
             }}
           />
         ) : null}
-        <div className={`w-6 h-6 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${profileData.avatarUrl ? 'hidden' : ''}`}>
+        <div className={`w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${profileData.avatarUrl ? 'hidden' : ''}`}>
           {profileData.displayName.charAt(0).toUpperCase()}
         </div>
         <div className="flex flex-col min-w-0">
@@ -72,9 +72,15 @@ const UserDisplay: React.FC<{ address: string; isCompact?: boolean }> = ({ addre
     );
   }
 
-  // No profile - show address only
+  // No profile - show address only with PFP
+  const addressInitials = address.slice(2, 4).toUpperCase();
   return (
-    <span className="text-sm text-gray-300 font-mono">{truncateAddress(address)}</span>
+    <div className="flex items-center space-x-2">
+      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+        {addressInitials}
+      </div>
+      <span className="text-sm text-gray-300 font-mono">{truncateAddress(address)}</span>
+    </div>
   );
 };
 

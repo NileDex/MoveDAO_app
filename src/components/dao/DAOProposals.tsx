@@ -737,44 +737,22 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         return;
       }
       
-      // Enhanced authorization check using contract view functions
+      // Authorization check - only admins can finalize
       console.log('Checking finalization authorization...');
       try {
-        const [canFinalizeRes, isAdminRes, canCreateRes] = await Promise.allSettled([
-          aptosClient.view({
-            payload: {
-              function: `${MODULE_ADDRESS}::proposal::can_user_finalize_proposals`,
-              functionArguments: [dao.id, account.address]
-            }
-          }),
-          aptosClient.view({
-            payload: {
-              function: `${MODULE_ADDRESS}::admin::is_admin`,
-              functionArguments: [dao.id, account.address]
-            }
-          }),
-          aptosClient.view({
-            payload: {
-              function: `${MODULE_ADDRESS}::membership::can_create_proposal`,
-              functionArguments: [dao.id, account.address]
-            }
-          })
-        ]);
-        
-        const canFinalize = canFinalizeRes.status === 'fulfilled' && Array.isArray(canFinalizeRes.value) 
-          ? Boolean(canFinalizeRes.value[0]) 
-          : false;
-        const isAdmin = isAdminRes.status === 'fulfilled' && Array.isArray(isAdminRes.value) 
-          ? Boolean(isAdminRes.value[0]) 
-          : false;
-        const canCreate = canCreateRes.status === 'fulfilled' && Array.isArray(canCreateRes.value) 
-          ? Boolean(canCreateRes.value[0]) 
-          : false;
-        
-        console.log('Authorization check results:', { canFinalize, isAdmin, canCreate });
-        
-        if (!canFinalize && !isAdmin && !canCreate) {
-          showAlert('You are not authorized to finalize proposals. You need to be either: 1. A DAO admin, OR 2. A member with proposal creation rights (sufficient stake). Please check your membership status and staked amount.', 'error');
+        const isAdminRes = await aptosClient.view({
+          payload: {
+            function: `${MODULE_ADDRESS}::admin::is_admin`,
+            functionArguments: [dao.id, account.address]
+          }
+        });
+
+        const isAdmin = Array.isArray(isAdminRes) ? Boolean(isAdminRes[0]) : false;
+
+        console.log('Authorization check results:', { isAdmin });
+
+        if (!isAdmin) {
+          showAlert('You are not authorized to finalize proposals. Only DAO admins can finalize proposals.', 'error');
           return;
         }
       } catch (authError) {
@@ -868,10 +846,24 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       console.log('Executing finalize transaction...');
       const response = await signAndSubmitTransaction({ payload } as any);
       console.log('Proposal finalized successfully:', response);
-      
+
+      // Wait for transaction to be confirmed
+      if (response?.hash) {
+        console.log('Waiting for transaction confirmation:', response.hash);
+        try {
+          await aptosClient.waitForTransaction({ transactionHash: response.hash });
+          console.log('Transaction confirmed');
+        } catch (waitError) {
+          console.warn('Wait for transaction failed, but continuing:', waitError);
+        }
+      }
+
+      // Add a small delay to ensure indexer has processed the transaction
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       // Refresh proposals to update status
-      await fetchProposals();
-      
+      await fetchProposals(true);
+
       showAlert('Proposal finalized successfully! The outcome has been determined based on votes and quorum.', 'success');
     } catch (error: any) {
       console.error('Failed to finalize proposal:', error);
@@ -1409,7 +1401,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             canVote={selectedProposal.userVotingPower > 0}
             hasVoted={selectedProposal.userVoted}
             canStartVoting={Boolean(selectedProposal.proposer === account?.address || userStatus.isAdmin)}
-            canFinalize={Boolean(userStatus.isAdmin || stakeRequirements.canPropose)}
+            canFinalize={Boolean(userStatus.isAdmin)}
             userAddress={account?.address}
             userIsAdmin={userStatus.isAdmin}
             userIsCouncil={userStatus.isCouncil}
@@ -1952,8 +1944,8 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
                       <h3 className="text-white font-medium break-words text-sm sm:text-base">{proposal.title}</h3>
                     </div>
                     <div className="flex items-center gap-2 sm:gap-3 sm:self-auto self-start">
-                      {/* Finalize button for active proposals that have ended */}
-                      {proposal.needsFinalization && (userStatus.isAdmin || stakeRequirements.canPropose) && (
+                      {/* Finalize button for active proposals that have ended (Admin only) */}
+                      {proposal.needsFinalization && userStatus.isAdmin && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1964,6 +1956,12 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
                         >
                           Finalize
                         </button>
+                      )}
+                      {/* Status text for non-admins when proposal needs finalization */}
+                      {proposal.needsFinalization && !userStatus.isAdmin && (
+                        <span className="px-3 py-1 bg-gray-600/20 text-gray-300 rounded-lg text-xs font-medium border border-gray-600/30">
+                          Awaiting finalization
+                        </span>
                       )}
                       {/* Activation button for draft proposals */}
                       {proposal.needsActivation && (proposal.proposer === account?.address || userStatus.isAdmin) && (

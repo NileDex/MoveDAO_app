@@ -305,22 +305,33 @@ const DAOProposalDetails: React.FC<ProposalDetailsProps> = ({
               </div>
             )}
 
-            {/* Finalization button for active proposals that have ended */}
-            {status === 'active' && new Date() >= new Date(votingEnd || '') && canFinalize && onFinalize && (
+            {/* Finalization button for active proposals that have ended (Admin only) */}
+            {status === 'active' && new Date() >= new Date(votingEnd || '') && userIsAdmin && onFinalize && (
               <div className="mt-6 pt-6 border-t border-white/10">
                 <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4 mb-4">
                   <h4 className="text-orange-300 font-medium mb-2">Voting Period Has Ended</h4>
                   <p className="text-sm text-orange-200/80 mb-3">
-                    The voting period for this proposal has ended. The proposal needs to be finalized to determine the outcome based on votes and quorum.
-                    {userIsAdmin ? ' As an admin, you can finalize this proposal.' : ' As a member with proposal creation rights, you can finalize this proposal.'}
+                    The voting period for this proposal has ended. The proposal needs to be finalized to determine the outcome based on votes and quorum. As an admin, you can finalize this proposal.
                   </p>
                 </div>
-                <button 
+                <button
                   onClick={() => onFinalize?.()}
                   className="w-full bg-orange-600 hover:bg-orange-700 text-white py-3 rounded-lg font-medium transition-all"
                 >
                   Finalize Proposal
                 </button>
+              </div>
+            )}
+
+            {/* Status message for non-admins when voting has ended */}
+            {status === 'active' && new Date() >= new Date(votingEnd || '') && !userIsAdmin && (
+              <div className="mt-6 pt-6 border-t border-white/10">
+                <div className="bg-gray-500/10 border border-gray-500/30 rounded-lg p-4 text-center">
+                  <h4 className="text-gray-300 font-medium mb-2">Voting Ended</h4>
+                  <p className="text-sm text-gray-400">
+                    Awaiting finalization by admin
+                  </p>
+                </div>
               </div>
             )}
 

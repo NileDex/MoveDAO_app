@@ -367,14 +367,12 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                 <div className="text-left w-full sm:max-w-xl">
                   <h1 className="text-3xl font-bold text-white mb-2">{dao.name}</h1>
                   <p className="text-white text-sm sm:text-base max-w-xl mx-0">{dao.description}</p>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 md:gap-4 mt-3 text-xs sm:text-sm md:text-base text-gray-400">
-                    <span className="whitespace-nowrap">Established {dao.established}</span>
-                    <div className="flex items-center gap-2 sm:gap-4">
-                      <span className="hidden sm:inline">|</span>
-                      <span className="text-white whitespace-nowrap">{dao.members} members</span>
-                      <span>|</span>
-                      <span className="text-white whitespace-nowrap">{dao.proposals} proposals</span>
-                    </div>
+                  <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-gray-400">
+                    <span className="whitespace-nowrap">{dao.established}</span>
+                    <span>•</span>
+                    <span className="text-white whitespace-nowrap">{dao.members} members</span>
+                    <span>•</span>
+                    <span className="text-white whitespace-nowrap">{dao.proposals} proposals</span>
                   </div>
                 </div>
               </div>
