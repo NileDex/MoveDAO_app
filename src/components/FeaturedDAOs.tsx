@@ -20,7 +20,7 @@ const FeaturedDAOs: React.FC<FeaturedDAOsProps> = ({ onDAOSelect, onCreateDAO, s
         <div className="flex flex-wrap items-center gap-2 mb-6">
           <h2 className="text-2xl font-bold text-white">All DAOs</h2>
         </div>
-        
+
         <div className={`dao-grid grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 max-w-sm sm:max-w-none mx-auto sm:mx-0 ${
           sidebarCollapsed ? 'lg:grid-cols-4' : 'lg:grid-cols-3'
         }`}>
@@ -63,7 +63,7 @@ const FeaturedDAOs: React.FC<FeaturedDAOsProps> = ({ onDAOSelect, onCreateDAO, s
           <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
         </button>
       </div>
-      
+
       {error && (
         <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
           <div className="text-red-300 text-sm">
@@ -71,7 +71,7 @@ const FeaturedDAOs: React.FC<FeaturedDAOsProps> = ({ onDAOSelect, onCreateDAO, s
           </div>
         </div>
       )}
-      
+
       {daos.length === 0 && !error ? (
         <div className="text-center py-12">
           <div className="w-16 h-16 mx-auto mb-4 bg-gray-500/20 rounded-full flex items-center justify-center">
@@ -85,9 +85,9 @@ const FeaturedDAOs: React.FC<FeaturedDAOsProps> = ({ onDAOSelect, onCreateDAO, s
           sidebarCollapsed ? 'lg:grid-cols-4' : 'lg:grid-cols-3'
         }`}>
           {daos.map((dao) => (
-            <DAOCard 
-              key={dao.id} 
-              dao={dao} 
+            <DAOCard
+              key={dao.id}
+              dao={dao}
               onClick={() => onDAOSelect(dao)}
             />
           ))}

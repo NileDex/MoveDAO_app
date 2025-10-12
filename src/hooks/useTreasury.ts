@@ -27,19 +27,53 @@ interface TreasuryTransaction {
 
 export const useTreasury = (daoId: string) => {
   const { account, signAndSubmitTransaction } = useWallet();
-  const [treasuryData, setTreasuryData] = useState<TreasuryData>({
-    balance: 0,
-    dailyWithdrawalLimit: 0,
-    dailyWithdrawn: 0,
-    remainingDaily: 0,
-    lastWithdrawalDay: 0,
-    isLoading: true,
-    error: null
+  // Session cache with TTL + SWR (similar to Members)
+  // @ts-ignore
+  const treasurySessionCache: Map<string, any> = (window as any).__treasuryHookCache || ((window as any).__treasuryHookCache = new Map());
+  const TREASURY_TTL_MS = 5 * 60 * 1000; // 5 minutes fresh
+  const TREASURY_MAX_STALE_MS = 10 * 60 * 1000; // 10 minutes allowable stale
+  const cacheNow = Date.now();
+  const cacheBaseKey = `dao_${daoId}`;
+  const cacheUserKey = `${cacheBaseKey}_user_${account?.address || 'guest'}`;
+
+  const getCached = <T,>(key: string): T | null => {
+    const cached = treasurySessionCache.get(key);
+    if (!cached) return null;
+    const age = cacheNow - (cached.timestamp || 0);
+    if (age < TREASURY_MAX_STALE_MS) return cached.data as T;
+    return null;
+  };
+
+  const [treasuryData, setTreasuryData] = useState<TreasuryData>(() => {
+    const cached = getCached<TreasuryData>(`${cacheBaseKey}_treasuryData`);
+    if (cached) {
+      return { ...cached, isLoading: false, error: null } as TreasuryData;
+    }
+    return {
+      balance: 0,
+      dailyWithdrawalLimit: 0,
+      dailyWithdrawn: 0,
+      remainingDaily: 0,
+      lastWithdrawalDay: 0,
+      isLoading: true,
+      error: null
+    };
   });
 
-  const [transactions, setTransactions] = useState<TreasuryTransaction[]>([]);
-  const [userBalance, setUserBalance] = useState<number>(0);
-  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [transactions, setTransactions] = useState<TreasuryTransaction[]>(() => {
+    const cached = getCached<TreasuryTransaction[]>(`${cacheBaseKey}_transactions`);
+    return cached || [];
+  });
+
+  const [userBalance, setUserBalance] = useState<number>(() => {
+    const cached = getCached<number>(`${cacheUserKey}_balance`);
+    return typeof cached === 'number' ? cached : 0;
+  });
+
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    const cached = getCached<boolean>(`${cacheUserKey}_isAdmin`);
+    return typeof cached === 'boolean' ? cached : false;
+  });
 
   // Convert OCTAS to MOVE - using 1e8 (100,000,000) as per Movement blockchain standard
   const toMOVE = (octas: number): number => octas / 1e8;
@@ -93,6 +127,8 @@ export const useTreasury = (daoId: string) => {
       
       const walletBalance = await fetchWalletBalanceMOVE();
       setUserBalance(walletBalance);
+      // cache user balance
+      treasurySessionCache.set(`${cacheUserKey}_balance`, { data: walletBalance, timestamp: Date.now() });
     } catch (error) {
       console.error('Failed to fetch user balance:', error);
       setUserBalance(0);
@@ -110,7 +146,9 @@ export const useTreasury = (daoId: string) => {
           functionArguments: [daoId, account.address]
         }
       });
-      setIsAdmin(Boolean(result[0]));
+      const admin = Boolean(result[0]);
+      setIsAdmin(admin);
+      treasurySessionCache.set(`${cacheUserKey}_isAdmin`, { data: admin, timestamp: Date.now() });
     } catch (error) {
       console.warn('Failed to check admin status:', error);
       setIsAdmin(false);
@@ -214,6 +252,7 @@ export const useTreasury = (daoId: string) => {
 
       txs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setTransactions(txs);
+      treasurySessionCache.set(`${cacheBaseKey}_transactions`, { data: txs, timestamp: Date.now() });
     } catch (err) {
       console.warn('Failed to fetch treasury transactions:', err);
       setTransactions([]);
@@ -306,6 +345,7 @@ export const useTreasury = (daoId: string) => {
         allowsPublicDeposits
       };
       setTreasuryData(prev => ({ ...prev, ...newTreasuryData }));
+      treasurySessionCache.set(`${cacheBaseKey}_treasuryData`, { data: { ...newTreasuryData }, timestamp: Date.now() });
 
     } catch (error: any) {
       // Set reasonable defaults for missing treasury data

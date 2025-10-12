@@ -22,20 +22,16 @@ const MemberAvatar: React.FC<{
   shortAddress: string;
   onClick: (ref: React.RefObject<HTMLDivElement>) => void;
 }> = ({ address, shortAddress, onClick }) => {
-  const { data: profileData, isLoading } = useGetProfile(address || null);
+  const { data: profileData } = useGetProfile(address || null);
   const avatarRef = useRef<HTMLDivElement>(null);
-
-  if (isLoading) {
-    return (
-      <div className="w-8 h-8 bg-gray-600/50 rounded-lg animate-pulse"></div>
-    );
-  }
 
   const content = profileData?.avatarUrl ? (
     <img
       src={profileData.avatarUrl}
       alt={profileData.displayName || shortAddress}
       className="w-8 h-8 rounded-lg object-cover cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all"
+      loading="lazy"
+      decoding="async"
       onError={(e) => {
         e.currentTarget.style.display = 'none';
         const fallback = e.currentTarget.nextElementSibling as HTMLElement;
@@ -57,8 +53,9 @@ const MemberAvatar: React.FC<{
 
 const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
   // In-memory caches to keep member data stable between tab switches
-  // Cache persists for the app lifetime; TTL avoids serving stale data too long
-  const CACHE_TTL_MS = 60 * 1000; // 60 seconds
+  // Session TTL for instant returns and SWR background refresh
+  const SESSION_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  const MAX_STALE_MS = 10 * 60 * 1000; // 10 minutes stale window
   // @ts-ignore - module-level singleton caches
   const membersCache: Map<string, { members: Member[]; timestamp: number }> = (window as any).__membersCache || ((window as any).__membersCache = new Map());
   // @ts-ignore
@@ -292,22 +289,69 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
     const now = Date.now();
     // Reset page when DAO changes
     setCurrentPage(1);
-    // Hydrate from cache immediately (no spinner) if fresh
+
     const cachedMembers = membersCache.get(dao.id);
-    if (cachedMembers && now - cachedMembers.timestamp < CACHE_TTL_MS) {
+    const cachedSummary = summaryCache.get(dao.id);
+
+    // Fresh session cache: hydrate instantly, no loader, no immediate fetch
+    if (cachedMembers && now - cachedMembers.timestamp < SESSION_TTL_MS) {
       setActualMembers(cachedMembers.members);
       setIsLoadingMembers(false);
     }
-    const cachedSummary = summaryCache.get(dao.id);
-    if (cachedSummary && now - cachedSummary.timestamp < CACHE_TTL_MS) {
+    if (cachedSummary && now - cachedSummary.timestamp < SESSION_TTL_MS) {
       setMembershipData(cachedSummary.summary);
       setIsLoading(false);
     }
-    // Always trigger a background refresh using the section loader
-    sectionLoader.executeWithLoader(async () => {
-      await Promise.all([fetchMembershipData(), fetchActualMembers()]);
-    });
+
+    // Stale but acceptable: show cached and refresh silently in background
+    const isMembersStaleButAcceptable = cachedMembers && (now - cachedMembers.timestamp) >= SESSION_TTL_MS && (now - cachedMembers.timestamp) < MAX_STALE_MS;
+    const isSummaryStaleButAcceptable = cachedSummary && (now - cachedSummary.timestamp) >= SESSION_TTL_MS && (now - cachedSummary.timestamp) < MAX_STALE_MS;
+    if (isMembersStaleButAcceptable || isSummaryStaleButAcceptable) {
+      if (cachedMembers) {
+        setActualMembers(cachedMembers.members);
+        setIsLoadingMembers(false);
+      }
+      if (cachedSummary) {
+        setMembershipData(cachedSummary.summary);
+        setIsLoading(false);
+      }
+      (async () => {
+        try {
+          await Promise.all([fetchMembershipData(), fetchActualMembers()]);
+        } catch {}
+      })();
+      return;
+    }
+
+    // No cache or too old: show loader and fetch
+    if (!cachedMembers || !cachedSummary ||
+        (cachedMembers && now - cachedMembers.timestamp >= MAX_STALE_MS) ||
+        (cachedSummary && now - cachedSummary.timestamp >= MAX_STALE_MS)) {
+      sectionLoader.executeWithLoader(async () => {
+        await Promise.all([fetchMembershipData(), fetchActualMembers()]);
+      });
+    }
   }, [dao.id]); // Fetch on DAO change only; cache keeps view instant between tabs
+
+  // Silent refresh on window focus if cache is stale
+  useEffect(() => {
+    const onFocus = () => {
+      const now = Date.now();
+      const cachedMembers = membersCache.get(dao.id);
+      const cachedSummary = summaryCache.get(dao.id);
+      const membersStale = !cachedMembers || (now - cachedMembers.timestamp) >= SESSION_TTL_MS;
+      const summaryStale = !cachedSummary || (now - cachedSummary.timestamp) >= SESSION_TTL_MS;
+      if ((membersStale || summaryStale) && (!cachedMembers || now - (cachedMembers?.timestamp || 0) < MAX_STALE_MS)) {
+        (async () => {
+          try {
+            await Promise.all([fetchMembershipData(), fetchActualMembers()]);
+          } catch {}
+        })();
+      }
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [dao.id]);
 
   // Use actual members fetched from the blockchain
   const members = actualMembers;
@@ -326,9 +370,9 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
   return (
     <div className="w-full px-2 sm:px-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between pl-4 sm:pl-8">
         <div>
-          <h2 className="text-2xl font-bold text-white mb-2">Community Members</h2>
+          <h2 className="text-2xl font-bold text-white mb-2">Members</h2>
         </div>
         <div className="text-right">
           {sectionLoader.isLoading && (

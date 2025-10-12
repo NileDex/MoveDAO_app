@@ -41,6 +41,12 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
   const [minStakeFetchAttempted, setMinStakeFetchAttempted] = useState(false);
   const [movePrice, setMovePrice] = useState<number | null>(null);
 
+  // Session cache for staking tab (instant tab switches)
+  // @ts-ignore
+  const stakingSessionCache: Map<string, any> = (window as any).__stakingCache || ((window as any).__stakingCache = new Map());
+  const SESSION_TTL_MS = 5 * 60 * 1000;
+  const MAX_STALE_MS = 10 * 60 * 1000;
+
   // Section loader for Staking tab
   const sectionLoader = useSectionLoader();
   
@@ -214,6 +220,20 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
 
   // Initial load - this will use cached data if available
   useEffect(() => {
+    // Hydrate from session cache for instant display
+    const cached = stakingSessionCache.get(dao.id);
+    const now = Date.now();
+    if (cached && (now - cached.timestamp) < SESSION_TTL_MS) {
+      if (typeof cached.totalStakedInDAO === 'number') setTotalStakedInDAO(cached.totalStakedInDAO);
+      if (typeof cached.totalStakers === 'number') setTotalStakers(cached.totalStakers);
+      if (typeof cached.independentMinStake === 'number') setIndependentMinStake(cached.independentMinStake);
+    } else if (cached && (now - cached.timestamp) < MAX_STALE_MS) {
+      if (typeof cached.totalStakedInDAO === 'number') setTotalStakedInDAO(cached.totalStakedInDAO);
+      if (typeof cached.totalStakers === 'number') setTotalStakers(cached.totalStakers);
+      if (typeof cached.independentMinStake === 'number') setIndependentMinStake(cached.independentMinStake);
+      // Silent background refresh
+      (async () => { try { await refreshOnChain(); } catch {} })();
+    }
     // Always fetch minimum stake independently (only once per DAO)
     fetchMinStakeIndependently();
 
@@ -699,6 +719,29 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
 
     sectionLoader.executeWithLoader(loadStakingData);
   }, [dao.id, account?.address]);
+
+  // Persist core staking figures in session cache whenever they change
+  useEffect(() => {
+    stakingSessionCache.set(dao.id, {
+      totalStakedInDAO,
+      totalStakers,
+      independentMinStake,
+      timestamp: Date.now(),
+    });
+  }, [dao.id, totalStakedInDAO, totalStakers, independentMinStake]);
+
+  // Silent refresh on window focus if cache is stale
+  useEffect(() => {
+    const onFocus = () => {
+      const cached = stakingSessionCache.get(dao.id);
+      const now = Date.now();
+      if (cached && (now - cached.timestamp) >= SESSION_TTL_MS && (now - cached.timestamp) < MAX_STALE_MS) {
+        (async () => { try { await refreshOnChain(); } catch {} })();
+      }
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [dao.id]);
 
   const retryStakingData = () => {
     const loadStakingData = async () => {

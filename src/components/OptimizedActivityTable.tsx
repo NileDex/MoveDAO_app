@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Activity, OptimizedActivityTracker } from '../useServices/useOptimizedActivityTracker';
 import { Clock, ExternalLink, RefreshCw, AlertCircle, Activity as ActivityIcon, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getActivityColor } from '../constants/activityConstants';
-import { useGetProfile, getDisplayNameOrAddress, getAvatarUrlOrDefault } from '../useServices/useProfile';
+import { useGetProfile } from '../useServices/useProfile';
 import { truncateAddress } from '../utils/addressUtils';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -25,62 +25,12 @@ interface OptimizedActivityTableProps {
   title?: string;
 }
 
-// User Display Component with Profile
-const UserDisplay: React.FC<{ address: string; isCompact?: boolean }> = ({ address, isCompact = false }) => {
+// User display without profile pictures (as requested)
+const UserDisplay: React.FC<{ address: string; isCompact?: boolean }> = ({ address }) => {
   const { data: profileData, isLoading } = useGetProfile(address || null);
-  
-  // Use the utility function instead of local implementation
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center space-x-2">
-        <div className="w-6 h-6 bg-gray-600/50 rounded-full animate-pulse"></div>
-        <span className="text-sm text-gray-400">...</span>
-      </div>
-    );
-  }
-
-  if (profileData) {
-    return (
-      <div className={`flex items-center space-x-2 ${isCompact ? 'max-w-[120px]' : ''}`}>
-        {profileData.avatarUrl ? (
-          <img
-            src={profileData.avatarUrl}
-            alt={profileData.displayName}
-            className="w-6 h-6 rounded-lg object-cover flex-shrink-0"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-              if (fallback) fallback.classList.remove('hidden');
-            }}
-          />
-        ) : null}
-        <div className={`w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 ${profileData.avatarUrl ? 'hidden' : ''}`}>
-          {profileData.displayName.charAt(0).toUpperCase()}
-        </div>
-        <div className="flex flex-col min-w-0">
-          <span className="text-xs font-semibold text-white truncate">
-            {profileData.displayName}
-          </span>
-          {!isCompact && (
-            <span className="text-[10px] text-gray-400 font-mono truncate">
-              {truncateAddress(address)}
-            </span>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // No profile - show address only with PFP
-  const addressInitials = address.slice(2, 4).toUpperCase();
+  const label = profileData?.displayName && !isLoading ? profileData.displayName : truncateAddress(address);
   return (
-    <div className="flex items-center space-x-2">
-      <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-        {addressInitials}
-      </div>
-      <span className="text-sm text-gray-300 font-mono">{truncateAddress(address)}</span>
-    </div>
+    <span className="text-xs sm:text-sm font-mono text-gray-300 truncate">{label}</span>
   );
 };
 

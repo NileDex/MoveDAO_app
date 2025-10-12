@@ -58,9 +58,9 @@ interface ProposalData {
   needsFinalization?: boolean; // Flag indicating if proposal needs manual finalization
 }
 
-// Simple in-memory cache for proposal data
-const proposalCache = new Map<string, { data: ProposalData[]; timestamp: number }>();
-const PROPOSAL_CACHE_TTL = 30000; // 30 seconds
+  // Simple in-memory cache for proposal data (keep legacy but extend session cache TTL)
+  const proposalCache = new Map<string, { data: ProposalData[]; timestamp: number }>();
+  const PROPOSAL_CACHE_TTL = 30000; // legacy
 
 const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = false }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -68,7 +68,8 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
   // In-memory cache so tab switches are instant (session-scoped)
   // @ts-ignore
   const proposalsCache: Map<string, { items: ProposalData[]; timestamp: number }> = (window as any).__proposalsCache || ((window as any).__proposalsCache = new Map());
-  const PROPOSALS_TTL_MS = 60 * 1000;
+  const PROPOSALS_TTL_MS = 5 * 60 * 1000; // 5 minutes session TTL
+  const PROPOSALS_MAX_STALE_MS = 10 * 60 * 1000; // 10 minutes stale window
   const nowForInit = Date.now();
   const cachedForInit = proposalsCache.get(dao.id);
   const initialProposals = cachedForInit && (nowForInit - cachedForInit.timestamp) < PROPOSALS_TTL_MS
@@ -423,8 +424,8 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         }
       } catch {}
 
-      // Skip cache - always fetch fresh to check voting status
-      // This ensures userVoted is always up-to-date
+      // For connected users, prefer fresh data for voting status.
+      // For guests, use cache.
       const cacheKey = `proposals_${dao.id}`;
       if (!forceRefresh && !account?.address) {
         // Only use cache if user is not connected (no need to check voting status)
@@ -437,9 +438,18 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         }
         // session cache
         const cached = proposalsCache.get(dao.id);
-        if (cached && (Date.now() - cached.timestamp) < PROPOSALS_TTL_MS) {
+        const now = Date.now();
+        if (cached && (now - cached.timestamp) < PROPOSALS_TTL_MS) {
           setProposals(cached.items);
           setIsLoading(false);
+          return;
+        }
+        // Stale session cache - show instantly and refresh in background silently
+        if (cached && (now - cached.timestamp) < PROPOSALS_MAX_STALE_MS) {
+          setProposals(cached.items);
+          setIsLoading(false);
+          // Silent background refresh
+          (async () => { try { await fetchProposals(true); } catch {} })();
           return;
         }
       }
@@ -627,6 +637,16 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
   useEffect(() => {
     sectionLoader.executeWithLoader(fetchProposals);
   }, [dao.id]);
+
+  // Restore selected proposal on mount (persist detail view across refresh)
+  useEffect(() => {
+    try {
+      const savedId = localStorage.getItem(`dao_${dao.id}_selected_proposal_id`);
+      if (!savedId) return;
+      const found = proposals.find(p => p.id === savedId);
+      if (found) setSelectedProposal(found);
+    } catch {}
+  }, [dao.id, proposals]);
 
   useEffect(() => {
     checkProposalEligibility();
@@ -1351,7 +1371,10 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <button
-              onClick={() => setSelectedProposal(null)}
+              onClick={() => {
+                setSelectedProposal(null);
+                try { localStorage.removeItem(`dao_${dao.id}_selected_proposal_id`); } catch {}
+              }}
               className="px-3 py-2 bg-white/5 hover:bg.White/10 text-gray-300 rounded-lg text-sm"
             >
               ← Back to proposals
@@ -1431,7 +1454,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
           )}
           
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pl-4 sm:pl-8">
         <div className="w-full sm:w-auto">
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Proposals</h1>
           <p className="text-gray-400">Community governance proposals for {dao.name}</p>
@@ -1932,7 +1955,10 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
               <div
                 key={proposal.id}
                 className="p-4 hover:bg-white/5 transition-all cursor-pointer"
-                onClick={() => setSelectedProposal(proposal)}
+                onClick={() => {
+                  setSelectedProposal(proposal);
+                  try { localStorage.setItem(`dao_${dao.id}_selected_proposal_id`, proposal.id); } catch {}
+                }}
               >
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">

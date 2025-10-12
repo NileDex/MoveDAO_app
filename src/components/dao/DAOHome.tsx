@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Calendar, DollarSign, Users, Info, Activity, TrendingUp, Shield, Zap } from 'lucide-react';
 import { DAO } from '../../types/dao';
 import { useDAOActivities } from '../../useServices/useOptimizedActivityTracker';
@@ -11,51 +11,47 @@ import { useGetProfile } from '../../useServices/useProfile';
 import { truncateAddress } from '../../utils/addressUtils';
 import { useSectionLoader } from '../../hooks/useSectionLoader';
 import SectionLoader from '../common/SectionLoader';
+import MemberProfileCard from '../MemberProfileCard';
 
-// Admin Display Component with Profile - optimized for instant display
-const AdminDisplay: React.FC<{ address: string }> = ({ address }) => {
-  const { data: profileData, isLoading } = useGetProfile(address || null);
+// Admin Display with Member-style avatar + lazy image + clickable profile card
+const AdminDisplay: React.FC<{ address: string; onClick: (ref: React.RefObject<HTMLDivElement>, shortAddress: string) => void }>
+  = ({ address, onClick }) => {
+  const { data: profileData } = useGetProfile(address || null);
+  const avatarRef = useRef<HTMLDivElement>(null);
+  const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
 
-  // Always show address immediately, upgrade to profile when loaded
-  if (profileData && !isLoading) {
-    return (
-      <div className="flex items-center space-x-3">
-        {profileData.avatarUrl ? (
-          <img
-            src={profileData.avatarUrl}
-            alt={profileData.displayName}
-            className="w-8 h-8 rounded-full object-cover"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-              if (fallback) fallback.classList.remove('hidden');
-            }}
-          />
-        ) : null}
-        <div className={`w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white text-sm font-bold ${profileData.avatarUrl ? 'hidden' : ''}`}>
-          {profileData.displayName.charAt(0).toUpperCase()}
-        </div>
-        <div className="flex flex-col">
-          <span className="text-sm font-semibold text-white">
-            {profileData.displayName}
-          </span>
-          <span className="text-xs text-gray-400 font-mono">
-            {truncateAddress(address)}
-          </span>
-        </div>
-      </div>
-    );
-  }
+  const avatar = profileData?.avatarUrl ? (
+    <img
+      src={profileData.avatarUrl}
+      alt={profileData.displayName || shortAddress}
+      className="w-8 h-8 rounded-lg object-cover"
+      loading="lazy"
+      decoding="async"
+      onError={(e) => {
+        e.currentTarget.style.display = 'none';
+        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+        if (fallback) fallback.classList.remove('hidden');
+      }}
+    />
+  ) : (
+    <div className="w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-lg flex items-center justify-center text-white text-xs font-bold">
+      {shortAddress.slice(2, 4).toUpperCase()}
+    </div>
+  );
 
-  // Show address immediately (no loading state delay)
   return (
-    <div className="flex items-center space-x-3">
-      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-600 to-gray-700 flex items-center justify-center text-white text-sm font-bold">
-        {address.charAt(2).toUpperCase()}
+    <div ref={avatarRef} className="flex items-center space-x-3 cursor-pointer" onClick={() => onClick(avatarRef, shortAddress)}>
+      {avatar}
+      {/* Hidden fallback holder to be revealed by onError above */}
+      <div className="hidden w-8 h-8 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-lg" />
+      <div className="flex flex-col">
+        <span className="text-sm font-semibold text-white">
+          {profileData?.displayName || shortAddress}
+        </span>
+        <span className="text-xs text-gray-400 font-mono">
+          {truncateAddress(address)}
+        </span>
       </div>
-      <span className="text-sm font-mono text-white">
-        {truncateAddress(address)}
-      </span>
     </div>
   );
 };
@@ -73,6 +69,16 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
 
   const [page, setPage] = useState<number>(1);
   const PAGE_LIMIT = 10;
+
+  // Profile card popup state (reused from Members behavior)
+  const [selectedMember, setSelectedMember] = useState<{ address: string; shortAddress: string; ref: React.RefObject<HTMLDivElement> } | null>(null);
+  const [isProfileCardOpen, setIsProfileCardOpen] = useState(false);
+
+  const handleAvatarClick = (ref: React.RefObject<HTMLDivElement>, shortAddress: string) => {
+    if (!fullAdminAddress) return;
+    setSelectedMember({ address: fullAdminAddress, shortAddress, ref });
+    setIsProfileCardOpen(true);
+  };
 
   const { 
     activities, 
@@ -149,6 +155,15 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
       }
 
       setTreasuryBalance(balance.toFixed(2));
+      // Update session cache
+      const existing = (window as any).__overviewCache?.get?.(dao.id) || {};
+      // @ts-ignore
+      const cacheMap: Map<string, any> = (window as any).__overviewCache || ((window as any).__overviewCache = new Map());
+      cacheMap.set(dao.id, {
+        admin: existing.admin || fullAdminAddress,
+        treasuryBalance: balance.toFixed(2),
+        timestamp: Date.now(),
+      });
     } catch (error: any) {
       setTreasuryBalance('0.00');
     }
@@ -156,6 +171,30 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
 
   // Fetch admin address based on contract behavior
   useEffect(() => {
+    const SESSION_TTL_MS = 5 * 60 * 1000;
+    const MAX_STALE_MS = 10 * 60 * 1000;
+    // Try session cache for instant tab switches
+    // @ts-ignore
+    const cacheMap: Map<string, any> = (window as any).__overviewCache || ((window as any).__overviewCache = new Map());
+    const cached = cacheMap.get(dao.id);
+    const now = Date.now();
+    if (cached && (now - cached.timestamp) < SESSION_TTL_MS) {
+      if (cached.admin) setFullAdminAddress(cached.admin);
+      if (cached.treasuryBalance) setTreasuryBalance(cached.treasuryBalance);
+      return;
+    }
+    if (cached && (now - cached.timestamp) < MAX_STALE_MS) {
+      if (cached.admin) setFullAdminAddress(cached.admin);
+      if (cached.treasuryBalance) setTreasuryBalance(cached.treasuryBalance);
+      // Silent background refresh
+      (async () => {
+        try {
+          await fetchTreasuryBalance();
+        } catch {}
+      })();
+      return;
+    }
+
     const fetchOverviewData = async () => {
       try {
         // Primary: Get admins from AdminList (contract initializes this during DAO creation)
@@ -184,7 +223,12 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
 
             if (admins.length > 0) {
               // Show first admin (usually the creator/super admin)
-              setFullAdminAddress(admins[0]);
+            setFullAdminAddress(admins[0]);
+            cacheMap.set(dao.id, {
+              admin: admins[0],
+              treasuryBalance: treasuryBalance,
+              timestamp: Date.now(),
+            });
               return;
             }
           }
@@ -203,6 +247,11 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
           const creator = ev?.data?.creator as string | undefined;
           if (creator) {
             setFullAdminAddress(creator);
+            cacheMap.set(dao.id, {
+              admin: creator,
+              treasuryBalance: treasuryBalance,
+              timestamp: Date.now(),
+            });
             return;
           }
         } catch (eventError) {
@@ -211,6 +260,11 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
 
         // Final fallback: DAO creator is the admin (contract guarantees this)
         setFullAdminAddress(dao.id);
+        cacheMap.set(dao.id, {
+          admin: dao.id,
+          treasuryBalance: treasuryBalance,
+          timestamp: Date.now(),
+        });
         
         // Also fetch treasury balance
         await fetchTreasuryBalance();
@@ -224,6 +278,27 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
     };
 
     sectionLoader.executeWithLoader(fetchOverviewData);
+  }, [dao.id]);
+
+  // Silent refresh on window focus if cache is stale
+  useEffect(() => {
+    const onFocus = () => {
+      // @ts-ignore
+      const cacheMap: Map<string, any> = (window as any).__overviewCache || ((window as any).__overviewCache = new Map());
+      const cached = cacheMap.get(dao.id);
+      const now = Date.now();
+      const SESSION_TTL_MS = 5 * 60 * 1000;
+      const MAX_STALE_MS = 10 * 60 * 1000;
+      if (cached && (now - cached.timestamp) >= SESSION_TTL_MS && (now - cached.timestamp) < MAX_STALE_MS) {
+        (async () => {
+          try {
+            await fetchTreasuryBalance();
+          } catch {}
+        })();
+      }
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, [dao.id]);
 
   const retryOverviewData = () => {
@@ -264,7 +339,7 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
             <div className="flex flex-col space-y-2">
               <span className="text-sm font-medium text-gray-400">Admin</span>
               {fullAdminAddress ? (
-                <AdminDisplay address={fullAdminAddress} />
+                <AdminDisplay address={fullAdminAddress} onClick={handleAvatarClick} />
               ) : (
                 <span className="text-sm text-gray-300">Loading...</span>
               )}
@@ -297,6 +372,18 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
           title="Recent DAO Activity"
         />
       </div>
+
+      {/* Member Profile Card Popup (admin profile) */}
+      {selectedMember && (
+        <MemberProfileCard
+          address={selectedMember.address}
+          shortAddress={selectedMember.shortAddress}
+          memberNumber={1}
+          isOpen={isProfileCardOpen}
+          onClose={() => setIsProfileCardOpen(false)}
+          anchorRef={selectedMember.ref}
+        />
+      )}
     </div>
   );
 };

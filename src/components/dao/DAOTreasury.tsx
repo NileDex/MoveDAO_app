@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, Wallet, Plus, Minus, Clock, AlertTriangle, RefreshCw, XCircle } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Wallet, Plus, Minus, Clock, AlertTriangle, XCircle } from 'lucide-react';
 import { useTreasury } from '../../hooks/useTreasury';
 import { DAO } from '../../types/dao';
 import { aptosClient } from '../../movement_service/movement-client';
@@ -31,6 +31,12 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
   const [totalStaked, setTotalStaked] = useState<number>(0);
   const isWalletConnected = !!account?.address;
 
+  // Session cache for Treasury (instant tab switches)
+  // @ts-ignore
+  const treasurySessionCache: Map<string, any> = (window as any).__treasuryCache || ((window as any).__treasuryCache = new Map());
+  const SESSION_TTL_MS = 5 * 60 * 1000;
+  const MAX_STALE_MS = 10 * 60 * 1000;
+
   // Section loader for Treasury tab
   const sectionLoader = useSectionLoader();
 
@@ -49,6 +55,17 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
 
   // Initialize section loading
   useEffect(() => {
+    // Hydrate from session cache if present
+    const cached = treasurySessionCache.get(dao.id);
+    const now = Date.now();
+    if (cached && (now - cached.timestamp) < SESSION_TTL_MS) {
+      if (typeof cached.movePrice === 'number') setMovePrice(cached.movePrice);
+      if (typeof cached.totalStaked === 'number') setTotalStaked(cached.totalStaked);
+    } else if (cached && (now - cached.timestamp) < MAX_STALE_MS) {
+      if (typeof cached.movePrice === 'number') setMovePrice(cached.movePrice);
+      if (typeof cached.totalStaked === 'number') setTotalStaked(cached.totalStaked);
+      // Silent background refresh will run below
+    }
     const loadTreasuryData = async () => {
       await refreshData();
 
@@ -82,6 +99,12 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
       const data = await response.json();
       if (data.movement && data.movement.usd) {
         setMovePrice(data.movement.usd);
+        treasurySessionCache.set(dao.id, {
+          ...(treasurySessionCache.get(dao.id) || {}),
+          movePrice: data.movement.usd,
+          totalStaked,
+          timestamp: Date.now(),
+        });
       }
     } catch (error) {
       console.warn('Failed to fetch MOVE price from CoinGecko:', error);
@@ -108,6 +131,12 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
         });
         const totalStakedAmount = BalanceService.octasToMove(Number(totalStakedRes?.[0] || 0));
         setTotalStaked(totalStakedAmount);
+        treasurySessionCache.set(dao.id, {
+          ...(treasurySessionCache.get(dao.id) || {}),
+          totalStaked: totalStakedAmount,
+          movePrice,
+          timestamp: Date.now(),
+        });
       } catch (error) {
         console.warn('Failed to fetch total staked:', error);
         setTotalStaked(0);
@@ -118,6 +147,20 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
     // Refresh every 30 seconds
     const interval = setInterval(fetchTotalStaked, 30 * 1000);
     return () => clearInterval(interval);
+  }, [dao.id]);
+
+  // Silent refresh on window focus if cache is stale
+  useEffect(() => {
+    const onFocus = () => {
+      const cached = treasurySessionCache.get(dao.id);
+      const now = Date.now();
+      if (cached && (now - cached.timestamp) >= SESSION_TTL_MS && (now - cached.timestamp) < MAX_STALE_MS) {
+        refreshData();
+        fetchMovePrice();
+      }
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, [dao.id]);
 
   const handleDeposit = async () => {
@@ -192,7 +235,7 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
     <div className="space-y-6">
       {/* Top value header - Made responsive */}
       <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-6">
-        {/* Assets left - compact list - Increased width */}
+        {/* Assets left - compact list with progress */}
         <div className="w-full xl:w-[400px] space-y-2">
           {/* Treasury value calculated from tokens */}
           <div className="text-left mb-2">
@@ -205,42 +248,50 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
             <div className="text-lg font-bold text-gray-400">Treasury Value</div>
           </div>
           
-          {[
-            { id: 'tokens', label: 'Tokens', value: treasuryData?.balance ?? 0 },
-            { id: 'staking', label: 'Staking', value: totalStaked }
-          ].map((a, i) => (
-            <div key={a.id} className={`rounded-xl p-4 ${i === 0 ? 'bg-white/10' : 'bg-transparent hover:bg-white/5'} border border-white/10`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className={`inline-block w-2 h-2 rounded-full ${i===0?'bg-blue-400':i===1?'bg-emerald-400':'bg-yellow-400'}`}></span>
-                  <span className="text-white font-medium">{a.label}</span>
-                </div>
-                <div className="text-right">
-                  <div className="text-white font-semibold">
-                    {movePrice !== null 
-                      ? `$${(a.value * movePrice).toLocaleString(undefined,{maximumFractionDigits:2})}` 
-                      : `$${(a.value * 1).toLocaleString(undefined,{maximumFractionDigits:2})}`
-                    }
+          {(() => {
+            const tokenAmount = Math.max(0, treasuryData?.balance ?? 0);
+            const stakingAmount = Math.max(0, totalStaked);
+            const total = Math.max(0.000001, tokenAmount + stakingAmount);
+            const items = [
+              { id: 'tokens', label: 'Tokens', value: tokenAmount, pct: (tokenAmount / total) * 100, bar: '#22d3ee' },
+              { id: 'staking', label: 'Staking', value: stakingAmount, pct: (stakingAmount / total) * 100, bar: '#10b981' }
+            ];
+            return items.map((a, i) => (
+              <div key={a.id} className={`relative overflow-hidden rounded-xl p-4 bg-white/5 border border-white/10`}>
+                {/* Progress fill using the card's gray tone */}
+                <div className="absolute left-0 top-0 h-full bg-white/10" style={{ width: `${Math.min(Math.max(a.pct, 0), 100)}%` }} />
+                <div className="relative z-10 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className={`inline-block w-2 h-2 rounded-full`} style={{ backgroundColor: a.bar }}></span>
+                    <span className="text-white font-medium">{a.label}</span>
                   </div>
-                  <div className="text-sm text-gray-300 flex items-center justify-end space-x-1 mb-1">
-                    <span>{(a.value*1).toLocaleString(undefined,{maximumFractionDigits:2})}</span>
-                    <img 
-                      src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27" 
-                      alt="MOVE"
-                      className="w-3 h-3 flex-shrink-0"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        const fallback = e.currentTarget.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.classList.remove('hidden');
-                      }}
-                    />
-                    <span className="hidden">MOVE</span>
+                  <div className="text-right">
+                    <div className="text-white font-semibold">
+                      {movePrice !== null 
+                        ? `$${(a.value * movePrice).toLocaleString(undefined,{maximumFractionDigits:2})}` 
+                        : `$${(a.value * 1).toLocaleString(undefined,{maximumFractionDigits:2})}`
+                      }
+                    </div>
+                    <div className="text-sm text-gray-300 flex items-center justify-end space-x-1 mb-1">
+                      <span>{(a.value*1).toLocaleString(undefined,{maximumFractionDigits:2})}</span>
+                      <img 
+                        src="https://ipfs.io/ipfs/QmUv8RVdgo6cVQzh7kxerWLatDUt4rCEFoCTkCVLuMAa27" 
+                        alt="MOVE"
+                        className="w-3 h-3 flex-shrink-0"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                          const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                          if (fallback) fallback.classList.remove('hidden');
+                        }}
+                      />
+                      <span className="hidden">MOVE</span>
+                    </div>
+                    {/* Percentage removed per request */}
                   </div>
-                  <div className="text-xs text-gray-400">{i===0?'100.0%':'0.0%'}</div>
                 </div>
               </div>
-            </div>
-          ))}
+            ));
+          })()}
         </div>
 
         {/* Donut chart right - Made responsive */}
@@ -324,8 +375,8 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
         </div>
       )}
 
-      {/* Actions - Only show when wallet is connected */}
-      {isWalletConnected ? (
+      {/* Actions - Only show when wallet is connected (no connect-wallet info box) */}
+      {isWalletConnected && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md">
           <button
             onClick={() => setShowDepositForm(true)}
@@ -334,7 +385,6 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
             <Plus className="w-4 h-4" />
             <span>Deposit</span>
           </button>
-          
           {isAdmin && (
             <button
               onClick={() => setShowWithdrawForm(true)}
@@ -344,16 +394,6 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
               <span>Withdraw</span>
             </button>
           )}
-        </div>
-      ) : (
-        <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 max-w-md">
-          <div className="flex items-center space-x-3">
-            <Wallet className="w-5 h-5 text-blue-400 flex-shrink-0" />
-            <div>
-              <p className="text-blue-300 font-medium mb-1">Connect Wallet</p>
-              <p className="text-blue-200 text-sm">Connect your wallet to deposit or withdraw funds</p>
-            </div>
-          </div>
         </div>
       )}
 
@@ -439,19 +479,7 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
         </div>
       )}
 
-      {/* Treasury Info - Clean version */}
-      <div className="space-y-2 text-sm">
-        <div className="flex justify-between items-center py-2 border-b border-white/5">
-          <span className="text-gray-400">Security</span>
-          <span className="text-white">Native tokens only, Daily limits, Reentrancy protection</span>
-        </div>
-        <div className="flex justify-between items-center py-2">
-          <span className="text-gray-400">Deposits</span>
-          <span className="text-white">
-            {treasuryData.allowsPublicDeposits ? 'Public enabled' : 'Members only'}
-          </span>
-        </div>
-      </div>
+      {/* Treasury Info removed per request */}
     </div>
   );
 
@@ -651,17 +679,12 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
             <h3 className="text-red-300 font-medium mb-1">Treasury Error</h3>
             <p className="text-red-200 text-sm">{treasuryData.error}</p>
           </div>
-          <button
-            onClick={() => refreshData()}
-            className="text-blue-400 hover:text-blue-300 transition-colors flex-shrink-0"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
+          {/* Refresh icon removed per request */}
         </div>
       )}
       
-      {/* Header - Made responsive */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+      {/* Header - Made responsive with left padding for alignment */}
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pl-4 sm:pl-8">
         <div className="min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Treasury</h1>
           <p className="text-gray-400">Manage {dao.name} funds securely</p>
@@ -720,13 +743,7 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
                 Admin
               </div>
             )}
-            <button
-              onClick={() => refreshData()}
-              className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition-all"
-              title={isWalletConnected ? "Refresh treasury and wallet data" : "Refresh treasury data"}
-            >
-              <RefreshCw className="w-4 h-4" />
-            </button>
+            {/* Refresh icon removed per request */}
           </div>
         </div>
       </div>

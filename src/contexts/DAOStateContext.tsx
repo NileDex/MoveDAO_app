@@ -16,11 +16,22 @@ export interface DAOMembershipData {
   memberSince?: number;
 }
 
+export interface DAOMemberList {
+  members: any[];
+  totalMembers: number;
+  totalStakers: number;
+  totalStaked: number;
+  minStakeRequired: number;
+  minProposalStake: number;
+  lastUpdated: number;
+}
+
 export interface UserDAOState {
   walletAddress: string;
   totalBalance: number;
   lastBalanceUpdate: number;
   daoMemberships: Map<string, DAOMembershipData>;
+  daoMemberLists: Map<string, DAOMemberList>;
   isLoading: boolean;
   lastGlobalUpdate: number;
 }
@@ -32,6 +43,8 @@ interface DAOStateContextType {
   refreshWalletBalance: () => Promise<void>;
   refreshDAOData: (daoId: string) => Promise<void>;
   updateDAOMembership: (daoId: string, data: Partial<DAOMembershipData>) => void;
+  updateDAOMemberList: (daoId: string, data: DAOMemberList) => void;
+  getDAOMemberList: (daoId: string) => DAOMemberList | null;
   clearUserState: () => void;
 }
 
@@ -42,6 +55,8 @@ const DAOStateContext = createContext<DAOStateContextType>({
   refreshWalletBalance: async () => {},
   refreshDAOData: async () => {},
   updateDAOMembership: () => {},
+  updateDAOMemberList: () => {},
+  getDAOMemberList: () => null,
   clearUserState: () => {},
 });
 
@@ -68,7 +83,7 @@ export const DAOStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       if (!stored) return null;
 
       const parsed = JSON.parse(stored);
-      
+
       // Convert plain object back to Map
       const daoMemberships = new Map<string, DAOMembershipData>();
       if (parsed.daoMemberships) {
@@ -77,9 +92,17 @@ export const DAOStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         });
       }
 
+      const daoMemberLists = new Map<string, DAOMemberList>();
+      if (parsed.daoMemberLists) {
+        Object.entries(parsed.daoMemberLists).forEach(([key, value]) => {
+          daoMemberLists.set(key, value as DAOMemberList);
+        });
+      }
+
       return {
         ...parsed,
         daoMemberships,
+        daoMemberLists,
       };
     } catch (error) {
       console.warn('Failed to load DAO state from storage:', error);
@@ -94,8 +117,9 @@ export const DAOStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const stateToStore = {
         ...state,
         daoMemberships: Object.fromEntries(state.daoMemberships),
+        daoMemberLists: Object.fromEntries(state.daoMemberLists),
       };
-      
+
       localStorage.setItem(`${STORAGE_KEY}_${state.walletAddress}`, JSON.stringify(stateToStore));
     } catch (error) {
       console.warn('Failed to save DAO state to storage:', error);
@@ -381,6 +405,7 @@ export const DAOStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
             totalBalance: walletBalance,
             lastBalanceUpdate: Date.now(),
             daoMemberships: new Map(),
+            daoMemberLists: new Map(),
             isLoading: false,
             lastGlobalUpdate: Date.now(),
           };
@@ -447,6 +472,29 @@ export const DAOStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     }
   }, [account?.address, fetchWalletBalance, saveToStorage]);
 
+  // Update DAO member list
+  const updateDAOMemberList = useCallback((daoId: string, data: DAOMemberList) => {
+    setUserState(prevState => {
+      if (!prevState) return null;
+
+      const newMemberLists = new Map(prevState.daoMemberLists);
+      newMemberLists.set(daoId, { ...data, lastUpdated: Date.now() });
+
+      const newState = {
+        ...prevState,
+        daoMemberLists: newMemberLists,
+      };
+
+      saveToStorage(newState);
+      return newState;
+    });
+  }, [saveToStorage]);
+
+  // Get DAO member list
+  const getDAOMemberList = useCallback((daoId: string): DAOMemberList | null => {
+    return userState?.daoMemberLists.get(daoId) || null;
+  }, [userState]);
+
   // Clear user state (on disconnect)
   const clearUserState = useCallback(() => {
     setUserState(null);
@@ -480,12 +528,13 @@ export const DAOStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // Initialize fresh state inline to avoid dependency issues
       try {
         const walletBalance = await fetchWalletBalance(account.address);
-        
+
         const newState: UserDAOState = {
           walletAddress: account.address,
           totalBalance: walletBalance,
           lastBalanceUpdate: Date.now(),
           daoMemberships: new Map(),
+          daoMemberLists: new Map(),
           isLoading: false,
           lastGlobalUpdate: Date.now(),
         };
@@ -533,6 +582,8 @@ export const DAOStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     refreshWalletBalance,
     refreshDAOData,
     updateDAOMembership,
+    updateDAOMemberList,
+    getDAOMemberList,
     clearUserState,
   };
 

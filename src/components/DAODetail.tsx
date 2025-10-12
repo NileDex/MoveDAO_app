@@ -242,6 +242,11 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
     onActiveTabChange?.(dao.id, tabId);
+    try {
+      localStorage.setItem('app_selected_dao', JSON.stringify(dao));
+      localStorage.setItem('app_dao_active_tab', tabId);
+      localStorage.setItem('app_current_view', 'dao-detail');
+    } catch {}
   };
 
   const renderContent = () => {

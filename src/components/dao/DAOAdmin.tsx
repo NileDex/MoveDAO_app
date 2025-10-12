@@ -72,6 +72,13 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
   const [currentRole, setCurrentRole] = useState<'super' | 'standard' | 'temporary' | 'none'>('none');
   const [isRefreshingAdmins, setIsRefreshingAdmins] = useState(false);
 
+  // Session cache for instant tab switches (SWR pattern)
+  // @ts-ignore
+  const adminSessionCache: Map<string, { admins: Admin[]; councilData: any; isAdmin: boolean; currentRole: 'super' | 'standard' | 'temporary' | 'none'; timestamp: number }>
+    = (window as any).__adminSessionCache || ((window as any).__adminSessionCache = new Map());
+  const SESSION_TTL_MS = 5 * 60 * 1000; // 5 minutes
+  const MAX_STALE_MS = 10 * 60 * 1000; // 10 minutes stale window
+
   // Council data state (was missing!)
   const [councilData, setCouncilData] = useState({
     totalMembers: 0,
@@ -231,6 +238,21 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         members: knownMembers,
         daoCreator
       });
+      // Update session cache (preserve other fields)
+      const existing = adminSessionCache.get(dao.id) || ({} as any);
+      adminSessionCache.set(dao.id, {
+        admins: existing.admins || [],
+        councilData: {
+          totalMembers: knownMembers.length,
+          maxMembers: 10,
+          minMembers: 3,
+          members: knownMembers,
+          daoCreator
+        },
+        isAdmin: existing.isAdmin ?? false,
+        currentRole: existing.currentRole ?? 'none',
+        timestamp: Date.now(),
+      });
     } catch (error: any) {
       console.error('Failed to fetch council data:', error);
       console.error('Error details:', {
@@ -249,11 +271,11 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
     }
   };
 
-  const fetchAdminData = async () => {
+  const fetchAdminData = async (showSpinner: boolean = true) => {
     if (!dao?.id) return;
     
     try {
-      setIsRefreshingAdmins(true);
+      if (showSpinner) setIsRefreshingAdmins(true);
       
       // Determine current user's admin status and role using is_admin function
       if (account?.address) {
@@ -300,6 +322,21 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
           
           setIsAdmin(adminNow);
           setCurrentRole(adminNow ? adminRole : 'none');
+          // Update session cache with role info (preserve others)
+          const existing = adminSessionCache.get(dao.id) || ({} as any);
+          adminSessionCache.set(dao.id, {
+            admins: existing.admins || [],
+            councilData: existing.councilData || {
+              totalMembers: 0,
+              maxMembers: 10,
+              minMembers: 3,
+              members: [],
+              daoCreator: null
+            },
+            isAdmin: adminNow,
+            currentRole: adminNow ? adminRole : 'none',
+            timestamp: Date.now(),
+          });
           
         } catch (error) {
           console.warn('Admin detection failed:', error);
@@ -361,6 +398,21 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         }
 
         setAdmins(collected);
+        // Update session cache with admins (preserve others)
+        const existing = adminSessionCache.get(dao.id) || ({} as any);
+        adminSessionCache.set(dao.id, {
+          admins: collected,
+          councilData: existing.councilData || {
+            totalMembers: 0,
+            maxMembers: 10,
+            minMembers: 3,
+            members: [],
+            daoCreator: null
+          },
+          isAdmin: existing.isAdmin ?? false,
+          currentRole: existing.currentRole ?? 'none',
+          timestamp: Date.now(),
+        });
       } catch (adminsError) {
         console.warn('Failed to fetch admin list:', adminsError);
         setAdmins([]);
@@ -369,18 +421,64 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
     } catch (error) {
       console.error('Failed to fetch admin data:', error);
     } finally {
-      setIsRefreshingAdmins(false);
+      if (showSpinner) setIsRefreshingAdmins(false);
     }
   };
 
   useEffect(() => {
+    const now = Date.now();
+    const cached = adminSessionCache.get(dao.id);
+
+    // Fresh cache - hydrate instantly
+    if (cached && (now - cached.timestamp) < SESSION_TTL_MS) {
+      setAdmins(cached.admins || []);
+      setIsAdmin(Boolean(cached.isAdmin));
+      setCurrentRole(cached.currentRole || 'none');
+      if (cached.councilData) setCouncilData(cached.councilData);
+      return;
+    }
+
+    // Stale cache - show cached and refresh in background silently
+    if (cached && (now - cached.timestamp) < MAX_STALE_MS) {
+      setAdmins(cached.admins || []);
+      setIsAdmin(Boolean(cached.isAdmin));
+      setCurrentRole(cached.currentRole || 'none');
+      if (cached.councilData) setCouncilData(cached.councilData);
+      (async () => {
+        try {
+          await fetchAdminData(false);
+          await new Promise(resolve => setTimeout(resolve, 200));
+          await fetchCouncilData();
+        } catch {}
+      })();
+      return;
+    }
+
+    // No cache - do normal fetch with spinner
     const fetchData = async () => {
-      await fetchAdminData();
+      await fetchAdminData(true);
       await new Promise(resolve => setTimeout(resolve, 500)); // Debounce between calls
       await fetchCouncilData();
     };
-    
     fetchData();
+  }, [dao.id, account?.address]);
+
+  // Silent refresh on window focus if cache is stale
+  useEffect(() => {
+    const onFocus = () => {
+      const cached = adminSessionCache.get(dao.id);
+      const now = Date.now();
+      if (cached && (now - cached.timestamp) >= SESSION_TTL_MS && (now - cached.timestamp) < MAX_STALE_MS) {
+        (async () => {
+          try {
+            await fetchAdminData(false);
+            await fetchCouncilData();
+          } catch {}
+        })();
+      }
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
   }, [dao.id, account?.address]);
 
   const sections = [
@@ -1565,22 +1663,22 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
       <div className="space-y-6">
       {/* Current Stake Settings */}
       <div className="border border-white/10 rounded-xl p-4 sm:p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-white flex items-center space-x-2">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 mb-4">
+          <h3 className="text-lg font-semibold text-white leading-tight flex items-center space-x-2">
             <DollarSign className="w-5 h-5 text-green-400" />
             <span>Current Stake Requirements</span>
           </h3>
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <button
               onClick={fetchStakeSettings}
-              className="px-3 py-2 border border-white/20 hover:bg-white/5 text-white rounded-xl text-sm flex items-center space-x-2 transition-all"
+              className="px-3 py-2 border border-white/20 hover:bg-white/5 text-white rounded-xl text-sm flex items-center justify-center space-x-2 transition-all"
             >
               <RefreshCw className="w-4 h-4" />
               <span>Refresh</span>
             </button>
             <button
               onClick={() => setShowEditStake(true)}
-              className="flex items-center space-x-2 px-4 py-2 border border-white/20 hover:bg-white/5 text-white rounded-xl transition-all font-medium"
+              className="flex items-center justify-center space-x-2 px-4 py-2 border border-white/20 hover:bg-white/5 text-white rounded-xl transition-all font-medium"
             >
                 <Edit className="w-4 h-4" />
                 <span>Edit Settings</span>
@@ -1594,14 +1692,14 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             <p className="text-gray-400">Loading stake requirements...</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
             <div className="border border-white/10 rounded-lg p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex items-center space-x-2">
                   <Users className="w-4 h-4 text-blue-400" />
                   <span className="text-white font-medium text-sm">Membership</span>
                     </div>
-                <div className="text-right">
+                <div className="text-left sm:text-right">
                   <div className="text-lg font-bold text-blue-300">
                     {stakeSettings.minStakeToJoin} MOVE
                   </div>
@@ -1611,12 +1709,12 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             </div>
 
             <div className="border border-white/10 rounded-lg p-4">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex items-center space-x-2">
                   <Settings className="w-4 h-4 text-green-400" />
                   <span className="text-white font-medium text-sm">Proposals</span>
                 </div>
-                <div className="text-right">
+                <div className="text-left sm:text-right">
                   <div className="text-lg font-bold text-green-300">
                     {stakeSettings.minStakeToPropose} MOVE
                   </div>

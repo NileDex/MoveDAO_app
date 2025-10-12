@@ -274,7 +274,7 @@ export function useGetProfile(userAddress: string | null) {
         }),
         {
           cacheKey: `profile_${userAddress}`,
-          cacheTtl: 15000, // Cache profile for 15 seconds
+          cacheTtl: 120000, // Cache profile for 2 minutes to avoid re-fetch on quick tab switches
           priority: 3 // High priority for profile data
         }
       )

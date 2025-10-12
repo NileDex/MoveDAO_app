@@ -85,7 +85,7 @@ const VoteDistributionBar: React.FC<{ forVotes: number; againstVotes: number; ab
         <div className="bg-red-500 h-3" style={{ width: `${againstPct}%` }} />
         <div className="bg-yellow-500 h-3" style={{ width: `${abstainPct}%` }} />
       </div>
-      <div className="flex justify-between text-sm">
+      <div className="flex justify-between text-xs">
         <span className="text-green-400">For {forVotes}</span>
         <span className="text-red-400">Against {againstVotes}</span>
         <span className="text-yellow-400">Abstain {abstainVotes}</span>
@@ -139,13 +139,13 @@ const DAOProposalDetails: React.FC<ProposalDetailsProps> = ({
   return (
     <div className="space-y-6">
       {/* Left sidebar info */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-1 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-6 gap-6">
+        <div className="lg:col-span-2 space-y-6">
           {/* Status */}
           <div className="professional-card rounded-xl p-4">
             <h4 className="text-sm text-gray-400 mb-2">Status</h4>
             <div className="text-sm text-gray-400 mb-4">
-              {status === 'active' 
+              {status === 'active'
                 ? `This proposal is currently active for voting with a turnout of ${quorumCurrentPercent.toFixed(1)}%.`
                 : status === 'executed'
                 ? `This proposal is closed for voting with a turnout of ${quorumCurrentPercent.toFixed(1)}% and was executed.`
@@ -154,25 +154,25 @@ const DAOProposalDetails: React.FC<ProposalDetailsProps> = ({
                 : `This proposal is ${status} with a turnout of ${quorumCurrentPercent.toFixed(1)}%.`
               }
             </div>
-            
+
             <div className="space-y-3">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-400">DAO</span>
                 <span className="text-white">{daoName || 'Unknown DAO'}</span>
               </div>
-              
+
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-400">Creator</span>
                 <span className="text-white">{proposer ? `${proposer.slice(0, 6)}...${proposer.slice(-4)}` : 'Unknown'}</span>
               </div>
-              
+
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-400">Status</span>
                 <span className={`capitalize ${getStatusColor(status)} px-2 py-1 rounded text-xs`}>
                   {status}
                 </span>
               </div>
-              
+
               {/* User roles */}
               {(userIsAdmin || userIsCouncil || userIsMember) && (
                 <div className="flex flex-wrap gap-2 pt-2">
@@ -187,7 +187,7 @@ const DAOProposalDetails: React.FC<ProposalDetailsProps> = ({
                   )}
                 </div>
               )}
-              
+
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-400">Start</span>
@@ -203,7 +203,7 @@ const DAOProposalDetails: React.FC<ProposalDetailsProps> = ({
         </div>
 
         {/* Main content */}
-        <div className="lg:col-span-3 space-y-6">
+        <div className="lg:col-span-4 space-y-6">
           {/* Header */}
           <div className="professional-card rounded-xl p-6">
             <h1 className="text-3xl font-bold text-white mb-4">{title}</h1>
@@ -211,9 +211,11 @@ const DAOProposalDetails: React.FC<ProposalDetailsProps> = ({
 
 
           </div>
+        </div>
+      </div>
 
-          {/* Vote Results */}
-          <div className="professional-card rounded-xl p-6">
+      {/* Vote Results - Full Width */}
+      <div className="professional-card rounded-xl p-6">
             <h3 className="text-lg font-semibold text-white mb-6">Ratio of votes</h3>
             <VoteDistributionBar 
               forVotes={votesFor}
@@ -343,15 +345,13 @@ const DAOProposalDetails: React.FC<ProposalDetailsProps> = ({
                 </div>
               </div>
             )}
-          </div>
+      </div>
 
-          {/* Votes cast section */}
-          <div className="professional-card rounded-xl p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">Votes cast</h3>
-            <div className="text-center py-8 text-gray-400">
-              <p>No individual votes to display</p>
-            </div>
-          </div>
+      {/* Votes cast section - Full Width */}
+      <div className="professional-card rounded-xl p-6">
+        <h3 className="text-lg font-semibold text-white mb-4">Votes cast</h3>
+        <div className="text-center py-8 text-gray-400">
+          <p>No individual votes to display</p>
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import MainDashboard from './components/MainDashboard';
@@ -10,8 +10,23 @@ import { DAO } from './types/dao';
 import { Home, FileText, Wallet, Users, Coins, Shield, Zap } from 'lucide-react';
 
 function App() {
-  const [currentView, setCurrentView] = useState('home');
-  const [selectedDAO, setSelectedDAO] = useState<DAO | null>(null);
+  // Persist and restore app navigation state across refreshes
+  const [currentView, setCurrentView] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('app_current_view');
+      return saved || 'home';
+    } catch {
+      return 'home';
+    }
+  });
+  const [selectedDAO, setSelectedDAO] = useState<DAO | null>(() => {
+    try {
+      const saved = localStorage.getItem('app_selected_dao');
+      return saved ? (JSON.parse(saved) as DAO) : null;
+    } catch {
+      return null;
+    }
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
     try {
@@ -20,23 +35,100 @@ function App() {
     } catch {}
     return true; // default collapsed
   });
-  const [daoActiveTab, setDaoActiveTab] = useState<string>('home');
+  const [daoActiveTab, setDaoActiveTab] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('app_dao_active_tab');
+      return saved || 'home';
+    } catch {
+      return 'home';
+    }
+  });
+
+  // Helper: Create a safe placeholder DAO from just an id (for deep link restore)
+  const createPlaceholderDAO = (id: string): DAO => ({
+    id,
+    name: id.slice(0, 10) + '...',
+    description: '',
+    image: '',
+    background: '',
+    subname: '',
+    chain: 'movement',
+    tokenName: '',
+    tokenSymbol: '',
+    initialSupply: '0',
+    minimumStake: '0',
+    votingPeriod: '0',
+    quorum: '0',
+    threshold: '0',
+    proposalThreshold: '0',
+    adminRole: '',
+    councils: [],
+    tvl: '0',
+    proposals: 0,
+    members: 0,
+    established: '',
+    category: 'community',
+    isFollowing: false,
+  });
+
+  // Clear hash from URL on mount
+  useEffect(() => {
+    if (window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
+
+  // Disable hash routing; rely solely on localStorage persistence (no URL changes)
+  const updateHash = (_view: string, _id?: string | null, _tab?: string) => {};
 
   const handleDAOSelect = (dao: DAO) => {
     setSelectedDAO(dao);
     setCurrentView('dao-detail');
     setDaoActiveTab('home'); // Reset to home tab when selecting a DAO
+    // No URL hash updates
   };
 
   const handleBackToHome = () => {
     setCurrentView('home');
     setSelectedDAO(null);
     setDaoActiveTab('home'); // Reset tab when going back
+    // No URL hash updates
   };
 
   const handleDaoTabChange = (daoId: string, tabId: string) => {
     setDaoActiveTab(tabId);
+    // No URL hash updates
   };
+
+  // Keep navigation state in localStorage for full refresh resilience
+  useEffect(() => {
+    try {
+      localStorage.setItem('app_current_view', currentView);
+    } catch {}
+  }, [currentView]);
+
+  useEffect(() => {
+    try {
+      if (selectedDAO) {
+        localStorage.setItem('app_selected_dao', JSON.stringify(selectedDAO));
+      } else {
+        localStorage.removeItem('app_selected_dao');
+      }
+    } catch {}
+  }, [selectedDAO]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('app_dao_active_tab', daoActiveTab);
+    } catch {}
+  }, [daoActiveTab]);
+
+  // Safety: If view is dao-detail but no DAO found, fallback to home
+  useEffect(() => {
+    if (currentView === 'dao-detail' && !selectedDAO) {
+      setCurrentView('home');
+    }
+  }, [currentView, selectedDAO]);
 
   // Define DAO tabs
   const daoTabs = [
