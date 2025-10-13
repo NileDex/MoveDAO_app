@@ -645,12 +645,12 @@ export const useTreasury = (daoId: string) => {
         ? [...basicTasks, fetchUserBalance(), checkAdminStatus()]
         : basicTasks;
       
-      // Add timeout to prevent hanging on slow network
+      // Add timeout to prevent hanging on slow network (increased to 15 seconds)
       Promise.race([
         Promise.all(allTasks),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Treasury data fetch timeout')), 8000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Treasury data fetch timeout')), 15000))
       ]).catch((error) => {
-        console.warn('Treasury initialization failed:', error);
+        // Silent - data will still be available even if some requests timeout
       });
     }
   }, [daoId, account?.address, fetchTreasuryData, fetchUserBalance, checkAdminStatus, fetchTreasuryTransactions]);

@@ -538,13 +538,15 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
   const { showAlert } = useAlert();
 
   // Button style with theme variables
+  const { theme, cycleTheme } = useTheme();
+  const isDarkTheme = theme === 'dark';
   const buttonStyle = {
     display: 'flex',
     alignItems: 'center',
     gap: 8,
     padding: '8px 16px',
     border: 'none',
-    background: '#252527',
+    background: isDarkTheme ? '#252527' : '#f3f4f6',
     borderRadius: '12px',
     height: 'auto',
     minWidth: 120,
@@ -632,7 +634,8 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
   }, []);
   // Use utility function for address truncation
 
-  const { theme, cycleTheme } = useTheme();
+  // Hover state for dropdown items to simulate hover styles in inline CSS
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
 
   // Render button and modal
   return (
@@ -705,12 +708,12 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
               top: '100%',
               right: 0,
               marginTop: 4,
-              background: '#252527',
-              border: '1px solid var(--border)',
+              background: isDarkTheme ? '#252527' : '#ffffff',
+              border: isDarkTheme ? '1px solid rgba(255,255,255,0.12)' : '1px solid rgba(0,0,0,0.08)',
               borderRadius: 12,
               padding: 8,
               minWidth: 160,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+              boxShadow: isDarkTheme ? '0 8px 24px rgba(0,0,0,0.4)' : '0 8px 24px rgba(0,0,0,0.08)',
               zIndex: 1001
             }}
           >
@@ -722,12 +725,14 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
                 }
                 setShowDropdown(false);
               }}
+              onMouseEnter={() => setHoveredItem('profile')}
+              onMouseLeave={() => setHoveredItem(null)}
               style={{
                 width: '100%',
                 padding: '8px 12px',
-                background: '#252527',
+                background: hoveredItem === 'profile' ? (isDarkTheme ? '#2f3033' : '#f3f4f6') : (isDarkTheme ? '#252527' : '#ffffff'),
                 border: 'none',
-                color: 'var(--text)',
+                color: isDarkTheme ? '#f5f5f5' : '#111827',
                 fontSize: 14,
                 cursor: 'pointer',
                 borderRadius: 12,
@@ -747,12 +752,14 @@ const WalletConnectButton: React.FC<WalletConnectButtonProps> = ({ onProfileClic
                 handleDisconnect(e);
                 setShowDropdown(false);
               }}
+              onMouseEnter={() => setHoveredItem('disconnect')}
+              onMouseLeave={() => setHoveredItem(null)}
               style={{
                 width: '100%',
                 padding: '8px 12px',
-                background: '#252527',
+                background: hoveredItem === 'disconnect' ? (isDarkTheme ? '#2f3033' : '#f3f4f6') : (isDarkTheme ? '#252527' : '#ffffff'),
                 border: 'none',
-                color: 'var(--text)',
+                color: isDarkTheme ? '#f5f5f5' : '#111827',
                 fontSize: 14,
                 cursor: 'pointer',
                 borderRadius: 12,
