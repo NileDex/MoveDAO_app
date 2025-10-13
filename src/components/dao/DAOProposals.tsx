@@ -1454,7 +1454,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
           )}
           
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pl-4 sm:pl-8">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pl-4 sm:pl-8 xl:pl-0">
         <div className="w-full sm:w-auto">
           <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Proposals</h1>
           <p className="text-gray-400">Community governance proposals for {dao.name}</p>

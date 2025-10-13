@@ -370,7 +370,7 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
   return (
     <div className="w-full px-2 sm:px-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between pl-4 sm:pl-8">
+      <div className="flex items-center justify-between pl-4 sm:pl-8 xl:pl-0">
         <div>
           <h2 className="text-2xl font-bold text-white mb-2">Members</h2>
         </div>

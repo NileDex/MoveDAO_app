@@ -294,7 +294,7 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
         {/* Assets left - compact list with progress */}
         <div className="w-full xl:w-[400px] space-y-2">
           {/* Treasury value calculated from tokens */}
-          <div className="text-left mb-2 pl-4 sm:pl-8">
+          <div className="text-left mb-2 pl-4 sm:pl-8 xl:pl-0">
             <div className="text-5xl font-extrabold text-white">
               {(() => {
                 const tokenMove = Math.max(0, treasuryData?.balance || 0);
@@ -723,7 +723,7 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
       )}
       
       {/* Header - Made responsive with left padding for alignment */}
-      <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pl-4 sm:pl-8">
+      <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pl-4 sm:pl-8 xl:pl-0">
         {/* Inline status aligned to the right on the same line as title */}
         {((sectionLoader.isLoading || treasuryData.isLoading) || sectionLoader.error) && (
           <div className="absolute right-4 sm:right-8 top-0 text-right">

@@ -769,7 +769,7 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
         <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Stake and Unstake sections - 3 columns */}
         <div className="lg:col-span-3 space-y-6">
-          <div className="rounded-xl p-6">
+          <div className="rounded-xl p-6 border border-white/10">
         <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-white">Stake MOVE</h3>
             </div>
@@ -819,7 +819,7 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
           </div>
 
           {/* Unstake Section */}
-          <div className="rounded-xl p-6">
+          <div className="rounded-xl p-6 border border-white/10">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-xl font-bold text-white">Unstake MOVE</h3>
             </div>
@@ -869,7 +869,6 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
 
         {/* Membership Notice - Right side column - Always visible */}
         <div className="lg:col-span-2">
-          <div className="rounded-xl p-6">
             {daoStakingData.isMember ? (
               // User is a full member (in registry AND meets min stake)
               <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6 text-center">
@@ -920,7 +919,6 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
                 )}
               </div>
             )}
-          </div>
         </div>
       </div>
 
