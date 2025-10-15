@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Vault, Plus, ArrowUpRight, ArrowDownRight, AlertCircle, RotateCcw } from 'lucide-react';
 import { useVault } from '../hooks/useVault';
+import { useTheme } from '../contexts/ThemeContext';
 
 interface VaultManagerProps {
   daoId: string;
@@ -21,6 +22,8 @@ const VaultManager: React.FC<VaultManagerProps> = ({ daoId, treasuryObject }) =>
     fromTokenAmount,
     KNOWN_TOKENS
   } = useVault(daoId, treasuryObject);
+
+  const { isDark } = useTheme();
 
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
@@ -302,35 +305,35 @@ const VaultManager: React.FC<VaultManagerProps> = ({ daoId, treasuryObject }) =>
       {showCreateModal && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4" style={{ backgroundColor: 'transparent' }} onClick={() => setShowCreateModal(false)}>
           <div
-            className="rounded-xl p-5 w-full max-w-md border shadow-2xl bg-[#0f0f11] border-white/10"
+            className={`${isDark ? 'bg-[#0f0f11] border-white/10' : 'bg-white border-black/10'} rounded-xl p-5 w-full max-w-md border shadow-2xl`}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-xl font-bold mb-4">Add Fungible Address (Create Vault)</h3>
+            <h3 className={`text-xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Add Fungible Address (Create Vault)</h3>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm mb-2" style={{ color: '#f5f5f5' }}>FA (Fungible Token) Metadata Address</label>
+                <label className={`block text-sm mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>FA (Fungible Token) Metadata Address</label>
                 <input
                   type="text"
                   value={createTokenAddress}
                   onChange={(e) => setCreateTokenAddress(e.target.value)}
                   placeholder="0x..."
-                  className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/5 border border-white/10 text-white placeholder-gray-500"
+                  className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-white/5 border border-white/10 text-white placeholder-gray-500' : 'bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400'}`}
                 />
-                <p className="text-xs mt-1 text-gray-500">
+                <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
                   Enter the FA metadata address (e.g., USDC, USDT)
                 </p>
               </div>
 
-              <div className="rounded-lg p-3 bg-white/5 border border-white/10">
-                <p className="text-sm text-gray-300">
+              <div className={`rounded-lg p-3 ${isDark ? 'bg-white/5 border border-white/10' : 'bg-gray-50 border border-gray-200'}`}>
+                <p className={`text-sm ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>
                   <strong>Note:</strong> You can find metadata addresses in your network's token registry or from deployments.
                 </p>
               </div>
 
               {modalError && (
-                <div className="rounded-lg p-3" style={{ backgroundColor: '#fff1f0', border: '1px solid #fecaca' }}>
-                  <p className="text-sm" style={{ color: '#7f1d1d' }}>{modalError}</p>
+                <div className={`rounded-lg p-3 ${isDark ? 'bg-red-500/10 border border-red-500/30' : 'bg-red-50 border border-red-200'}`}>
+                  <p className={`text-sm ${isDark ? 'text-red-200' : 'text-red-800'}`}>{modalError}</p>
                 </div>
               )}
 
@@ -341,7 +344,7 @@ const VaultManager: React.FC<VaultManagerProps> = ({ daoId, treasuryObject }) =>
                     setCreateTokenAddress('');
                     setModalError(null);
                   }}
-                  className="flex-1 h-11 px-6 rounded-xl font-semibold bg-white/10 text-gray-300 border border-white/10 hover:bg-white/15 transition-colors"
+                  className={`flex-1 h-11 px-6 rounded-xl font-semibold transition-colors ${isDark ? 'bg-white/10 text-gray-300 border border-white/10 hover:bg-white/15' : 'bg-gray-100 text-gray-800 border border-gray-200 hover:bg-gray-200'}`}
                 >
                   Cancel
                 </button>
@@ -362,22 +365,22 @@ const VaultManager: React.FC<VaultManagerProps> = ({ daoId, treasuryObject }) =>
       {showDepositModal && selectedVault && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4" style={{ backgroundColor: 'transparent' }} onClick={() => setShowDepositModal(false)}>
           <div
-            className="rounded-xl p-5 w-full max-w-md border shadow-2xl bg-[#0f0f11] border-white/10"
+            className={`${isDark ? 'bg-[#0f0f11] border-white/10' : 'bg-white border-black/10'} rounded-xl p-5 w-full max-w-md border shadow-2xl`}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-xl font-bold mb-4">Deposit to {selectedVault.tokenSymbol} Vault</h3>
+            <h3 className={`text-xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Deposit to {selectedVault.tokenSymbol} Vault</h3>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm mb-2" style={{ color: '#f5f5f5' }}>Amount</label>
+                <label className={`block text-sm mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Amount</label>
                 <input
                   type="text"
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}
                   placeholder="0.00"
-                  className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/5 border border-white/10 text-white placeholder-gray-500"
+                  className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-white/5 border border-white/10 text-white placeholder-gray-500' : 'bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400'}`}
                 />
-                <p className="text-xs mt-1 text-gray-500">
+                <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
                   Amount in {selectedVault.tokenSymbol}
                 </p>
               </div>
@@ -385,8 +388,8 @@ const VaultManager: React.FC<VaultManagerProps> = ({ daoId, treasuryObject }) =>
               {/* Balance summary removed as requested */}
 
               {modalError && (
-                <div className="rounded-lg p-3" style={{ backgroundColor: '#fff1f0', border: '1px solid #fecaca' }}>
-                  <p className="text-sm" style={{ color: '#7f1d1d' }}>{modalError}</p>
+                <div className={`rounded-lg p-3 ${isDark ? 'bg-red-500/10 border border-red-500/30' : 'bg-red-50 border border-red-200'}`}>
+                  <p className={`text-sm ${isDark ? 'text-red-200' : 'text-red-800'}`}>{modalError}</p>
                 </div>
               )}
 
@@ -408,22 +411,22 @@ const VaultManager: React.FC<VaultManagerProps> = ({ daoId, treasuryObject }) =>
       {showWithdrawModal && selectedVault && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4" style={{ backgroundColor: 'transparent' }} onClick={() => setShowWithdrawModal(false)}>
           <div
-            className="rounded-xl p-5 w-full max-w-md border shadow-2xl bg-[#0f0f11] border-white/10"
+            className={`${isDark ? 'bg-[#0f0f11] border-white/10' : 'bg-white border-black/10'} rounded-xl p-5 w-full max-w-md border shadow-2xl`}
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-xl font-bold mb-4">Withdraw from {selectedVault.tokenSymbol} Vault</h3>
+            <h3 className={`text-xl font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Withdraw from {selectedVault.tokenSymbol} Vault</h3>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm mb-2" style={{ color: '#f5f5f5' }}>Amount</label>
+                <label className={`block text-sm mb-2 ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>Amount</label>
                 <input
                   type="text"
                   value={withdrawAmount}
                   onChange={(e) => setWithdrawAmount(e.target.value)}
                   placeholder="0.00"
-                  className="w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white/5 border border-white/10 text-white placeholder-gray-500"
+                  className={`w-full px-4 py-3 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? 'bg-white/5 border border-white/10 text-white placeholder-gray-500' : 'bg-gray-50 border border-gray-200 text-gray-900 placeholder-gray-400'}`}
                 />
-                <p className="text-xs mt-1 text-gray-500">
+                <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>
                   Amount in {selectedVault.tokenSymbol} (max: {selectedVault.idleAssets.toLocaleString()})
                 </p>
               </div>
@@ -431,8 +434,8 @@ const VaultManager: React.FC<VaultManagerProps> = ({ daoId, treasuryObject }) =>
               {/* Admin note retained without balance summary */}
 
               {modalError && (
-                <div className="rounded-lg p-3" style={{ backgroundColor: '#fff1f0', border: '1px solid #fecaca' }}>
-                  <p className="text-sm" style={{ color: '#7f1d1d' }}>{modalError}</p>
+                <div className={`rounded-lg p-3 ${isDark ? 'bg-red-500/10 border border-red-500/30' : 'bg-red-50 border border-red-200'}`}>
+                  <p className={`text-sm ${isDark ? 'text-red-200' : 'text-red-800'}`}>{modalError}</p>
                 </div>
               )}
 
