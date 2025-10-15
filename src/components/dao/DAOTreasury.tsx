@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { ArrowUpRight, ArrowDownRight, Wallet, Plus, Minus, Clock, AlertTriangle, XCircle } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Plus, Minus, Clock, AlertTriangle, XCircle } from 'lucide-react';
 import { useTreasury } from '../../hooks/useTreasury';
 import { DAO } from '../../types/dao';
 import { aptosClient } from '../../movement_service/movement-client';
@@ -12,7 +12,7 @@ import { useAlert } from '../alert/AlertContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import VaultManager from '../VaultManager';
 import { useSectionLoader } from '../../hooks/useSectionLoader';
-import SectionLoader from '../common/SectionLoader';
+// import SectionLoader from '../common/SectionLoader';
 
 interface DAOTreasuryProps {
   dao: DAO;
@@ -31,6 +31,8 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
   const [isTogglingPublicDeposits, setIsTogglingPublicDeposits] = useState(false);
   const [movePrice, setMovePrice] = useState<number | null>(null);
   const [totalStaked, setTotalStaked] = useState<number>(0);
+  const [showDepositDetails, setShowDepositDetails] = useState<boolean>(false);
+  const [showWithdrawDetails, setShowWithdrawDetails] = useState<boolean>(false);
   const isWalletConnected = !!account?.address;
 
   // Session cache for Treasury (instant tab switches)
@@ -315,13 +317,12 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
               { id: 'tokens', label: 'Tokens', value: tokenAmount, pct: (tokenAmount / total) * 100, bar: '#22d3ee' },
               { id: 'staking', label: 'Staking', value: stakingAmount, pct: (stakingAmount / total) * 100, bar: '#10b981' }
             ];
-            return items.map((a, i) => (
+            return items.map((a) => (
               <div key={a.id} className={`relative overflow-hidden rounded-xl p-4 bg-white/5 border border-white/10`}>
                 {/* Progress fill using the card's gray tone */}
                 <div className="absolute left-0 top-0 h-full bg-white/10" style={{ width: `${Math.min(Math.max(a.pct, 0), 100)}%` }} />
                 <div className="relative z-10 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <span className={`inline-block w-2 h-2 rounded-full`} style={{ backgroundColor: a.bar }}></span>
                     <span className="text-white font-medium">{a.label}</span>
                   </div>
                   <div className="text-right">
@@ -368,6 +369,9 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
                 outerRadius={110}
                 paddingAngle={1}
                 stroke="none"
+                isAnimationActive={false}
+                animationBegin={0}
+                animationDuration={0}
                 onClick={undefined}
                 onMouseEnter={undefined}
                 onMouseLeave={undefined}
@@ -473,6 +477,50 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
                 />
                 <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-600'}`}>Available: {userBalance.toFixed(3)} MOVE</p>
               </div>
+
+              {(() => {
+                const amt = parseFloat(amount || '0');
+                const octas = Number.isFinite(amt) && amt > 0 ? Math.floor(amt * 1e8) : 0;
+                const objectAddress = (() => {
+                  const obj = (treasuryData?.treasuryObject as any);
+                  if (!obj) return undefined;
+                  return typeof obj === 'string' ? obj : (obj?.inner || obj?.value || obj);
+                })();
+                const payloadPreview = objectAddress ? {
+                  function: `${MODULE_ADDRESS}::treasury::deposit_to_object`,
+                  typeArguments: [],
+                  functionArguments: [objectAddress, String(octas)],
+                } : {
+                  function: `${MODULE_ADDRESS}::treasury::deposit`,
+                  typeArguments: [],
+                  functionArguments: [dao.id, String(octas)],
+                };
+                return (
+                  <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'} border rounded-lg p-3 space-y-2`}>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className={`${isDark ? 'text-gray-300' : 'text-gray-700'}`}>From Wallet</span>
+                      <span className="font-semibold text-red-400">-{Number.isFinite(amt) ? amt.toFixed(3) : '0.000'} MOVE</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className={`${isDark ? 'text-gray-300' : 'text-gray-700'}`}>To Treasury</span>
+                      <span className="font-semibold text-green-400">+{Number.isFinite(amt) ? amt.toFixed(3) : '0.000'} MOVE</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowDepositDetails(v => !v)}
+                      className={`mt-1 text-xs ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}
+                    >
+                      {showDepositDetails ? 'Hide' : 'Show'} payload
+                    </button>
+                    {showDepositDetails && (
+                      <pre className={`text-xs overflow-x-auto p-2 rounded ${isDark ? 'bg-black/40 text-gray-300' : 'bg-gray-100 text-gray-800'}`}>
+{JSON.stringify(payloadPreview, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleDeposit}
@@ -514,6 +562,50 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
                   <p>Max withdrawal: {Math.min(treasuryData.remainingDaily, treasuryData.balance).toFixed(3)} MOVE</p>
                 </div>
               </div>
+
+              {(() => {
+                const amt = parseFloat(amount || '0');
+                const octas = Number.isFinite(amt) && amt > 0 ? Math.floor(amt * 1e8) : 0;
+                const objectAddress = (() => {
+                  const obj = (treasuryData?.treasuryObject as any);
+                  if (!obj) return undefined;
+                  return typeof obj === 'string' ? obj : (obj?.inner || obj?.value || obj);
+                })();
+                const payloadPreview = objectAddress ? {
+                  function: `${MODULE_ADDRESS}::treasury::withdraw_from_object`,
+                  typeArguments: [],
+                  functionArguments: [dao.id, objectAddress, String(octas)],
+                } : {
+                  function: `${MODULE_ADDRESS}::treasury::withdraw`,
+                  typeArguments: [],
+                  functionArguments: [dao.id, String(octas)],
+                };
+                return (
+                  <div className={`${isDark ? 'bg-white/5 border-white/10' : 'bg-gray-50 border-gray-200'} border rounded-lg p-3 space-y-2`}>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className={`${isDark ? 'text-gray-300' : 'text-gray-700'}`}>From Treasury</span>
+                      <span className="font-semibold text-red-400">-{Number.isFinite(amt) ? amt.toFixed(3) : '0.000'} MOVE</span>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className={`${isDark ? 'text-gray-300' : 'text-gray-700'}`}>To Wallet</span>
+                      <span className="font-semibold text-green-400">+{Number.isFinite(amt) ? amt.toFixed(3) : '0.000'} MOVE</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setShowWithdrawDetails(v => !v)}
+                      className={`mt-1 text-xs ${isDark ? 'text-gray-400 hover:text-white' : 'text-gray-600 hover:text-black'}`}
+                    >
+                      {showWithdrawDetails ? 'Hide' : 'Show'} payload
+                    </button>
+                    {showWithdrawDetails && (
+                      <pre className={`text-xs overflow-x-auto p-2 rounded ${isDark ? 'bg-black/40 text-gray-300' : 'bg-gray-100 text-gray-800'}`}>
+{JSON.stringify(payloadPreview, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleWithdraw}
@@ -537,7 +629,7 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
     // Use the utility function for consistent address truncation
 
     return (
-      <div className="bg-white/3 border border-white/5 rounded-xl p-4 w-full max-w-full overflow-hidden">
+      <div className="bg-white/3 border border-white/5 rounded-t-xl rounded-b-none p-3 sm:p-4 w-full max-w-full overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between mb-3 sm:mb-4">
           <div className="flex items-center gap-2">
@@ -556,11 +648,11 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10">
-                <th className="text-left py-4 px-4 font-medium text-gray-300">Transaction</th>
-                <th className="text-left py-4 px-4 font-medium text-gray-300">Type</th>
-                <th className="text-left py-4 px-4 font-medium text-gray-300">Amount</th>
-                <th className="text-left py-4 px-4 font-medium text-gray-300">Address</th>
-                <th className="text-left py-4 px-4 font-medium text-gray-300">Time</th>
+                <th className="text-left py-3 px-3 font-medium text-gray-300">Transaction</th>
+                <th className="text-left py-3 px-3 font-medium text-gray-300">Type</th>
+                <th className="text-left py-3 px-3 font-medium text-gray-300">Amount</th>
+                <th className="text-left py-3 px-3 font-medium text-gray-300">Address</th>
+                <th className="text-left py-3 px-3 font-medium text-gray-300">Time</th>
               </tr>
             </thead>
             <tbody>
@@ -578,7 +670,7 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
                 transactions.map((tx, index) => (
                   <tr key={index} className="border-b border-white/5 hover:bg-white/5 transition-all">
                     {/* Transaction */}
-                    <td className="py-4 px-4">
+                    <td className="py-3 px-3">
                       <div className="flex items-center space-x-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
                           tx.type === 'deposit' ? 'bg-green-500/20' : 'bg-red-500/20'
@@ -597,7 +689,7 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
                     </td>
                     
                     {/* Type */}
-                    <td className="py-4 px-4">
+                    <td className="py-3 px-3">
                       <span className={`px-2 py-1 rounded-full text-xs border whitespace-nowrap ${
                         tx.type === 'deposit' 
                           ? 'text-green-400 border-green-500/30 bg-green-500/10' 
@@ -608,14 +700,14 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
                     </td>
                     
                     {/* Amount */}
-                    <td className="py-4 px-4">
+                    <td className="py-3 px-3">
                       <div className={`text-sm font-medium ${tx.type === 'deposit' ? 'text-green-400' : 'text-red-400'}`}>
                         {tx.type === 'deposit' ? '+' : '-'}{tx.amount.toFixed(3)} MOVE
                       </div>
                     </td>
                     
                     {/* Address */}
-                    <td className="py-4 px-4">
+                    <td className="py-3 px-3">
                       <span className="text-sm text-gray-300 font-mono">
                         {tx.type === 'deposit' 
                           ? truncateAddress(tx.from || '')
@@ -625,7 +717,7 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
                     </td>
                     
                     {/* Time */}
-                    <td className="py-4 px-4">
+                    <td className="py-3 px-3">
                       <div className="flex items-center space-x-1 text-gray-400">
                         <Clock className="w-3 h-3" />
                         <span className="text-xs">{new Date(tx.timestamp).toLocaleDateString()}</span>
@@ -723,13 +815,10 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
       )}
       
       {/* Header - Made responsive with left padding for alignment */}
-      <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pl-4 sm:pl-8 xl:pl-0">
+      <div className="relative flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pl-0 sm:pl-8 xl:pl-0">
         {/* Inline status aligned to the right on the same line as title */}
-        {((sectionLoader.isLoading || treasuryData.isLoading) || sectionLoader.error) && (
+        {sectionLoader.error && (
           <div className="absolute right-4 sm:right-8 top-0 text-right">
-            {(sectionLoader.isLoading || treasuryData.isLoading) && (
-              <div className="text-xs text-blue-300">Loading...</div>
-            )}
             {sectionLoader.error && (
               <div className="text-xs text-red-300 cursor-pointer" onClick={retryTreasuryData}>
                 Error - Click to retry
@@ -751,51 +840,35 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
             </div>
           )}
           <div className="bg-white/5 rounded-lg p-2 text-center">
-            <div className="text-gray-400 mb-1">Limit</div>
-            <div className="font-semibold text-white">{treasuryData.dailyWithdrawalLimit.toFixed(0)}</div>
-          </div>
-          <div className="bg-white/5 rounded-lg p-2 text-center">
             <div className="text-gray-400 mb-1">Used</div>
             <div className="font-semibold text-white">{treasuryData.dailyWithdrawn.toFixed(3)}</div>
-          </div>
-          <div className="bg-white/5 rounded-lg p-2 text-center">
-            <div className="text-gray-400 mb-1">Remaining</div>
-            <div className="font-semibold text-white">{treasuryData.remainingDaily.toFixed(3)}</div>
           </div>
         </div>
         
         <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 w-full lg:w-auto">
           {/* Desktop KPIs - Show as cards */}
-          <div className={`hidden lg:grid gap-2 text-xs ${isWalletConnected ? 'grid-cols-4' : 'grid-cols-3'}`}>
+          <div className={`hidden lg:grid gap-2 text-xs ${isWalletConnected ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {isWalletConnected && (
-              <div className="bg-white/5 rounded-lg p-2 text-center">
+              <div className="bg-white/5 rounded-lg p-2 text-center w-28 h-12 flex flex-col items-center justify-center">
                 <div className="text-gray-400 mb-1">Balance</div>
                 <div className="font-semibold text-white">{userBalance.toFixed(3)}</div>
               </div>
             )}
-            <div className="bg-white/5 rounded-lg p-2 text-center">
-              <div className="text-gray-400 mb-1">Limit</div>
-              <div className="font-semibold text-white">{treasuryData.dailyWithdrawalLimit.toFixed(0)}</div>
-            </div>
-            <div className="bg-white/5 rounded-lg p-2 text-center">
+            <div className="bg-white/5 rounded-lg p-2 text-center w-28 h-12 flex flex-col items-center justify-center">
               <div className="text-gray-400 mb-1">Used</div>
               <div className="font-semibold text-white">{treasuryData.dailyWithdrawn.toFixed(3)}</div>
-            </div>
-            <div className="bg-white/5 rounded-lg p-2 text-center">
-              <div className="text-gray-400 mb-1">Remaining</div>
-              <div className="font-semibold text-white">{treasuryData.remainingDaily.toFixed(3)}</div>
             </div>
           </div>
           
           {/* Status indicators + refresh */}
           <div className="flex items-center gap-3 flex-shrink-0">
             {!isWalletConnected && (
-              <div className="px-3 py-1 bg-gray-500/20 text-gray-300 rounded-lg border border-gray-500/30 text-sm">
+              <div className="bg-gray-500/20 text-gray-300 rounded-lg border border-gray-500/30 text-sm w-28 h-12 flex items-center justify-center text-center">
                 Guest
               </div>
             )}
             {isWalletConnected && isAdmin && (
-              <div className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-lg border border-purple-500/30 text-sm">
+              <div className="bg-purple-500/20 text-purple-300 rounded-lg border border-purple-500/30 text-sm w-28 h-12 flex items-center justify-center text-center">
                 Admin
               </div>
             )}
@@ -808,10 +881,10 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
       {renderOverview()}
 
       {/* Vault Manager Component */}
-      {/* <VaultManager
+      <VaultManager
         daoId={dao.id}
         treasuryObject={treasuryData.treasuryObject}
-      /> */}
+      />
 
       {renderTransactions()}
     </div>

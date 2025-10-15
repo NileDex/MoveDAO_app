@@ -25,6 +25,7 @@ import { useWalletBalance } from '../../hooks/useWalletBalance';
 import { useAlert } from '../alert/AlertContext';
 import { useSectionLoader } from '../../hooks/useSectionLoader';
 import SectionLoader from '../common/SectionLoader';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface DAOProposalsProps {
   dao: DAO;
@@ -63,6 +64,7 @@ interface ProposalData {
   const PROPOSAL_CACHE_TTL = 30000; // legacy
 
 const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = false }) => {
+  const { isDark } = useTheme();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState<ProposalData | null>(null);
   // In-memory cache so tab switches are instant (session-scoped)
@@ -81,7 +83,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
   // Section-level loader for unified loading state (like Overview)
   const sectionLoader = useSectionLoader();
   const [isCreating, setIsCreating] = useState(false);
-  const [userStatus, setUserStatus] = useState({ isAdmin: false, isMember: false, isCouncil: false, isStaker: false });
+  const [userStatus, setUserStatus] = useState({ isAdmin: false, isMember: false, isStaker: false });
   const [newProposal, setNewProposal] = useState({
     title: '',
     description: '',
@@ -176,9 +178,8 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             return {
               ...prev,
               isAdmin: code === 3,
-              isCouncil: code === 2,
-              // Treat admin/council as members for UI purposes
-              isMember: code === 1 || code === 2 || code === 3 || prev.isMember,
+      // Treat admin as member for UI purposes
+      isMember: code === 1 || code === 3 || prev.isMember,
             };
           }
           return prev;
@@ -209,7 +210,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         isMember: false,
         canPropose: false
       });
-      setUserStatus({ isAdmin: false, isMember: false, isCouncil: false, isStaker: false });
+      setUserStatus({ isAdmin: false, isMember: false, isStaker: false });
       return;
     }
 
@@ -240,10 +241,6 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             function: `${MODULE_ADDRESS}::membership::can_create_proposal`, 
             functionArguments: [dao.id, account.address] 
         }),
-        safeView({
-          function: `${MODULE_ADDRESS}::council::is_council_member`,
-          functionArguments: [dao.id, account.address]
-        }).catch(() => null),
         aptosClient.getAccountResource({
           accountAddress: account.address,
           resourceType: `${MODULE_ADDRESS}::proposal::ProposerRecord`
@@ -258,7 +255,6 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         isAdminRes,
         isMemberRes,
         canProposeRes,
-        isCouncilRes,
         proposerRecord
       ] = await Promise.race([
         Promise.allSettled(eligibilityPromises),
@@ -304,27 +300,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         if (minStakeToJoin === 0) minStakeToJoin = 6;
         if (minStakeToPropose === 0) minStakeToPropose = 6;
       }
-      let isCouncil = getBool(isCouncilRes);
-
-      // Fallback: try object-based council membership check via DAOInfo resource
-      if (!isCouncil) {
-        try {
-          const daoInfoRes: any = await aptosClient.getAccountResource({
-            accountAddress: dao.id,
-            resourceType: `${MODULE_ADDRESS}::dao_core_file::DAOInfo`
-          });
-          const councilObjAddr = (daoInfoRes?.data as any)?.council?.inner || (daoInfoRes?.data as any)?.council || null;
-          if (councilObjAddr) {
-            const councilCheck = await aptosClient.view({
-              payload: {
-                function: `${MODULE_ADDRESS}::council::is_council_member_in_object`,
-                functionArguments: [councilObjAddr, account.address]
-              }
-            });
-            isCouncil = Boolean(councilCheck?.[0]);
-          }
-        } catch { /* ignore */ }
-      }
+      
       let canPropose = getBool(canProposeRes);
       
       // Handle missing membership configuration or RPC failures - allow proposal creation for:
@@ -358,7 +334,6 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       setUserStatus({
         isAdmin,
         isMember: membershipData?.isMember ?? isMember,
-        isCouncil,
         isStaker: membershipData?.isStaker || (userCurrentStake > 0)
       });
 
@@ -400,7 +375,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
         isMember: false,
         canPropose: false
       });
-      setUserStatus({ isAdmin: false, isMember: false, isCouncil: false, isStaker: false });
+      setUserStatus({ isAdmin: false, isMember: false, isStaker: false });
     }
   };
 
@@ -417,8 +392,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             setUserStatus(prev => ({
               ...prev,
               isAdmin: code === 3 || prev.isAdmin,
-              isCouncil: code === 2 || prev.isCouncil,
-              isMember: code === 1 || code === 2 || code === 3 || prev.isMember,
+              isMember: code === 1 || code === 3 || prev.isMember,
             }));
           }
         }
@@ -638,6 +612,13 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
     sectionLoader.executeWithLoader(fetchProposals);
   }, [dao.id]);
 
+  // Light, real‑time refresh triggers without over-modifying logic
+  useEffect(() => {
+    const onFocus = () => fetchProposals(true);
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [dao.id]);
+
   // Restore selected proposal on mount (persist detail view across refresh)
   useEffect(() => {
     try {
@@ -665,7 +646,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
     
     const intervalId = setInterval(() => {
       fetchProposals(); // Refresh proposals to sync status
-    }, 30000); // Check every 30 seconds
+    }, 15000); // 15s cadence for snappier updates
     
     return () => clearInterval(intervalId);
   }, [proposals.length]);
@@ -689,11 +670,16 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
       };
       
       const response = await signAndSubmitTransaction({ payload } as any);
-      console.log('Voting started manually:', response);
+      console.log('Voting start tx response:', response);
+      
+      // If user cancels or no hash, treat as cancelled
+      if (!response || !(response as any).hash) {
+        showAlert('Transaction cancelled', 'error');
+        return;
+      }
       
       // Refresh proposals to update status
       await fetchProposals();
-      
       showAlert('Voting started successfully! The proposal is now active for voting.', 'success');
     } catch (error: any) {
       console.error('Failed to start voting:', error);
@@ -1427,7 +1413,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             canFinalize={Boolean(userStatus.isAdmin)}
             userAddress={account?.address}
             userIsAdmin={userStatus.isAdmin}
-            userIsCouncil={userStatus.isCouncil}
+            userIsCouncil={false}
             userIsMember={userStatus.isMember}
           />
         </div>
@@ -1454,17 +1440,14 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
           )}
           
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pl-4 sm:pl-8 xl:pl-0">
-        <div className="w-full sm:w-auto">
-          <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Proposals</h1>
-          <p className="text-gray-400">Community governance proposals for {dao.name}</p>
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-2 pl-0 md:pl-6 lg:pl-0">
+        <div className="w-full lg:flex-1 min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight">Proposals</h1>
+          <p className="mt-0.5 text-gray-400 leading-snug pr-6 lg:pr-0">Community governance proposals for {dao.name}</p>
           {account?.address && (
             <div className="mt-2 flex flex-wrap items-center gap-2">
               {userStatus.isAdmin && (
                 <Pill className="text-purple-300 bg-purple-500/20 border-purple-500/30">Admin</Pill>
-              )}
-              {userStatus.isCouncil && (
-                <Pill className="text-blue-300 bg-blue-500/20 border-blue-500/30">Council</Pill>
               )}
               {userStatus.isMember && (
                 <Pill className="text-green-300 bg-green-500/20 border-green-500/30">Member</Pill>
@@ -1472,13 +1455,13 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
               {!userStatus.isMember && userStatus.isStaker && (
                 <Pill className="text-yellow-300 bg-yellow-500/20 border-yellow-500/30">Staker</Pill>
               )}
-              {!userStatus.isAdmin && !userStatus.isCouncil && !userStatus.isMember && (
+              {!userStatus.isAdmin && !userStatus.isMember && (
                 <Pill className="text-gray-300 bg-gray-500/20 border-gray-500/30">Guest</Pill>
               )}
             </div>
           )}
         </div>
-        <div className="flex items-center space-x-3 w-full sm:w-auto justify-end">
+        <div className="flex items-center space-x-3 w-full lg:w-auto justify-end flex-shrink-0">
           <button
             onClick={() => fetchProposals(true)}
             disabled={isLoading}
@@ -1491,7 +1474,6 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
               const canCreate = userStatus.isAdmin || stakeRequirements.canPropose; // ABI: admin OR can_create_proposal
               const isAdmin = userStatus.isAdmin;
               const isMember = userStatus.isMember;
-              const isCouncil = userStatus.isCouncil;
               let tooltip = 'Create a new governance proposal';
               let label = 'New Proposal';
               if (!canCreate) {
@@ -1508,9 +1490,6 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
                       label = 'Not Eligible';
                       tooltip = `Stake ≥ ${stakeRequirements.minStakeToPropose.toFixed(2)} MOVE to propose. Your stake: ${stakeRequirements.userCurrentStake.toFixed(2)} MOVE.`;
                     }
-                    if (isCouncil) {
-                      tooltip += ' (Council alone does not grant proposal creation per contract)';
-                    }
                   }
                 }
               }
@@ -1520,15 +1499,16 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
                     onClick={() => canCreate && setShowCreateForm(true)}
                     disabled={!canCreate}
                     title={tooltip}
-                    className={`flex items-center space-x-2 px-4 py-2 font-medium text-sm transition-all rounded-[11px] w-full h-full border ${
+                    className={`flex items-center space-x-2 px-4 py-2 font-semibold text-sm transition-all rounded-[11px] w-full h-full border ${
                       canCreate
-                        ? 'text-gray-900 dark:text-white bg-transparent dark:bg-transparent border-gray-300 dark:border-white/20 hover:bg-transparent dark:hover:bg-transparent'
+                        ? 'bg-transparent text-gray-900 border-gray-900 hover:bg-transparent'
                         : 'cursor-not-allowed text-gray-500 dark:text-gray-400 bg-transparent dark:bg-transparent border-gray-300 dark:border-white/15'
                     }`}
-            >
-              <Plus className="w-4 h-4" />
+                    style={canCreate && isDark ? { color: '#ffffff', borderColor: '#ffffff' } : undefined}
+                  >
+                    <Plus className={`w-4 h-4 ${canCreate ? (isDark ? 'text-white' : 'text-gray-900') : ''}`} />
                     <span>{label}</span>
-            </button>
+                  </button>
                 </div>
               );
             })()}
@@ -1694,37 +1674,37 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             </button>
                 </div>
 
-          {/* Comprehensive Proposal Requirements Notice */}
-          <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+          {/* Comprehensive Proposal Requirements Notice - themed */}
+          <div className="professional-card mb-6 p-4 rounded-xl">
             <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-amber-400 mt-0.5 flex-shrink-0" />
+              <AlertCircle className="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" />
               <div className="space-y-2">
-                <h3 className="text-amber-300 font-semibold">Important Requirements & Fees</h3>
+                <h3 className="text-white font-semibold">Important Requirements & Fees</h3>
                 <div className="text-sm text-gray-300 space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
-                    <span><strong className="text-amber-200">Proposal Fee:</strong> 0.01 MOVE tokens (anti-spam fee)</span>
+                    <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></span>
+                    <span><strong className="text-gray-100">Proposal Fee:</strong> 0.01 MOVE tokens (anti-spam fee)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
-                    <span><strong className="text-amber-200">Gas Fees:</strong> ~0.5 MOVE for transaction</span>
+                    <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></span>
+                    <span><strong className="text-gray-100">Gas Fees:</strong> ~0.5 MOVE for transaction</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
-                    <span><strong className="text-amber-200">Cooldown:</strong> 24 hours between proposals</span>
+                    <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></span>
+                    <span><strong className="text-gray-100">Cooldown:</strong> 24 hours between proposals</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 bg-amber-400 rounded-full"></span>
-                    <span><strong className="text-amber-200">Total Needed:</strong> At least 0.51 MOVE in wallet</span>
+                    <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></span>
+                    <span><strong className="text-gray-100">Total Needed:</strong> At least 0.51 MOVE in wallet</span>
                   </div>
                 </div>
                 {/* User Wallet Balance Status */}
-                <div className="mt-3 p-3 bg-gray-800/50 rounded-lg border border-gray-600/30">
+                <div className="mt-3 p-3 professional-card rounded-lg">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-300">Your Wallet Balance:</span>
                     <div className="flex items-center gap-3">
                       {balanceLoading ? (
-                        <span className="text-gray-400 font-mono">Loading...</span>
+                        <span className="text-gray-400 font-mono"></span>
                       ) : (
                         <>
                           <span className={`font-mono font-bold ${
@@ -1764,10 +1744,10 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
             </div>
                 </div>
 
-          {/* Stake Requirements Info */}
+          {/* Stake Requirements Info - themed */}
           {stakeRequirements.minStakeToPropose > 0 && (
-            <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-              <h3 className="text-blue-300 font-medium mb-2">Proposal Creation Requirements</h3>
+            <div className="professional-card mb-6 p-4 rounded-xl">
+              <h3 className="text-white font-medium mb-2">Proposal Creation Requirements</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                     <div>
                   <span className="text-gray-400">Your Current Stake:</span>
@@ -1841,11 +1821,11 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
                   onChange={(e) => setNewProposal({...newProposal, category: e.target.value})}
                   className="professional-input w-full px-3 py-2 rounded-xl text-sm"
                 >
-                  <option value="general">General</option>
-                  <option value="governance">Governance</option>
-                  <option value="treasury">Treasury</option>
-                  <option value="technical">Technical</option>
-                  <option value="community">Community</option>
+                  <option value="general" className={isDark ? 'text-white bg-[#121214]' : 'text-gray-900 bg-white'} style={isDark ? { backgroundColor: '#121214', color: '#ffffff' } : { backgroundColor: '#ffffff', color: '#0f172a' }}>General</option>
+                  <option value="governance" className={isDark ? 'text-white bg-[#121214]' : 'text-gray-900 bg-white'} style={isDark ? { backgroundColor: '#121214', color: '#ffffff' } : { backgroundColor: '#ffffff', color: '#0f172a' }}>Governance</option>
+                  <option value="treasury" className={isDark ? 'text-white bg-[#121214]' : 'text-gray-900 bg-white'} style={isDark ? { backgroundColor: '#121214', color: '#ffffff' } : { backgroundColor: '#ffffff', color: '#0f172a' }}>Treasury</option>
+                  <option value="technical" className={isDark ? 'text-white bg-[#121214]' : 'text-gray-900 bg-white'} style={isDark ? { backgroundColor: '#121214', color: '#ffffff' } : { backgroundColor: '#ffffff', color: '#0f172a' }}>Technical</option>
+                  <option value="community" className={isDark ? 'text-white bg-[#121214]' : 'text-gray-900 bg-white'} style={isDark ? { backgroundColor: '#121214', color: '#ffffff' } : { backgroundColor: '#ffffff', color: '#0f172a' }}>Community</option>
                 </select>
               </div>
 
@@ -1908,31 +1888,31 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
               </div>
 
             <div className="flex justify-end space-x-3">
-                <button
-                  onClick={handleCreateProposal}
+              <button
+                onClick={handleCreateProposal}
                 disabled={isCreating || !newProposal.title || !newProposal.description || !newProposal.startTime || !newProposal.endTime}
-                className={`px-6 py-2 rounded-xl text-sm font-medium transition-all ${
+                className={`px-6 py-2 rounded-xl text-sm font-semibold transition-all ${
                   isCreating || !newProposal.title || !newProposal.description || !newProposal.startTime || !newProposal.endTime
-                    ? 'bg-gray-600 text-gray-300 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                    ? 'bg-yellow-400/60 text-black cursor-not-allowed'
+                    : 'bg-yellow-400 hover:bg-yellow-500 text-black'
                 }`}
-                >
-                  {isCreating ? 'Creating...' : 'Create Proposal'}
-                </button>
-                <button
-                  onClick={() => setShowCreateForm(false)}
-                  className="px-4 py-2 border border-white/20 text-white rounded-xl text-sm hover:bg-white/5"
-                >
-                  Cancel
-                </button>
-              </div>
+              >
+                {isCreating ? 'Creating...' : 'Create Proposal'}
+              </button>
+              <button
+                onClick={() => setShowCreateForm(false)}
+                className="px-5 py-2 rounded-xl text-sm font-semibold bg-white/10 text-gray-300 hover:bg-white/15 border border-white/15"
+              >
+                Cancel
+              </button>
+            </div>
             </div>
           </div>
       )}
 
       {/* Proposals List (compact rows) */}
       {sectionLoader.isLoading && proposals.length === 0 ? (
-        <div className="text-xs text-blue-300 px-2">Loading...</div>
+        <div></div>
       ) : filteredProposals.length === 0 ? (
         <div className="text-center py-12">
           {proposals.length > 0 ? (

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Upload, Plus, X, Sparkles, Shield, Settings, DollarSign, Clock, Users } from 'lucide-react';
+import { ArrowLeft, Upload, Plus, X, Sparkles, Shield, Settings, DollarSign, Clock, Users, CheckCircle2 } from 'lucide-react';
 import { useWallet } from '@razorlabs/razorkit';
 import { useCreateDAO, useCheckSubnameAvailability } from '../useServices/useDAOCore';
 import { useAlert } from './alert/AlertContext';
@@ -20,14 +20,21 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
     background: null as File | null,
     logoUrl: '',
     backgroundUrl: '',
-    useUrls: false
+    useUrls: false,
+    xLink: '',
+    discordLink: '',
+    telegramLink: '',
+    website: '',
+    category: ''
   });
 
-  const [councils, setCouncils] = useState<string[]>(['']);
   const [errors, setErrors] = useState<{[key: string]: string}>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [transactionHash, setTransactionHash] = useState('');
   const { showAlert } = useAlert();
+  const [showSuccessModal, setShowSuccessModal] = useState<null | { title: string; message: string }>(null);
+
+  // Removed preview success helper
 
   // Wallet and blockchain integration
   const { account } = useWallet();
@@ -36,32 +43,21 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
 
   const steps = [
     { id: 1, title: 'Basic Info', icon: Sparkles },
-    { id: 2, title: 'Council Members', icon: Users },
-    { id: 3, title: 'Governance', icon: Settings },
-    { id: 4, title: 'Review', icon: Shield },
+    { id: 2, title: 'Governance', icon: Settings },
+    { id: 3, title: 'Review', icon: Shield },
   ];
-
-  const addCouncilMember = () => {
-    setCouncils([...councils, '']);
-  };
-
-  const removeCouncilMember = (index: number) => {
-    if (councils.length > 1) {
-      setCouncils(councils.filter((_, i) => i !== index));
-    }
-  };
 
   // Validate subname availability
   const validateSubname = async (subname: string): Promise<string | null> => {
     if (!subname.trim()) return 'Subname is required';
     if (subname.length < 3) return 'Subname must be at least 3 characters';
     if (subname.length > 50) return 'Subname must be less than 50 characters';
-    
+
     // Check if subname contains only allowed characters (letters, numbers, hyphens)
     if (!/^[a-zA-Z0-9-]+$/.test(subname)) {
       return 'Subname can only contain letters, numbers, and hyphens';
     }
-    
+
     try {
       const result = await checkSubname(subname);
       if (!result.isAvailable) {
@@ -72,20 +68,6 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
       console.warn('Failed to check subname availability:', error);
       return 'Unable to verify subname availability. Please try again.';
     }
-  };
-
-  const updateCouncilMember = (index: number, value: string) => {
-    const newCouncils = [...councils];
-    newCouncils[index] = value;
-    setCouncils(newCouncils);
-  };
-
-  // Normalize Aptos address to 0x + 64 hex (pads leading zeros)
-  const normalizeAptosAddress = (addr: string): string => {
-    if (!addr) return addr;
-    const hex = addr.toLowerCase().startsWith('0x') ? addr.slice(2) : addr;
-    const cleaned = hex.replace(/[^a-f0-9]/g, '');
-    return '0x' + cleaned.padStart(64, '0');
   };
 
   // Aggressive but quality-preserving compression for blockchain storage
@@ -255,7 +237,7 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
 
   const validateStep = (step: number): boolean => {
     const newErrors: {[key: string]: string} = {};
-    
+
     switch (step) {
       case 1:
         if (!formData.name.trim()) newErrors.name = 'DAO name is required';
@@ -266,7 +248,7 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
         if (!formData.description.trim()) newErrors.description = 'Description is required';
         if (formData.description.trim().length < 10) newErrors.description = 'Description must be at least 10 characters';
         if (formData.description.length > 500) newErrors.description = 'Description must be less than 500 characters';
-        
+
         // Validate images based on mode
         if (formData.useUrls) {
           if (!formData.logoUrl.trim()) newErrors.logoUrl = 'Logo URL is required';
@@ -280,73 +262,25 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
           } catch { newErrors.backgroundUrl = 'Invalid background URL format'; }
         }
         break;
-        
+
       case 2:
-        const validCouncils = councils.filter(c => c.trim());
-        if (validCouncils.length === 0) newErrors.councils = 'At least one council member is required';
-        if (validCouncils.length > 10) newErrors.councils = 'Maximum 10 council members allowed';
-        
-        // Validate address format and duplicates
-        const normalized = validCouncils.map(normalizeAptosAddress);
-        const dupCheck = new Set<string>();
-        normalized.forEach((addr, i) => {
-          if (dupCheck.has(addr)) {
-            newErrors.councils = 'Duplicate council addresses are not allowed';
-          }
-          dupCheck.add(addr);
-        });
-        councils.forEach((council, index) => {
-          if (council.trim() && !council.match(/^0x[a-fA-F0-9]{64}$/)) {
-            newErrors[`council_${index}`] = 'Invalid address format';
-          }
-        });
-        break;
-        
-      case 3:
         const minStake = parseFloat(formData.minimumStake || '6');
         if (isNaN(minStake) || minStake < 6 || minStake > 10000) {
           newErrors.minimumStake = 'Minimum stake must be between 6 and 10,000 Move tokens';
         }
         break;
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // Test function for debugging serialization issues
-  const handleTestTransaction = async () => {
-    if (!account) {
-      showAlert('Please connect your wallet to test transaction', 'error');
-      setErrors({...errors, submit: 'Please connect your wallet to test transaction'});
-      return;
-    }
-    
-    setIsSubmitting(true);
-    setErrors({});
-    setTransactionHash('');
-    
-    try {
-      console.log('🧪 Testing minimal transaction...');
-      const result = await testMinimalTransaction();
-      
-      showAlert('✅ Test transaction successful! Serialization is working.', 'success');
-    } catch (error) {
-      console.error('❌ Test transaction failed:', error);
-      showAlert(`Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-      setErrors({
-        ...errors, 
-        submit: `Test failed: ${error instanceof Error ? error.message : 'Unknown error'}`
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  // Removed test transaction feature
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateStep(4)) return;
+
+    if (!validateStep(3)) return;
     
     if (!account) {
       showAlert('Please connect your wallet to create a DAO', 'error');
@@ -363,24 +297,25 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
       if (formData.useUrls) {
         // URL-based creation - much faster!
         console.log('🔄 Creating DAO with URLs (fast mode)...');
-        
-        const validCouncils = councils.filter(c => c.trim());
-        const normalizedCouncils = validCouncils.map(normalizeAptosAddress);
-        
+
         const createDAOParams = {
           name: formData.name.trim(),
           subname: formData.subname.trim(),
           description: formData.description.trim(),
           logoUrl: formData.logoUrl.trim(),
           backgroundUrl: formData.backgroundUrl.trim(),
-          initialCouncil: normalizedCouncils,
-          minStakeToJoin: Math.round(parseFloat(formData.minimumStake || '6') * 1000000)
+          minStakeToJoin: Math.round(parseFloat(formData.minimumStake || '6') * 1000000),
+          xLink: formData.xLink.trim(),
+          discordLink: formData.discordLink.trim(),
+          telegramLink: formData.telegramLink.trim(),
+          website: formData.website.trim(),
+          category: formData.category.trim()
         };
-        
+
         console.log('🔄 Creating DAO with URLs:', createDAOParams);
-        
+
         const result = await createDAOWithUrls(createDAOParams);
-        
+
         // Extract transaction hash
         let txHash = ''
         if (result && typeof result === 'object') {
@@ -388,15 +323,15 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
             txHash = String(result.hash)
           }
         }
-        
+
         if (txHash) {
           setTransactionHash(txHash)
         }
-        
-        showAlert(
-          `✅ DAO "${formData.name}" created successfully with URLs! 🏛️ Your DAO is now live with ${validCouncils.length} council members. 💰 Minimum stake: ${parseFloat(formData.minimumStake || '6').toFixed(1)} Move tokens ⚡ Created using URL mode for optimal speed!`,
-          'success'
-        );
+
+        setShowSuccessModal({
+          title: 'All done',
+          message: `DAO "${formData.name}" created successfully`,
+        });
 
         // Optimistically broadcast a lightweight DAO object so list updates instantly
         try {
@@ -445,30 +380,26 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
 
       const logoBytes = await ensureImageLimit(formData.logo, 1_048_576, 'logo');
       const backgroundBytes = await ensureImageLimit(formData.background, 5_242_880, 'background');
-      
+
       console.log('📊 Compressed bytes:', {
         logoBytes: logoBytes.length,
         backgroundBytes: backgroundBytes.length,
         totalSize: logoBytes.length + backgroundBytes.length,
         gasSavings: 'Major savings from compression!'
       });
-      
-      const validCouncils = councils.filter(c => c.trim());
-      const normalizedCouncils = validCouncils.map(normalizeAptosAddress);
-      // Final duplicate guard
-      const unique = new Set(normalizedCouncils.map(a => a.toLowerCase()));
-      if (unique.size !== normalizedCouncils.length) {
-        throw new Error('Duplicate council addresses detected. Please ensure each council member address is unique.');
-      }
-      
+
       const createDAOParams = {
         name: formData.name.trim(),
         subname: formData.subname.trim(),
         description: formData.description.trim(),
         logo: new Uint8Array(logoBytes),
         background: new Uint8Array(backgroundBytes),
-        initialCouncil: normalizedCouncils,
-        minStakeToJoin: Math.round(parseFloat(formData.minimumStake || '6') * 1000000)
+        minStakeToJoin: Math.round(parseFloat(formData.minimumStake || '6') * 1000000),
+        xLink: formData.xLink.trim(),
+        discordLink: formData.discordLink.trim(),
+        telegramLink: formData.telegramLink.trim(),
+        website: formData.website.trim(),
+        category: formData.category.trim()
       };
       
       console.log('📋 Final DAO params with compressed images:', {
@@ -500,10 +431,10 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
         console.log('📋 Transaction hash extracted:', txHash)
       }
       
-        showAlert(
-          `✅ DAO "${formData.name}" created successfully on Movement Network! 🏛️ Your DAO is now live with ${validCouncils.length} council members. 💰 Minimum stake: ${parseFloat(formData.minimumStake || '6').toFixed(1)} Move tokens`,
-          'success'
-        );
+        setShowSuccessModal({
+          title: 'All done',
+          message: `DAO "${formData.name}" created successfully`,
+        });
 
         // Optimistic broadcast for binary mode as well (no URLs available; images will resolve after refetch)
         try {
@@ -540,9 +471,13 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
           background: null,
           logoUrl: '',
           backgroundUrl: '',
-          useUrls: false
+          useUrls: false,
+          xLink: '',
+          discordLink: '',
+          telegramLink: '',
+          website: '',
+          category: ''
         });
-        setCouncils(['']);
         setCurrentStep(1);
       }, 3000);
       
@@ -631,6 +566,57 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
                     {errors.description && <p className="text-red-400 text-sm">{errors.description}</p>}
                     <p className="text-gray-500 text-sm ml-auto">{formData.description.length}/500</p>
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Category (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.category}
+                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    className="professional-input w-full px-4 py-3 rounded-xl"
+                    placeholder="e.g., DeFi, NFT, Gaming, Social, etc."
+                  />
+                  <p className="text-gray-500 text-sm mt-1">Enter the category that best describes your DAO</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Social Links (Optional)
+                  </label>
+                  <div className="space-y-3">
+                    <input
+                      type="url"
+                      value={formData.xLink}
+                      onChange={(e) => setFormData({...formData, xLink: e.target.value})}
+                      className="professional-input w-full px-4 py-3 rounded-xl"
+                      placeholder="X (Twitter) URL - https://x.com/yourDAO"
+                    />
+                    <input
+                      type="url"
+                      value={formData.discordLink}
+                      onChange={(e) => setFormData({...formData, discordLink: e.target.value})}
+                      className="professional-input w-full px-4 py-3 rounded-xl"
+                      placeholder="Discord URL - https://discord.gg/yourDAO"
+                    />
+                    <input
+                      type="url"
+                      value={formData.telegramLink}
+                      onChange={(e) => setFormData({...formData, telegramLink: e.target.value})}
+                      className="professional-input w-full px-4 py-3 rounded-xl"
+                      placeholder="Telegram URL - https://t.me/yourDAO"
+                    />
+                    <input
+                      type="url"
+                      value={formData.website}
+                      onChange={(e) => setFormData({...formData, website: e.target.value})}
+                      className="professional-input w-full px-4 py-3 rounded-xl"
+                      placeholder="Website URL - https://yourdao.com"
+                    />
+                  </div>
+                  <p className="text-gray-500 text-sm mt-1">Add social media links and website for your DAO</p>
                 </div>
                 
                 <div className="grid grid-cols-1 gap-6">
@@ -768,69 +754,6 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
           <div className="space-y-6">
             <div className="professional-card rounded-xl p-6">
               <h3 className="text-xl font-bold text-white mb-6 flex items-center space-x-2">
-                <Users className="w-5 h-5 text-blue-400" />
-                <span>Council Members</span>
-              </h3>
-              <p className="text-gray-400 mb-6">
-                Add Aptos addresses for your initial council members. They will have governance rights in your DAO.
-              </p>
-              
-              <div className="space-y-4">
-                {councils.map((council, index) => (
-                  <div key={index} className="flex items-center space-x-4">
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={council}
-                        onChange={(e) => updateCouncilMember(index, e.target.value)}
-                        className={`professional-input w-full px-4 py-3 rounded-xl ${errors[`council_${index}`] ? 'border-red-500' : ''}`}
-                        placeholder="0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
-                      />
-                      {errors[`council_${index}`] && (
-                        <p className="text-red-400 text-sm mt-1">{errors[`council_${index}`]}</p>
-                      )}
-                    </div>
-                    {councils.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeCouncilMember(index)}
-                        className="p-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-all"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-              
-              {errors.councils && <p className="text-red-400 text-sm mt-4">{errors.councils}</p>}
-              
-              {councils.length < 10 && (
-                <button
-                  type="button"
-                  onClick={addCouncilMember}
-                  className="flex items-center space-x-2 px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-300 rounded-xl text-sm font-medium border border-indigo-500/30 transition-all mt-6"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Council Member</span>
-                </button>
-              )}
-              
-              <div className="mt-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-                <p className="text-blue-300 text-sm">
-                  <strong>Tip:</strong> Council members will be able to create proposals and vote on governance decisions. 
-                  You can have 1-10 council members. Consider starting with trusted community members.
-                </p>
-              </div>
-            </div>
-          </div>
-        );
-        
-      case 3:
-        return (
-          <div className="space-y-6">
-            <div className="professional-card rounded-xl p-6">
-              <h3 className="text-xl font-bold text-white mb-6 flex items-center space-x-2">
                 <Settings className="w-5 h-5 text-purple-400" />
                 <span>Governance Settings</span>
               </h3>
@@ -869,8 +792,7 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
           </div>
         );
         
-      case 4:
-        const validCouncils = councils.filter(c => c.trim());
+      case 3:
         return (
           <div className="space-y-6">
             <div className="professional-card rounded-xl p-6">
@@ -888,6 +810,7 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
                         <p><span className="text-gray-400">Name:</span> <span className="text-white">{formData.name}</span></p>
                         <p><span className="text-gray-400">Subname:</span> <span className="text-white">{formData.subname}</span></p>
                         <p><span className="text-gray-400">Description:</span> <span className="text-white">{formData.description.substring(0, 100)}{formData.description.length > 100 ? '...' : ''}</span></p>
+                        <p><span className="text-gray-400">Category:</span> <span className="text-white">{formData.category}</span></p>
                         <p><span className="text-gray-400">Image Mode:</span> <span className="text-white">{formData.useUrls ? 'URLs (Fast)' : 'Uploaded Files'}</span></p>
                         {formData.useUrls ? (
                           <>
@@ -902,6 +825,16 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
                         )}
                       </div>
                     </div>
+
+                    <div>
+                      <h4 className="text-lg font-semibold text-white mb-2">Social Links</h4>
+                      <div className="space-y-2 text-sm">
+                        <p><span className="text-gray-400">X (Twitter):</span> <span className="text-white">{formData.xLink || 'Not provided'}</span></p>
+                        <p><span className="text-gray-400">Discord:</span> <span className="text-white">{formData.discordLink || 'Not provided'}</span></p>
+                        <p><span className="text-gray-400">Telegram:</span> <span className="text-white">{formData.telegramLink || 'Not provided'}</span></p>
+                        <p><span className="text-gray-400">Website:</span> <span className="text-white">{formData.website || 'Not provided'}</span></p>
+                      </div>
+                    </div>
                     
                     <div>
                       <h4 className="text-lg font-semibold text-white mb-2">Governance</h4>
@@ -912,24 +845,9 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
                     </div>
                   </div>
                   
-                  <div>
-                    <h4 className="text-lg font-semibold text-white mb-2">Council Members ({validCouncils.length})</h4>
-                    <div className="space-y-2 max-h-48 overflow-y-auto">
-                      {validCouncils.map((council, index) => (
-                        <div key={index} className="text-sm font-mono text-gray-300 bg-white/5 p-2 rounded">
-                          {council.length > 20 ? `${council.substring(0, 20)}...${council.substring(council.length - 20)}` : council}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
                 </div>
                 
-                <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
-                  <p className="text-yellow-300 text-sm">
-                    <strong>Important:</strong> Once created, your DAO will be deployed to the Aptos blockchain. 
-                    Make sure all information is correct as some settings can only be changed through governance proposals.
-                  </p>
-                </div>
+                
               </div>
             </div>
           </div>
@@ -942,6 +860,18 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-8">
+      {showSuccessModal && (
+        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4" style={{ backgroundColor: 'transparent' }} onClick={() => setShowSuccessModal(null)}>
+          <div className="rounded-xl p-6 w-full max-w-sm border shadow-2xl bg-[#0f0f11] border-white/10 text-center" onClick={(e)=>e.stopPropagation()}>
+            <div className="w-16 h-16 bg-green-500/20 rounded-full mx-auto mb-4 flex items-center justify-center">
+              <CheckCircle2 className="w-8 h-8 text-green-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-white mb-2">{showSuccessModal.title}</h3>
+            <p className="text-white text-lg font-semibold mb-5">{showSuccessModal.message}</p>
+            <button onClick={() => setShowSuccessModal(null)} className="w-full h-11 px-6 rounded-xl font-semibold bg-white/10 text-gray-300 border border-white/10 hover:bg-white/15 transition-colors">OK, Close</button>
+          </div>
+        </div>
+      )}
       <div className="relative mb-8">
         {/* Mobile: Back button absolute positioned, content centered */}
         <div className="sm:hidden">
@@ -1118,7 +1048,7 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
             {currentStep === 1 ? 'Cancel' : 'Previous'}
           </button>
           
-          {currentStep < 4 ? (
+          {currentStep < 3 ? (
             <button
               type="button"
               onClick={() => {
@@ -1138,16 +1068,6 @@ const CreateDAO: React.FC<CreateDAOProps> = ({ onBack }) => {
             </button>
           ) : (
             <div className="flex gap-3 order-1 sm:order-2">
-              {/* Test button for debugging serialization */}
-              <button
-                type="button"
-                onClick={handleTestTransaction}
-                disabled={isSubmitting}
-                className="px-6 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-xl font-medium disabled:opacity-50 flex items-center space-x-2"
-              >
-                🧪 Test Transaction
-              </button>
-              
               {/* Main Create DAO button */}
               <button
                 type="submit"

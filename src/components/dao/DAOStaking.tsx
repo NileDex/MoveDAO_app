@@ -115,42 +115,36 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
   const refreshOnChain = async () => {
     // Refresh DAO-specific aggregated data (total staked, staker count)
     try {
+      // Kick off independent reads in parallel for speed
+      const totalStakedPromise = aptosClient
+        .view({ payload: { function: `${MODULE_ADDRESS}::staking::get_total_staked`, functionArguments: [dao.id] } })
+        .then(res => toMOVE(Number(res?.[0] || 0)))
+        .catch(() => 0);
 
-      // Total staked via view
-      try {
-        const totalStakedRes = await aptosClient.view({ payload: { function: `${MODULE_ADDRESS}::staking::get_total_staked`, functionArguments: [dao.id] } });
-        const totalStaked = toMOVE(Number(totalStakedRes?.[0] || 0));
-        setTotalStakedInDAO(totalStaked);
-      } catch (e) {
-        console.warn('get_total_staked view failed:', e);
-        setTotalStakedInDAO(0);
-      }
+      const registryPromise = aptosClient
+        .getAccountResource({ accountAddress: dao.id, resourceType: `${MODULE_ADDRESS}::staking::StakerRegistry` })
+        .then((registryRes: any) => Number(registryRes?.data?.total_stakers ?? 0))
+        .catch(() => null);
 
-      // Staker count from on-chain resource (function may not be a view)
-      try {
-        const registryRes = await aptosClient.getAccountResource({
-          accountAddress: dao.id,
-          resourceType: `${MODULE_ADDRESS}::staking::StakerRegistry`,
-        });
-        const totalStakersVal = Number((registryRes as any)?.data?.total_stakers ?? 0);
-        setTotalStakers(totalStakersVal);
-      } catch (e) {
-        console.warn('StakerRegistry read failed, defaulting to 0:', e);
-        // Fallback attempt via view if available (older/newer ABIs)
-        try {
-          const stakerCountRes = await aptosClient.view({ payload: { function: `${MODULE_ADDRESS}::staking::get_staker_count`, functionArguments: [dao.id] } });
-          setTotalStakers(Number(stakerCountRes?.[0] || 0));
-        } catch {
-          setTotalStakers(0);
-        }
+      const [totalStakedVal, registryStakers] = await Promise.all([totalStakedPromise, registryPromise]);
+      setTotalStakedInDAO(totalStakedVal);
+
+      if (registryStakers === null) {
+        // Fallback via view
+        const stakerCountRes = await aptosClient
+          .view({ payload: { function: `${MODULE_ADDRESS}::staking::get_staker_count`, functionArguments: [dao.id] } })
+          .catch(() => null);
+        setTotalStakers(stakerCountRes ? Number(stakerCountRes?.[0] || 0) : 0);
+      } else {
+        setTotalStakers(registryStakers);
       }
 
       // Refresh user-specific data through the persistent state system
       await refreshMembership();
 
-      // Rewards: total claimable and claimed (Octas → MOVE)
-      try {
-        if (account?.address) {
+      // Rewards in parallel as well
+      if (account?.address) {
+        try {
           const [claimableRes, claimedRes] = await Promise.all([
             aptosClient.view({ payload: { function: `${MODULE_ADDRESS}::rewards::get_total_claimable`, functionArguments: [dao.id, account.address] } }),
             aptosClient.view({ payload: { function: `${MODULE_ADDRESS}::rewards::get_total_claimed`, functionArguments: [dao.id, account.address] } }),
@@ -158,12 +152,12 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
           const totalClaimable = BalanceService.octasToMove(Number(claimableRes?.[0] || 0));
           const totalClaimed = BalanceService.octasToMove(Number(claimedRes?.[0] || 0));
           setRewardsState(prev => ({ ...prev, totalClaimable, totalClaimed }));
-        } else {
-          setRewardsState(prev => ({ ...prev, totalClaimable: 0, totalClaimed: 0 }));
+        } catch (e) {
+          console.warn('Failed to refresh rewards state:', e);
+          setRewardsState(prev => ({ ...prev, totalClaimable: 0 }));
         }
-      } catch (e) {
-        console.warn('Failed to refresh rewards state:', e);
-        setRewardsState(prev => ({ ...prev, totalClaimable: 0 }));
+      } else {
+        setRewardsState(prev => ({ ...prev, totalClaimable: 0, totalClaimed: 0 }));
       }
     } catch (e) {
       console.warn('Failed to refresh staking state (non-fatal):', e);
@@ -187,6 +181,16 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
     } catch (e) {
       setStakingReady(false);
     }
+
+    // Persist fresh snapshot to session cache for instant tab switches
+    try {
+      stakingSessionCache.set(dao.id, {
+        totalStakedInDAO,
+        totalStakers,
+        independentMinStake,
+        timestamp: Date.now()
+      });
+    } catch {}
   };
 
   // Fetch MOVE price from CoinGecko
@@ -248,6 +252,45 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
       });
     }
   }, [dao.id]); // Removed account?.address dependency to prevent refetching
+
+  // Background refresh on window focus if cache is stale
+  useEffect(() => {
+    const onFocus = () => {
+      const cached = stakingSessionCache.get(dao.id);
+      const now = Date.now();
+      if (!cached || (now - cached.timestamp) > SESSION_TTL_MS) {
+        refreshOnChain();
+      }
+      // Always refresh wallet balance when window regains focus for real-time top-ups
+      refreshBalance();
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [dao.id]);
+
+  // Periodic background refresh (no loader)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      refreshOnChain();
+    }, 60000);
+    return () => clearInterval(interval);
+  }, [dao.id]);
+
+  // High-frequency wallet balance refresher (does not touch staking cache)
+  // Ensures immediate reflection of externally received funds without a full page refresh
+  useEffect(() => {
+    // Only run when an account is connected
+    if (!account?.address) return;
+    const refresh = () => refreshBalance().catch(() => {});
+    const id = setInterval(refresh, 10000); // 10 seconds cadence for wallet balance only
+    const onVisibility = () => { if (document.visibilityState === 'visible') refresh(); };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account?.address]);
 
   // Lightweight readiness checker to absorb indexer lag
   const checkStakingReadiness = async () => {
@@ -408,6 +451,10 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
           gas_unit_price: "100"
         }
       } as any);
+      if (!tx || !(tx as any).hash) {
+        setErrors({ stake: 'Transaction cancelled' });
+        return;
+      }
       if (tx && (tx as any).hash) {
         await aptosClient.waitForTransaction({ transactionHash: (tx as any).hash, options: { checkSuccess: true } });
       }
@@ -503,6 +550,10 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
           gas_unit_price: "100"
         }
       } as any);
+      if (!tx || !(tx as any).hash) {
+        setErrors({ unstake: 'Transaction cancelled' });
+        return;
+      }
       if (tx && (tx as any).hash) {
         await aptosClient.waitForTransaction({ transactionHash: (tx as any).hash, options: { checkSuccess: true } });
       }
@@ -561,6 +612,10 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
         functionArguments: [dao.id],
       };
       const tx = await signAndSubmitTransaction({ payload } as any);
+      if (!tx || !(tx as any).hash) {
+        setErrors({ stake: 'Transaction cancelled' });
+        return;
+      }
       if (tx && (tx as any).hash) {
         await aptosClient.waitForTransaction({ transactionHash: (tx as any).hash, options: { checkSuccess: true } });
       }
@@ -586,6 +641,10 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
         functionArguments: [dao.id],
       };
       const tx = await signAndSubmitTransaction({ payload } as any);
+      if (!tx || !(tx as any).hash) {
+        setErrors({ stake: 'Transaction cancelled' });
+        return;
+      }
       if (tx && (tx as any).hash) {
         await aptosClient.waitForTransaction({ transactionHash: (tx as any).hash, options: { checkSuccess: true } });
       }
@@ -755,11 +814,7 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
 
   return (
     <div className="w-full px-4 space-y-6">
-      {/* Loading and Error indicators */}
-      {sectionLoader.isLoading && (
-        <div className="text-center text-sm text-blue-300 mb-4">Loading staking data...</div>
-      )}
-
+      {/* Error indicator only; loading runs silently */}
       {sectionLoader.error && (
         <div className="text-center text-sm text-red-300 mb-4 cursor-pointer" onClick={retryStakingData}>
           Error loading data - Click to retry

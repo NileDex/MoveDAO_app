@@ -89,11 +89,23 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
 
   const { account, signAndSubmitTransaction } = useWallet();
 
-  // Check if user owns Smurf NFT
+  // Check if user owns the Holders Tab Key NFT
   const { data: tradePortKeysData, isLoading: isCheckingNFT } = useTradePortKeys(account?.address);
 
-  // Lock if user doesn't have the NFT, but show content while checking
-  const isLocked = !isCheckingNFT && !tradePortKeysData?.hasNFT;
+  // Sticky lock: default to locked while checking, only unlock when explicitly confirmed
+  const [isLocked, setIsLocked] = useState<boolean>(true);
+  useEffect(() => {
+    // If no wallet, keep locked
+    if (!account?.address) {
+      setIsLocked(true);
+      return;
+    }
+    // When check completes with a definitive answer, update lock state
+    if (!isCheckingNFT && typeof tradePortKeysData?.hasNFT === 'boolean') {
+      setIsLocked(!tradePortKeysData.hasNFT);
+    }
+    // While loading, keep previous state (locked by default) to avoid flicker on tab switches
+  }, [account?.address, isCheckingNFT, tradePortKeysData?.hasNFT]);
   const OCTAS = 1e8;
   const toMOVE = (u64: number): number => u64 / OCTAS;
 
@@ -375,9 +387,6 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
           <h2 className="text-2xl font-bold text-white mb-2">Members</h2>
         </div>
         <div className="text-right">
-          {sectionLoader.isLoading && (
-            <div className="text-xs text-blue-300">Loading...</div>
-          )}
           {sectionLoader.error && (
             <div className="text-xs text-red-300">Error loading members</div>
           )}

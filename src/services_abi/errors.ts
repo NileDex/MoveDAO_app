@@ -1,5 +1,5 @@
 export const ABI = {
-  "address": "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189",
+  "address": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8",
   "name": "errors",
   "friends": [],
   "exposed_functions": [
@@ -85,17 +85,6 @@ export const ABI = {
       ]
     },
     {
-      "name": "already_whitelisted",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
       "name": "cannot_cancel",
       "visibility": "public",
       "is_entry": false,
@@ -107,29 +96,7 @@ export const ABI = {
       ]
     },
     {
-      "name": "council_member_not_found",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
       "name": "dao_already_exists",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
-      "name": "exceeds_allocation",
       "visibility": "public",
       "is_entry": false,
       "is_view": false,
@@ -206,29 +173,7 @@ export const ABI = {
       ]
     },
     {
-      "name": "insufficient_tokens",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
       "name": "insufficient_treasury",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
-      "name": "invalid_allocation",
       "visibility": "public",
       "is_entry": false,
       "is_view": false,
@@ -272,29 +217,7 @@ export const ABI = {
       ]
     },
     {
-      "name": "invalid_phase",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
       "name": "invalid_reward_amount",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
-      "name": "invalid_reward_type",
       "visibility": "public",
       "is_entry": false,
       "is_view": false,
@@ -395,28 +318,6 @@ export const ABI = {
       ]
     },
     {
-      "name": "launchpad_exists",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
-      "name": "launchpad_not_found",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
       "name": "max_members_constraint",
       "visibility": "public",
       "is_entry": false,
@@ -472,17 +373,6 @@ export const ABI = {
       ]
     },
     {
-      "name": "no_tokens_to_claim",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
       "name": "not_admin",
       "visibility": "public",
       "is_entry": false,
@@ -506,17 +396,6 @@ export const ABI = {
     },
     {
       "name": "not_authorized",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
-      "name": "not_council_member",
       "visibility": "public",
       "is_entry": false,
       "is_view": false,
@@ -552,17 +431,6 @@ export const ABI = {
     },
     {
       "name": "not_member",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
-      "name": "not_whitelisted",
       "visibility": "public",
       "is_entry": false,
       "is_view": false,
@@ -753,50 +621,6 @@ export const ABI = {
       "return": []
     },
     {
-      "name": "reward_already_claimed",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
-      "name": "reward_not_found",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
-      "name": "sale_ended",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
-      "name": "sale_not_active",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
       "name": "subname_already_exists",
       "visibility": "public",
       "is_entry": false,
@@ -831,17 +655,6 @@ export const ABI = {
     },
     {
       "name": "unauthorized",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [],
-      "return": [
-        "u64"
-      ]
-    },
-    {
-      "name": "vesting_not_started",
       "visibility": "public",
       "is_entry": false,
       "is_view": false,

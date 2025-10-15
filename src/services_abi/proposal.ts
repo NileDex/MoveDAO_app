@@ -1,5 +1,5 @@
 export const ABI = {
-  "address": "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189",
+  "address": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8",
   "name": "proposal",
   "friends": [],
   "exposed_functions": [
@@ -119,7 +119,6 @@ export const ABI = {
       "return": [
         "bool",
         "bool",
-        "bool",
         "u8",
         "u64"
       ]
@@ -160,7 +159,7 @@ export const ABI = {
         "address"
       ],
       "return": [
-        "vector<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::Proposal>"
+        "vector<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::Proposal>"
       ]
     },
     {
@@ -174,7 +173,7 @@ export const ABI = {
         "u64"
       ],
       "return": [
-        "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::Proposal"
+        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::Proposal"
       ]
     },
     {
@@ -272,6 +271,20 @@ export const ABI = {
       ]
     },
     {
+      "name": "get_proposal_voters",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "u64"
+      ],
+      "return": [
+        "vector<address>"
+      ]
+    },
+    {
       "name": "get_proposal_votes_count",
       "visibility": "public",
       "is_entry": false,
@@ -285,6 +298,23 @@ export const ABI = {
         "u64",
         "u64",
         "u64"
+      ]
+    },
+    {
+      "name": "get_proposal_votes_detailed",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address",
+        "u64"
+      ],
+      "return": [
+        "vector<address>",
+        "vector<u8>",
+        "vector<u64>",
+        "vector<u64>"
       ]
     },
     {
@@ -406,7 +436,7 @@ export const ABI = {
       "is_view": false,
       "generic_type_params": [],
       "params": [
-        "&0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::ProposalStatus"
+        "&0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::ProposalStatus"
       ],
       "return": [
         "u8"
@@ -423,7 +453,6 @@ export const ABI = {
         "address"
       ],
       "return": [
-        "bool",
         "bool",
         "bool",
         "bool",
@@ -533,7 +562,7 @@ export const ABI = {
       "is_view": false,
       "generic_type_params": [],
       "params": [
-        "&0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::VoteType"
+        "&0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::VoteType"
       ],
       "return": [
         "u8"
@@ -596,7 +625,7 @@ export const ABI = {
       "is_view": false,
       "generic_type_params": [],
       "params": [
-        "&0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::VoteType"
+        "&0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::VoteType"
       ],
       "return": [
         "bool"
@@ -609,7 +638,7 @@ export const ABI = {
       "is_view": false,
       "generic_type_params": [],
       "params": [
-        "&0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::ProposalStatus"
+        "&0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::ProposalStatus"
       ],
       "return": [
         "bool"
@@ -622,7 +651,7 @@ export const ABI = {
       "is_view": false,
       "generic_type_params": [],
       "params": [
-        "&0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::ProposalStatus"
+        "&0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::ProposalStatus"
       ],
       "return": [
         "bool"
@@ -635,7 +664,7 @@ export const ABI = {
       "is_view": false,
       "generic_type_params": [],
       "params": [
-        "&0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::ProposalStatus"
+        "&0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::ProposalStatus"
       ],
       "return": [
         "bool"
@@ -648,7 +677,7 @@ export const ABI = {
       "is_view": false,
       "generic_type_params": [],
       "params": [
-        "&0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::ProposalStatus"
+        "&0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::ProposalStatus"
       ],
       "return": [
         "bool"
@@ -661,7 +690,7 @@ export const ABI = {
       "is_view": false,
       "generic_type_params": [],
       "params": [
-        "&0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::VoteType"
+        "&0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::VoteType"
       ],
       "return": [
         "bool"
@@ -674,7 +703,7 @@ export const ABI = {
       "is_view": false,
       "generic_type_params": [],
       "params": [
-        "&0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::ProposalStatus"
+        "&0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::ProposalStatus"
       ],
       "return": [
         "bool"
@@ -715,7 +744,7 @@ export const ABI = {
       "is_view": false,
       "generic_type_params": [],
       "params": [
-        "&0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::ProposalStatus"
+        "&0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::ProposalStatus"
       ],
       "return": [
         "bool"
@@ -723,20 +752,6 @@ export const ABI = {
     },
     {
       "name": "is_user_admin",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": true,
-      "generic_type_params": [],
-      "params": [
-        "address",
-        "address"
-      ],
-      "return": [
-        "bool"
-      ]
-    },
-    {
-      "name": "is_user_council",
       "visibility": "public",
       "is_entry": false,
       "is_view": true,
@@ -770,7 +785,7 @@ export const ABI = {
       "is_view": false,
       "generic_type_params": [],
       "params": [
-        "&0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::VoteType"
+        "&0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::VoteType"
       ],
       "return": [
         "bool"
@@ -797,7 +812,7 @@ export const ABI = {
       "generic_type_params": [],
       "params": [],
       "return": [
-        "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::ProposalStatus"
+        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::ProposalStatus"
       ]
     },
     {
@@ -808,7 +823,7 @@ export const ABI = {
       "generic_type_params": [],
       "params": [],
       "return": [
-        "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::ProposalStatus"
+        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::ProposalStatus"
       ]
     },
     {
@@ -819,7 +834,7 @@ export const ABI = {
       "generic_type_params": [],
       "params": [],
       "return": [
-        "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::ProposalStatus"
+        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::ProposalStatus"
       ]
     },
     {
@@ -830,7 +845,7 @@ export const ABI = {
       "generic_type_params": [],
       "params": [],
       "return": [
-        "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::ProposalStatus"
+        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::ProposalStatus"
       ]
     },
     {
@@ -841,7 +856,7 @@ export const ABI = {
       "generic_type_params": [],
       "params": [],
       "return": [
-        "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::ProposalStatus"
+        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::ProposalStatus"
       ]
     },
     {
@@ -852,7 +867,7 @@ export const ABI = {
       "generic_type_params": [],
       "params": [],
       "return": [
-        "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::ProposalStatus"
+        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::ProposalStatus"
       ]
     },
     {
@@ -863,7 +878,7 @@ export const ABI = {
       "generic_type_params": [],
       "params": [],
       "return": [
-        "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::VoteType"
+        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::VoteType"
       ]
     },
     {
@@ -874,7 +889,7 @@ export const ABI = {
       "generic_type_params": [],
       "params": [],
       "return": [
-        "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::VoteType"
+        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::VoteType"
       ]
     },
     {
@@ -885,7 +900,7 @@ export const ABI = {
       "generic_type_params": [],
       "params": [],
       "return": [
-        "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::VoteType"
+        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::VoteType"
       ]
     }
   ],
@@ -893,6 +908,7 @@ export const ABI = {
     {
       "name": "DaoProposals",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "key"
       ],
@@ -900,7 +916,7 @@ export const ABI = {
       "fields": [
         {
           "name": "proposals",
-          "type": "vector<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::Proposal>"
+          "type": "vector<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::Proposal>"
         },
         {
           "name": "next_id",
@@ -915,6 +931,7 @@ export const ABI = {
     {
       "name": "Proposal",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "copy",
         "drop",
@@ -944,11 +961,11 @@ export const ABI = {
         },
         {
           "name": "status",
-          "type": "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::ProposalStatus"
+          "type": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::ProposalStatus"
         },
         {
           "name": "votes",
-          "type": "vector<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::Vote>"
+          "type": "vector<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::Vote>"
         },
         {
           "name": "yes_votes",
@@ -999,6 +1016,7 @@ export const ABI = {
     {
       "name": "ProposalActivatedEvent",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
@@ -1022,6 +1040,7 @@ export const ABI = {
     {
       "name": "ProposalCreatedEvent",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
@@ -1049,6 +1068,7 @@ export const ABI = {
     {
       "name": "ProposalFinalizedEvent",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
@@ -1076,6 +1096,7 @@ export const ABI = {
     {
       "name": "ProposalStatus",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "copy",
         "drop",
@@ -1092,6 +1113,7 @@ export const ABI = {
     {
       "name": "ProposalStatusChangedEvent",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
@@ -1119,6 +1141,7 @@ export const ABI = {
     {
       "name": "ProposerRecord",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "key"
       ],
@@ -1137,6 +1160,7 @@ export const ABI = {
     {
       "name": "Vote",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "copy",
         "drop",
@@ -1154,7 +1178,7 @@ export const ABI = {
         },
         {
           "name": "vote_type",
-          "type": "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::proposal::VoteType"
+          "type": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::proposal::VoteType"
         },
         {
           "name": "weight",
@@ -1169,6 +1193,7 @@ export const ABI = {
     {
       "name": "VoteCastEvent",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
@@ -1200,6 +1225,7 @@ export const ABI = {
     {
       "name": "VoteType",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "copy",
         "drop",

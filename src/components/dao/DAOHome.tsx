@@ -315,16 +315,12 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
       {/* About Section */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-base sm:text-lg md:text-lg lg:text-xl xl:text-xl 2xl:text-xl font-bold text-white flex items-center space-x-3">
-            <Info className="w-5 h-5 text-blue-400 ml-4" />
-            <span>About {dao.name}</span>
+          <h2 className="text-xl font-bold text-white">
+            About {dao.name}
           </h2>
 
           {/* Top-right status */}
           <div className="text-right">
-            {sectionLoader.isLoading && (
-              <div className="text-xs text-blue-300">Loading...</div>
-            )}
             {sectionLoader.error && (
               <div className="text-xs text-red-300 cursor-pointer" onClick={retryOverviewData}>
                 Error - Click to retry
@@ -369,7 +365,7 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
           hasPrevPage={Boolean(pagination?.hasPreviousPage)}
           onNextPage={() => setPage(p => p + 1)}
           onPrevPage={() => setPage(p => Math.max(1, p - 1))}
-          title="Recent DAO Activity"
+          title="Activity"
         />
       </div>
 

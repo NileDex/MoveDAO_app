@@ -50,13 +50,13 @@ export const useTreasury = (daoId: string) => {
       return { ...cached, isLoading: false, error: null } as TreasuryData;
     }
     return {
-      balance: 0,
-      dailyWithdrawalLimit: 0,
-      dailyWithdrawn: 0,
-      remainingDaily: 0,
-      lastWithdrawalDay: 0,
-      isLoading: true,
-      error: null
+    balance: 0,
+    dailyWithdrawalLimit: 0,
+    dailyWithdrawn: 0,
+    remainingDaily: 0,
+    lastWithdrawalDay: 0,
+    isLoading: true,
+    error: null
     };
   });
 
@@ -425,33 +425,16 @@ export const useTreasury = (daoId: string) => {
         console.log('User AptosCoin store check failed:', e);
       }
       
-      // Ensure user has AptosCoin registered
+      // Ensure user has AptosCoin store; if missing, skip on-chain registration here
+      // Some networks/wallets do not expose an entry function for coin registration.
+      // In such cases, receiving any amount of MOVE auto-creates the store.
       try {
         await aptosClient.getAccountResource({
           accountAddress: account.address,
           resourceType: `0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>`,
         });
-      } catch {
-        // Register AptosCoin only if not already registered
-        try {
-          const registerPayload = {
-            function: `0x1::coin::register`,
-            typeArguments: ["0x1::aptos_coin::AptosCoin"],
-            functionArguments: [],
-          };
-          const regTx = await signAndSubmitTransaction({ payload: registerPayload } as any);
-          if (regTx && (regTx as any).hash) {
-            await aptosClient.waitForTransaction({ 
-              transactionHash: (regTx as any).hash, 
-              options: { checkSuccess: true } 
-            });
-          }
-        } catch (regError: any) {
-          // Ignore "already exists" error for AptosCoin registration
-          if (!regError.message?.includes('0x8') && !regError.message?.includes('already_exists')) {
-            throw regError;
-          }
-        }
+      } catch (e) {
+        console.log('AptosCoin store not found; skipping in-app registration.');
       }
 
       // Get treasury object - try from state first, then fetch if needed
@@ -483,14 +466,14 @@ export const useTreasury = (daoId: string) => {
       let payload;
       if (treasuryObject) {
         // Extract address for wallet parameter
-        const objectAddress = typeof treasuryObject === 'string' 
-          ? treasuryObject 
+        const objectAddress = typeof treasuryObject === 'string'
+          ? treasuryObject
           : (treasuryObject as any).inner || (treasuryObject as any).value || treasuryObject;
-        
-        console.log('Using deposit_to_object with address:', objectAddress);
+
+        console.log('Using deposit_to_object_typed with address:', objectAddress);
         payload = {
-          function: `${MODULE_ADDRESS}::treasury::deposit_to_object`,
-          typeArguments: [],
+          function: `${MODULE_ADDRESS}::treasury::deposit_to_object_typed`,
+          typeArguments: ['0x1::aptos_coin::AptosCoin'], // Type argument for wallet to display
           functionArguments: [objectAddress, amountOctas.toString()],
         };
       } else {
@@ -506,6 +489,9 @@ export const useTreasury = (daoId: string) => {
       console.log('Final deposit payload:', JSON.stringify(payload, null, 2));
       
       const tx = await signAndSubmitTransaction({ payload } as any);
+      if (!tx || !(tx as any).hash) {
+        throw new Error('Transaction cancelled by user');
+      }
       if (tx && (tx as any).hash) {
         await aptosClient.waitForTransaction({ 
           transactionHash: (tx as any).hash, 
@@ -537,6 +523,8 @@ export const useTreasury = (daoId: string) => {
       
       if (error.message?.includes('User rejected')) {
         throw new Error('Transaction cancelled by user');
+      } else if (error.message?.includes('not an entry function')) {
+        throw new Error('Wallet error: attempted to call a non-entry function. Please try again.');
       } else if (error.message?.includes('insufficient') || error.message?.includes('0x6507')) {
         throw new Error('Insufficient MOVE balance for transaction and gas fees');
       } else if (error.message?.includes('0x97') || error.message?.includes('not_member')) {
@@ -604,6 +592,9 @@ export const useTreasury = (daoId: string) => {
       }
 
       const tx = await signAndSubmitTransaction({ payload } as any);
+      if (!tx || !(tx as any).hash) {
+        throw new Error('Transaction cancelled by user');
+      }
       if (tx && (tx as any).hash) {
         await aptosClient.waitForTransaction({ 
           transactionHash: (tx as any).hash, 

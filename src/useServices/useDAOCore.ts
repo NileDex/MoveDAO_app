@@ -9,8 +9,12 @@ export interface CreateDAOParams {
   description: string
   logo: Uint8Array
   background: Uint8Array
-  initialCouncil: string[]
   minStakeToJoin: number
+  xLink: string
+  discordLink: string
+  telegramLink: string
+  website: string
+  category: string
 }
 
 export interface CreateDAOWithUrlsParams {
@@ -19,8 +23,12 @@ export interface CreateDAOWithUrlsParams {
   description: string
   logoUrl: string
   backgroundUrl: string
-  initialCouncil: string[]
   minStakeToJoin: number
+  xLink: string
+  discordLink: string
+  telegramLink: string
+  website: string
+  category: string
 }
 
 export interface DAOInfo {
@@ -66,12 +74,16 @@ export function useCreateDAO() {
       typeArguments: [],
       functionArguments: [
         "Test DAO",                      // name
-        "test-dao",                      // subname  
+        "test-dao",                      // subname
         "A test DAO for debugging",      // description
         [1, 2, 3],                      // logo (minimal bytes)
         [4, 5, 6],                      // background (minimal bytes)
-        [account.address],               // initial_council (just current user)
-        6000000                         // min_stake_to_join (6 Move in octas)
+        6000000,                        // min_stake_to_join (6 Move in octas)
+        "",                             // x_link
+        "",                             // discord_link
+        "",                             // telegram_link
+        "",                             // website
+        ""                              // category
       ],
     }
     
@@ -141,37 +153,6 @@ export function useCreateDAO() {
         throw new Error(`Background must be ≤ ${Math.round(maxBgSize/1024)}KB (contract limit). Current: ${Math.round(params.background.length/1024)}KB`)
       }
       
-      // Council validation (1-100 members, no duplicates)
-      if (!Array.isArray(params.initialCouncil) || params.initialCouncil.length === 0) {
-        throw new Error('At least one council member is required')
-      }
-      if (params.initialCouncil.length > 100) {
-        throw new Error('Maximum 100 council members allowed')
-      }
-      
-      // Check for duplicate council members
-      const uniqueCouncil = new Set(params.initialCouncil)
-      if (uniqueCouncil.size !== params.initialCouncil.length) {
-        throw new Error('Council members must be unique (no duplicates allowed)')
-      }
-      
-      // Normalize and validate address format for council members (0x + 64 hex)
-      const normalizeAddr = (addr: string) => {
-        const hex = addr?.toLowerCase().startsWith('0x') ? addr.slice(2) : addr
-        const cleaned = (hex || '').replace(/[^a-f0-9]/g, '')
-        return '0x' + cleaned.padStart(64, '0')
-      }
-      const normalizedCouncil = params.initialCouncil.map((a, i) => {
-        if (!a || typeof a !== 'string') {
-          throw new Error(`Council member ${i + 1} has invalid address format`)
-        }
-        const n = normalizeAddr(a)
-        if (!/^0x[a-f0-9]{64}$/.test(n)) {
-          throw new Error(`Council member ${i + 1} address must be 0x + 64 hex digits`)
-        }
-        return n
-      })
-      
       // Min stake validation (6,000,000-10,000,000,000 octas = 6-10,000 Move)
       if (params.minStakeToJoin < 6000000) {
         throw new Error('Minimum stake must be at least 6 Move tokens')
@@ -191,10 +172,14 @@ export function useCreateDAO() {
         params.description,             // string::String
         logoBytes,                      // vector<u8> (compressed)
         backgroundBytes,                // vector<u8> (compressed)
-        normalizedCouncil,              // vector<address>
-        params.minStakeToJoin          // u64 as number
+        params.minStakeToJoin,          // u64 as number
+        params.xLink,                   // string::String
+        params.discordLink,             // string::String
+        params.telegramLink,            // string::String
+        params.website,                 // string::String
+        params.category                 // string::String
       ]
-      
+
       console.log('📋 Function arguments details:')
       console.log('  - name:', params.name, '(length:', params.name.length, ')')
       console.log('  - subname:', params.subname, '(length:', params.subname.length, ')')
@@ -203,8 +188,12 @@ export function useCreateDAO() {
       console.log('  - background bytes (compressed):', params.background.length, 'bytes')
       console.log('  - logo array length:', logoBytes.length)
       console.log('  - background array length:', backgroundBytes.length)
-      console.log('  - initial council:', params.initialCouncil, '(count:', params.initialCouncil.length, ')')
       console.log('  - min stake:', params.minStakeToJoin)
+      console.log('  - x_link:', params.xLink)
+      console.log('  - discord_link:', params.discordLink)
+      console.log('  - telegram_link:', params.telegramLink)
+      console.log('  - website:', params.website)
+      console.log('  - category:', params.category)
       console.log('  - contract address:', MODULE_ADDRESS)
       console.log('  - sender address:', account.address)
 
@@ -365,21 +354,18 @@ export function useCreateDAO() {
         throw new Error('Logo and background URLs are required')
       }
       
-      // Normalize council addresses
-      const normalizedCouncil = params.initialCouncil.map((addr) => {
-        const hex = addr?.toLowerCase().startsWith('0x') ? addr.slice(2) : addr
-        const cleaned = (hex || '').replace(/[^a-f0-9]/g, '')
-        return '0x' + cleaned.padStart(64, '0')
-      })
-      
       const functionArgs = [
         params.name,
-        params.subname, 
+        params.subname,
         params.description,
         params.logoUrl,
         params.backgroundUrl,
-        normalizedCouncil,
-        params.minStakeToJoin
+        params.minStakeToJoin,
+        params.xLink,
+        params.discordLink,
+        params.telegramLink,
+        params.website,
+        params.category
       ]
 
       const payload = {

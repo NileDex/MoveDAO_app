@@ -14,6 +14,7 @@ interface VaultData {
   tokenSymbol?: string;
   tokenName?: string;
   decimals?: number;
+  iconUrl?: string;
 }
 
 interface VaultBalance {
@@ -68,7 +69,7 @@ export const useVault = (daoId: string, treasuryObject?: string) => {
     }
   }, [account?.address, daoId]);
 
-  // Get token info from metadata address
+  // Get token info from metadata address (fallback path)
   const getTokenInfo = useCallback(async (metadataAddress: string) => {
     const knownToken = KNOWN_TOKENS[metadataAddress as keyof typeof KNOWN_TOKENS];
     if (knownToken) return knownToken;
@@ -76,8 +77,8 @@ export const useVault = (daoId: string, treasuryObject?: string) => {
     try {
       console.log('Fetching token metadata from blockchain for:', metadataAddress);
 
-      // Try to fetch symbol and name from blockchain
-      const [symbolRes, nameRes, decimalRes] = await Promise.allSettled([
+      // Try to fetch symbol, name, decimals, and optional icon from blockchain
+      const [symbolRes, nameRes, decimalRes, iconUriRes, iconResAlt] = await Promise.allSettled([
         aptosClient.view({
           payload: {
             function: `0x1::fungible_asset::symbol`,
@@ -95,22 +96,40 @@ export const useVault = (daoId: string, treasuryObject?: string) => {
             function: `0x1::fungible_asset::decimals`,
             functionArguments: [metadataAddress]
           }
+        }),
+        // Preferred: icon_uri
+        aptosClient.view({
+          payload: {
+            function: `0x1::fungible_asset::icon_uri`,
+            functionArguments: [metadataAddress]
+          }
+        }),
+        // Fallback: icon (some implementations use this)
+        aptosClient.view({
+          payload: {
+            function: `0x1::fungible_asset::icon`,
+            functionArguments: [metadataAddress]
+          }
         })
       ]);
 
       const symbol = symbolRes.status === 'fulfilled' ? (symbolRes.value[0] as string) : 'UNKNOWN';
       const name = nameRes.status === 'fulfilled' ? (nameRes.value[0] as string) : symbol;
       const decimals = decimalRes.status === 'fulfilled' ? Number(decimalRes.value[0]) : 6;
+      let iconUrl = iconUriRes.status === 'fulfilled' ? (iconUriRes.value?.[0] as string | undefined) : undefined;
+      if (!iconUrl && iconResAlt.status === 'fulfilled') {
+        iconUrl = (iconResAlt.value?.[0] as string | undefined);
+      }
 
-      console.log('Resolved token info:', { symbol, name, decimals });
-      return { symbol, name, decimals };
+      console.log('Resolved token info:', { symbol, name, decimals, iconUrl });
+      return { symbol, name, decimals, iconUrl } as { symbol: string; name: string; decimals: number; iconUrl?: string };
     } catch (error) {
       console.warn('Failed to fetch token metadata:', error);
       return { symbol: 'UNKNOWN', name: 'Unknown Token', decimals: 6 };
     }
   }, []);
 
-  // Fetch DAO vaults
+  // Fetch DAO vaults using treasury ABI
   const fetchDAOVaults = useCallback(async () => {
     if (!treasuryObject) {
       setVaults([]);
@@ -167,72 +186,64 @@ export const useVault = (daoId: string, treasuryObject?: string) => {
 
       console.log('Processed vault addresses:', processedAddresses);
 
-      // Fetch vault details for each address
+      // Fetch vault details for each address via treasury ABI
       const vaultDetails = await Promise.all(
         processedAddresses.map(async (vaultAddr: string) => {
-          let addressString = vaultAddr; // Define at function scope
+          const addressString = vaultAddr;
           try {
-            console.log('Fetching vault details for address:', addressString);
+            console.log('Fetching vault details (treasury ABI) for address:', addressString);
 
-            // Get vault metadata
-            const metadataResult = await aptosClient.view({
-              payload: {
-                function: `${MODULE_ADDRESS}::vault::get_metadata`,
-                functionArguments: [addressString]
-              }
-            });
+            const [symbolRes, nameRes, decimalsRes, balanceRes, metadataRes, iconHelperRes, projectHelperRes] = await Promise.all([
+              aptosClient.view({ payload: { function: `${MODULE_ADDRESS}::treasury::get_vault_asset_symbol`, functionArguments: [addressString] } }),
+              aptosClient.view({ payload: { function: `${MODULE_ADDRESS}::treasury::get_vault_asset_name`, functionArguments: [addressString] } }),
+              aptosClient.view({ payload: { function: `${MODULE_ADDRESS}::treasury::get_vault_asset_decimals`, functionArguments: [addressString] } }),
+              aptosClient.view({ payload: { function: `${MODULE_ADDRESS}::treasury::get_vault_balance`, functionArguments: [addressString] } }),
+              aptosClient.view({ payload: { function: `${MODULE_ADDRESS}::treasury::get_vault_metadata`, functionArguments: [addressString] } }),
+              // Optional icon URI helper in treasury module, if available
+              aptosClient.view({ payload: { function: `${MODULE_ADDRESS}::treasury::get_vault_asset_icon_uri`, functionArguments: [addressString] } }).catch(() => undefined),
+              // Optional project URI helper in treasury module
+              aptosClient.view({ payload: { function: `${MODULE_ADDRESS}::treasury::get_vault_asset_project_uri`, functionArguments: [addressString] } }).catch(() => undefined),
+            ]);
 
-            const metadataAddress = typeof metadataResult[0] === 'string'
-              ? metadataResult[0]
-              : (metadataResult[0] as any)?.inner || (metadataResult[0] as any)?.value;
+            const symbol = (symbolRes?.[0] as string) || 'UNKNOWN';
+            const name = (nameRes?.[0] as string) || symbol;
+            const decimals = Number(decimalsRes?.[0] ?? 6);
+            const balanceRaw = Number(balanceRes?.[0] ?? 0);
+            const metadataAddress = typeof metadataRes?.[0] === 'string'
+              ? (metadataRes as any)[0]
+              : (metadataRes as any)?.[0]?.inner || (metadataRes as any)?.[0]?.value;
+            let iconUrl: string | undefined = Array.isArray(iconHelperRes) ? (iconHelperRes as any)?.[0] : (iconHelperRes as any);
+            const projectUri: string | undefined = Array.isArray(projectHelperRes) ? (projectHelperRes as any)?.[0] : (projectHelperRes as any);
+            if (typeof iconUrl === 'string') iconUrl = iconUrl.trim();
+            if (iconUrl === '') iconUrl = undefined;
 
-            console.log('Vault metadata address:', metadataAddress);
+            const totalAssets = toTokenAmount(balanceRaw, decimals);
+            const idleAssets = totalAssets; // No separate idle metric in treasury ABI
+            const strategy = null;
+            const manager = '';
 
-            // Get token info
-            const tokenInfo = await getTokenInfo(metadataAddress);
-            console.log('Token info resolved:', tokenInfo);
-
-            // Try to get vault resource data
-            let totalAssets = 0;
-            let idleAssets = 0;
-            let strategy = null;
-            let manager = '';
-
-            try {
-              console.log('Fetching vault resource for:', addressString);
-              const vaultResource = await aptosClient.getAccountResource({
-                accountAddress: addressString,
-                resourceType: `${MODULE_ADDRESS}::vault::Vault`
-              });
-
-              console.log('Vault resource data:', vaultResource);
-              // The vault data is directly on the resource, not under a 'data' property
-              const data = vaultResource as any;
-              if (data && (data.total_assets !== undefined || data.idle_assets !== undefined)) {
-                console.log('Raw vault data:', {
-                  total_assets: data.total_assets,
-                  idle_assets: data.idle_assets,
-                  decimals: tokenInfo.decimals
-                });
-                totalAssets = toTokenAmount(Number(data.total_assets || 0), tokenInfo.decimals);
-                idleAssets = toTokenAmount(Number(data.idle_assets || 0), tokenInfo.decimals);
-                strategy = data.strategy?.vec?.[0] || null;
-                manager = data.manager || '';
-                console.log('Converted vault amounts:', { totalAssets, idleAssets });
-              } else {
-                console.warn('No valid vault data found in resource:', data);
-              }
-            } catch (resourceError) {
-              console.warn('Failed to fetch vault resource for', addressString, ':', resourceError);
-              // Try alternative resource fetch
+            // Fallback: if no icon from treasury helper, try standard FA::icon_uri directly with metadata address
+            if (!iconUrl && metadataAddress) {
               try {
-                console.log('Attempting alternative resource fetch...');
-                const alternativeResource = await aptosClient.getAccountResources({
-                  accountAddress: addressString
-                });
-                console.log('All resources at vault address:', alternativeResource);
-              } catch (altError) {
-                console.warn('Alternative resource fetch failed:', altError);
+                const faIcon = await aptosClient.view({ payload: { function: `0x1::fungible_asset::icon_uri`, functionArguments: [metadataAddress] } });
+                const resolved = (faIcon?.[0] as string) || '';
+                iconUrl = resolved.trim() || undefined;
+              } catch {}
+              // Try alternate function name if icon_uri missing
+              if (!iconUrl) {
+                try {
+                  const faIconAlt = await aptosClient.view({ payload: { function: `0x1::fungible_asset::icon`, functionArguments: [metadataAddress] } });
+                  const resolvedAlt = (faIconAlt?.[0] as string) || '';
+                  iconUrl = resolvedAlt.trim() || undefined;
+                } catch {}
+              }
+            }
+
+            // Last resort: if we have a project URI, attempt a common icon path
+            if (!iconUrl && projectUri && typeof projectUri === 'string') {
+              const trimmed = projectUri.trim();
+              if (trimmed.startsWith('http')) {
+                iconUrl = `${trimmed.replace(/\/$/, '')}/icon.png`;
               }
             }
 
@@ -243,9 +254,10 @@ export const useVault = (daoId: string, treasuryObject?: string) => {
               idleAssets,
               strategy,
               manager,
-              tokenSymbol: tokenInfo.symbol,
-              tokenName: tokenInfo.name,
-              decimals: tokenInfo.decimals
+              tokenSymbol: symbol,
+              tokenName: name,
+              decimals,
+              iconUrl
             } as VaultData;
 
           } catch (vaultError) {
@@ -291,12 +303,11 @@ export const useVault = (daoId: string, treasuryObject?: string) => {
       console.log('Creating vault with treasury address:', treasuryAddress);
       console.log('Creating vault with metadata address:', metadataAddress);
 
-      // Treasury ABI shows: create_dao_vault(&signer, Object<Treasury>, Object<Metadata>)
-      // Following the same pattern as user_deposit_to_vault function
+      // Treasury ABI: create_dao_vault(&signer, address, Object<Treasury>, Object<Metadata>)
       const payload = {
         function: `${MODULE_ADDRESS}::treasury::create_dao_vault`,
         typeArguments: [],
-        functionArguments: [treasuryAddress, metadataAddress],
+        functionArguments: [daoId, treasuryAddress, metadataAddress],
       };
 
       const tx = await signAndSubmitTransaction({ payload } as any);
@@ -324,7 +335,7 @@ export const useVault = (daoId: string, treasuryObject?: string) => {
     }
   }, [account, signAndSubmitTransaction, treasuryObject, isAdmin, fetchDAOVaults]);
 
-  // Deposit to vault (user function)
+  // Deposit to vault (user function) via treasury ABI
   const depositToVault = useCallback(async (vaultAddress: string, amount: number, decimals?: number): Promise<boolean> => {
     if (!account || !signAndSubmitTransaction) {
       throw new Error('Wallet not connected');
@@ -346,12 +357,11 @@ export const useVault = (daoId: string, treasuryObject?: string) => {
       const amountRaw = fromTokenAmount(amount, actualDecimals);
       console.log('Depositing amount:', amount, 'with decimals:', actualDecimals, 'raw amount:', amountRaw);
 
-      // Vault ABI shows: deposit(&signer, vault_object, amount)
-      // Need to pass vault_address as object parameter, not just address
+      // Treasury ABI: user_deposit_to_vault(&signer, dao_address, vault_address, amount)
       const payload = {
-        function: `${MODULE_ADDRESS}::vault::deposit`,
+        function: `${MODULE_ADDRESS}::treasury::user_deposit_to_vault`,
         typeArguments: [],
-        functionArguments: [vaultAddress, amountRaw.toString()],
+        functionArguments: [daoId, vaultAddress, amountRaw.toString()],
       };
 
       const tx = await signAndSubmitTransaction({ payload } as any);
@@ -385,7 +395,7 @@ export const useVault = (daoId: string, treasuryObject?: string) => {
     }
   }, [account, signAndSubmitTransaction, fetchDAOVaults]);
 
-  // Withdraw from vault (admin only)
+  // Withdraw from vault (admin only) via treasury ABI
   const withdrawFromVault = useCallback(async (vaultAddress: string, amount: number, decimals?: number): Promise<boolean> => {
     if (!account || !signAndSubmitTransaction || !treasuryObject) {
       throw new Error('Wallet not connected or treasury not available');
@@ -421,7 +431,7 @@ export const useVault = (daoId: string, treasuryObject?: string) => {
       const payload = {
         function: `${MODULE_ADDRESS}::treasury::withdraw_from_dao_vault`,
         typeArguments: [],
-        functionArguments: [treasuryAddress, vaultAddress, amountRaw.toString()],
+        functionArguments: [daoId, vaultAddress, amountRaw.toString(), account.address],
       };
 
       const tx = await signAndSubmitTransaction({ payload } as any);
@@ -451,47 +461,10 @@ export const useVault = (daoId: string, treasuryObject?: string) => {
     }
   }, [account, signAndSubmitTransaction, treasuryObject, isAdmin, fetchDAOVaults]);
 
-  // Set vault strategy (admin only)
-  const setVaultStrategy = useCallback(async (vaultAddress: string, strategyAddress: string): Promise<boolean> => {
-    if (!account || !signAndSubmitTransaction) {
-      throw new Error('Wallet not connected');
-    }
-
-    if (!isAdmin) {
-      throw new Error('Only DAO admins can set vault strategies');
-    }
-
-    try {
-      const payload = {
-        function: `${MODULE_ADDRESS}::vault::set_strategy`,
-        typeArguments: [],
-        functionArguments: [vaultAddress, strategyAddress],
-      };
-
-      const tx = await signAndSubmitTransaction({ payload } as any);
-      if (tx && (tx as any).hash) {
-        await aptosClient.waitForTransaction({
-          transactionHash: (tx as any).hash,
-          options: { checkSuccess: true }
-        });
-      }
-
-      // Refresh vault data
-      await fetchDAOVaults();
-      return true;
-
-    } catch (error: any) {
-      console.error('Set strategy failed:', error);
-
-      if (error.message?.includes('User rejected')) {
-        throw new Error('Transaction cancelled by user');
-      } else if (error.message?.includes('not_admin')) {
-        throw new Error('Only vault managers can set strategies');
-      } else {
-        throw new Error(error.message || 'Failed to set strategy');
-      }
-    }
-  }, [account, signAndSubmitTransaction, isAdmin, fetchDAOVaults]);
+  // Set vault strategy (admin only) - not supported in current treasury ABI
+  const setVaultStrategy = useCallback(async () => {
+    throw new Error('Strategy management is not supported by the current treasury ABI');
+  }, []);
 
   // Initialize data fetching
   useEffect(() => {

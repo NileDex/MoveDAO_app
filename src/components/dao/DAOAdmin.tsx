@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Shield, Users, Clock, Plus, Trash2, Settings, AlertTriangle, XCircle, UserCheck, Crown, UserMinus, UserPlus, DollarSign, Edit, RefreshCw } from 'lucide-react';
+import { useGetProfile } from '../../useServices/useProfile';
 import { FaCheckCircle } from 'react-icons/fa';
 import { useWallet } from '@razorlabs/razorkit';
 import { aptosClient } from '../../movement_service/movement-client';
@@ -56,6 +57,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
   const [errors, setErrors] = useState<{[key: string]: string}>({});
 
   const { account, signAndSubmitTransaction } = useWallet();
+  const { data: profileData } = useGetProfile(account?.address || null);
   // Membership and staking use 6 decimals (1e6), not 8 decimals (1e8) like Aptos coins
   const MEMBERSHIP_DECIMALS = 1e6;  // 6 decimals for membership stakes
   const APTOS_DECIMALS = 1e8;       // 8 decimals for treasury operations
@@ -76,8 +78,8 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
   // @ts-ignore
   const adminSessionCache: Map<string, { admins: Admin[]; councilData: any; isAdmin: boolean; currentRole: 'super' | 'standard' | 'temporary' | 'none'; timestamp: number }>
     = (window as any).__adminSessionCache || ((window as any).__adminSessionCache = new Map());
-  const SESSION_TTL_MS = 5 * 60 * 1000; // 5 minutes
-  const MAX_STALE_MS = 10 * 60 * 1000; // 10 minutes stale window
+  const SESSION_TTL_MS = 10 * 60 * 1000; // 10 minutes (longer cache)
+  const MAX_STALE_MS = 20 * 60 * 1000; // 20 minutes stale window
 
   // Council data state (was missing!)
   const [councilData, setCouncilData] = useState({
@@ -191,8 +193,6 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
           });
                     }
                   });
-                } else {
-                  console.log('⚠️ No initial council found in transaction arguments');
                 }
               } else {
                 console.log('⚠️ Transaction payload not in expected format');
@@ -426,41 +426,20 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
   };
 
   useEffect(() => {
-    const now = Date.now();
     const cached = adminSessionCache.get(dao.id);
-
-    // Fresh cache - hydrate instantly
-    if (cached && (now - cached.timestamp) < SESSION_TTL_MS) {
+    if (cached) {
       setAdmins(cached.admins || []);
       setIsAdmin(Boolean(cached.isAdmin));
       setCurrentRole(cached.currentRole || 'none');
       if (cached.councilData) setCouncilData(cached.councilData);
-      return;
     }
-
-    // Stale cache - show cached and refresh in background silently
-    if (cached && (now - cached.timestamp) < MAX_STALE_MS) {
-      setAdmins(cached.admins || []);
-      setIsAdmin(Boolean(cached.isAdmin));
-      setCurrentRole(cached.currentRole || 'none');
-      if (cached.councilData) setCouncilData(cached.councilData);
-      (async () => {
-        try {
-          await fetchAdminData(false);
-          await new Promise(resolve => setTimeout(resolve, 200));
-          await fetchCouncilData();
-        } catch {}
-      })();
-      return;
-    }
-
-    // No cache - do normal fetch with spinner
-    const fetchData = async () => {
-      await fetchAdminData(true);
-      await new Promise(resolve => setTimeout(resolve, 500)); // Debounce between calls
-      await fetchCouncilData();
-    };
-    fetchData();
+    // Always refresh in background quickly (no spinner)
+    (async () => {
+      try {
+        await fetchAdminData(false);
+        await fetchCouncilData();
+      } catch {}
+    })();
   }, [dao.id, account?.address]);
 
   // Silent refresh on window focus if cache is stale
@@ -484,7 +463,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
   const sections = [
     { id: 'overview', label: 'Overview', icon: Shield },
     { id: 'admins', label: 'Manage Admins', icon: Users },
-    { id: 'council', label: 'Council Members', icon: Crown },
+    // Council section removed per request
     { id: 'settings', label: 'Proposal Settings', icon: Settings }
   ];
 
@@ -502,7 +481,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
       if (!account || !signAndSubmitTransaction) throw new Error('Wallet not connected');
       const addr = newAdminForm.address.trim();
       if (!addr.startsWith('0x') || addr.length < 6) {
-        alert('Enter a valid admin address');
+      showAlert('Enter a valid admin address', 'error');
         return;
       }
       const roleNum = newAdminForm.role === 'super' ? ROLE_SUPER_ADMIN : newAdminForm.role === 'temporary' ? ROLE_TEMPORARY : ROLE_STANDARD;
@@ -513,13 +492,17 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         functionArguments: [dao.id, addr, roleNum.toString(), expires_in_secs.toString()],
       };
       const tx = await signAndSubmitTransaction({ payload } as any);
+      if (!tx || !(tx as any).hash) {
+        showAlert('Transaction cancelled', 'error');
+        return;
+      }
       if (tx && (tx as any).hash) {
         await aptosClient.waitForTransaction({ transactionHash: (tx as any).hash, options: { checkSuccess: true } });
       }
     setShowAddAdmin(false);
     setNewAdminForm({ address: '', role: 'standard', expiresInDays: 0 });
       await fetchAdminData();
-      alert('Admin added');
+      showAlert('Admin added', 'success');
     } catch (e: any) {
       console.error('Add admin failed:', e);
       let errorMessage = 'Failed to add admin.';
@@ -537,7 +520,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         }
       }
       
-      alert(errorMessage);
+      showAlert(errorMessage, 'error');
     }
   };
 
@@ -550,11 +533,15 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         functionArguments: [dao.id, adminAddress],
       };
       const tx = await signAndSubmitTransaction({ payload } as any);
+      if (!tx || !(tx as any).hash) {
+        showAlert('Transaction cancelled', 'error');
+        return;
+      }
       if (tx && (tx as any).hash) {
         await aptosClient.waitForTransaction({ transactionHash: (tx as any).hash, options: { checkSuccess: true } });
       }
       await fetchAdminData();
-      alert('Admin removed');
+      showAlert('Admin removed', 'success');
     } catch (e: any) {
       console.error('Remove admin failed:', e);
       let errorMessage = 'Failed to remove admin.';
@@ -572,7 +559,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         }
       }
       
-      alert(errorMessage);
+      showAlert(errorMessage, 'error');
     }
   };
 
@@ -873,7 +860,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
       // Unfortunately, the contract's council functions are not marked as #[view] functions
       // So we can't directly query council membership from the frontend
       // This is a limitation that needs to be fixed in the smart contract
-      
+
       alert('Council membership verification is currently unavailable due to contract limitations. The council functions are not marked as view functions in the smart contract.');
       setCheckMemberForm(prev => ({ ...prev, result: null }));
 
@@ -1202,7 +1189,20 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         <div className="border border-white/10 rounded-xl p-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-bold">
+              {/* Avatar same method as Overview/Members */}
+              {profileData?.avatarUrl ? (
+                <img
+                  src={profileData.avatarUrl}
+                  alt={profileData.displayName || (account?.address || '-')}
+                  className="w-10 h-10 rounded-lg object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                    const fallback = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (fallback) fallback.classList.remove('hidden');
+                  }}
+                />
+              ) : null}
+              <div className={`w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center text-white font-bold ${profileData?.avatarUrl ? 'hidden' : ''}`}>
                 {(account?.address || '0x').slice(2, 4).toUpperCase()}
               </div>
               <div>
@@ -1219,39 +1219,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         </div>
       </div>
 
-      {/* Admin Rules */}
-      <div className="border border-white/10 rounded-xl p-6">
-        <h3 className="text-lg font-semibold text-white mb-4 flex items-center space-x-2">
-          <AlertTriangle className="w-5 h-5 text-yellow-400" />
-          <span>Admin Rules & Permissions</span>
-        </h3>
-        
-        <div className="space-y-3">
-          <div className="flex items-start space-x-3 p-3 border border-white/10 rounded-lg">
-            <Shield className="w-5 h-5 text-red-400 mt-0.5" />
-            <div>
-              <p className="text-white font-medium">Super Admins (Role 255)</p>
-              <p className="text-sm text-gray-400">Can manage all admin roles, add/remove any admin, permanent access. DAO creators automatically become super admins.</p>
-            </div>
-          </div>
-          
-          <div className="flex items-start space-x-3 p-3 border border-white/10 rounded-lg">
-            <Users className="w-5 h-5 text-blue-400 mt-0.5" />
-            <div>
-              <p className="text-white font-medium">Standard Admins (Role 100)</p>
-              <p className="text-sm text-gray-400">Can perform most admin functions, cannot manage super admins. Can add standard/temporary admins.</p>
-            </div>
-          </div>
-          
-          <div className="flex items-start space-x-3 p-3 border border-white/10 rounded-lg">
-            <Clock className="w-5 h-5 text-yellow-400 mt-0.5" />
-            <div>
-              <p className="text-white font-medium">Temporary Admins (Role 50)</p>
-              <p className="text-sm text-gray-400">Limited time access with expiration date. Automatically expires after set duration (minimum 5 minutes).</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* Admin Rules removed per user request */}
     </div>
   );
 
@@ -1261,10 +1229,19 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
       {isAdmin && (
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center space-y-4 sm:space-y-0">
           <h3 className="text-lg font-semibold text-white">Admin Management</h3>
-          <button onClick={() => setShowAddAdmin(true)} className="btn-primary flex items-center justify-center space-x-2 w-full sm:w-auto">
-            <Plus className="w-4 h-4" />
-            <span>Add Admin</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => fetchAdminData(true)}
+              className="px-4 py-2 border border-white/20 hover:bg-white/5 text-white rounded-xl transition-all font-medium flex items-center space-x-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>Refresh</span>
+            </button>
+            <button onClick={() => setShowAddAdmin(true)} className="px-4 py-2 border border-white/20 hover:bg-white/5 text-white rounded-xl transition-all font-medium flex items-center space-x-2">
+              <Plus className="w-4 h-4" />
+              <span>Add Admin</span>
+            </button>
+          </div>
         </div>
       )}
       {/* Add Admin Form */}
@@ -1273,27 +1250,69 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
           <h4 className="text-lg font-semibold text-white mb-4">Add New Admin</h4>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Admin Address</label>
-              <input type="text" value={newAdminForm.address} onChange={(e) => setNewAdminForm({ ...newAdminForm, address: e.target.value })} className="w-full px-4 py-3 border border-white/10 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="0x..." />
+              <label className="block text-sm font-medium text-gray-300 mb-2">Admin Address</label>
+              <input
+                type="text"
+                value={newAdminForm.address}
+                onChange={(e) => setNewAdminForm({ ...newAdminForm, address: e.target.value })}
+                className="professional-input w-full px-3 py-2 rounded-lg text-sm placeholder-gray-500"
+                placeholder="0x..."
+              />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Admin Role</label>
-              <select value={newAdminForm.role} onChange={(e) => setNewAdminForm({ ...newAdminForm, role: e.target.value as any })} className="w-full px-4 py-3 border border-white/10 border border-white/10 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500">
-                <option value="standard">Standard Admin</option>
-                <option value="temporary">Temporary Admin</option>
-                {currentRole === 'super' && <option value="super">Super Admin</option>}
-              </select>
+              <label className="block text-sm font-medium text-gray-300 mb-2">Admin Role</label>
+              <div className="flex flex-col sm:flex-row gap-3">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    value="standard"
+                    checked={newAdminForm.role === 'standard'}
+                    onChange={(e) => setNewAdminForm({ ...newAdminForm, role: e.target.value as any })}
+                    className="text-indigo-500"
+                  />
+                  <span className="text-gray-300">Standard Admin</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    value="temporary"
+                    checked={newAdminForm.role === 'temporary'}
+                    onChange={(e) => setNewAdminForm({ ...newAdminForm, role: e.target.value as any })}
+                    className="text-indigo-500"
+                  />
+                  <span className="text-gray-300">Temporary Admin</span>
+                </label>
+                {currentRole === 'super' && (
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="radio"
+                      value="super"
+                      checked={newAdminForm.role === 'super'}
+                      onChange={(e) => setNewAdminForm({ ...newAdminForm, role: e.target.value as any })}
+                      className="text-indigo-500"
+                    />
+                    <span className="text-gray-300">Super Admin</span>
+                  </label>
+                )}
+              </div>
             </div>
             {newAdminForm.role === 'temporary' && (
               <div>
-                <label className="block text-sm font-medium text-gray-400 mb-2">Expires in (days)</label>
-                <input type="number" value={newAdminForm.expiresInDays} onChange={(e) => setNewAdminForm({ ...newAdminForm, expiresInDays: parseInt(e.target.value) })} className="w-full px-4 py-3 border border-white/10 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500" placeholder="7" min="1" />
+                <label className="block text-sm font-medium text-gray-300 mb-2">Expires in (days)</label>
+                <input
+                  type="number"
+                  value={newAdminForm.expiresInDays}
+                  onChange={(e) => setNewAdminForm({ ...newAdminForm, expiresInDays: parseInt(e.target.value) })}
+                  className="professional-input w-full px-3 py-2 rounded-lg text-sm placeholder-gray-500"
+                  placeholder="7"
+                  min="1"
+                />
                 <p className="text-xs text-gray-500 mt-1">Minimum 5 minutes required by contract</p>
               </div>
             )}
-            <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
-              <button onClick={handleAddAdmin} className="btn-primary flex-1 w-full sm:w-auto">Add Admin</button>
-              <button onClick={() => setShowAddAdmin(false)} className="px-6 py-3 border border-white/10 hover:bg-white/10 text-gray-300 rounded-xl transition-all w-full sm:w-auto">Cancel</button>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button onClick={handleAddAdmin} className="px-5 py-2 rounded-xl font-semibold text-black bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full sm:w-auto">Add Admin</button>
+              <button onClick={() => setShowAddAdmin(false)} className="px-5 py-2 rounded-xl font-semibold bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 transition-colors w-full sm:w-auto">Cancel</button>
             </div>
           </div>
         </div>
@@ -1806,53 +1825,22 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <button
                 onClick={handleUpdateBothStakes}
-                className="flex-1 flex items-center justify-center space-x-2"
-                  style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '2px',
-                    border: 'none',
-                  background: 'linear-gradient(45deg, #ffc30d, #b80af7)',
-                  borderRadius: '16px',
-                  height: '36px',
-                  minWidth: '0',
-                    cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  color: '#fff',
-                  overflow: 'hidden',
-                }}
+                className="px-5 py-2 rounded-xl font-semibold bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
               >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    background: '#121212',
-                    borderRadius: '14px',
-                    padding: '0 10px',
-                    height: '32px',
-                    minWidth: '0',
-                    overflow: 'hidden',
-                    width: '100%',
-                  }}
-                >
-                  <Settings className="w-4 h-4" />
-                  <span>Update Both</span>
-                </div>
+                <Settings className="w-4 h-4" />
+                <span>Update Both</span>
               </button>
               <button
                 onClick={handleUpdateMinStake}
                 disabled={!newMinStake}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-all"
+                className="px-5 py-2 rounded-xl font-semibold text-black bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Update Join
               </button>
               <button
                 onClick={handleUpdateMinProposalStake}
                 disabled={!newMinProposalStake}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-all"
+                className="px-5 py-2 rounded-xl font-semibold text-black bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Update Proposals
                 </button>
@@ -1905,8 +1893,6 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         return renderOverview();
       case 'admins':
         return renderAdminManagement();
-      case 'council':
-        return renderCouncilManagement();
       case 'settings':
         return renderProposalSettings();
       default:

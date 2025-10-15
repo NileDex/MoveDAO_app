@@ -7,7 +7,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { truncateAddress } from '../utils/addressUtils';
 
 
-// Reown-inspired wallet modal
+  // Reown-inspired wallet modal
 const WalletModal = ({
   isOpen,
   onClose,
@@ -28,6 +28,8 @@ const WalletModal = ({
   const { showAlert } = useAlert();
   const walletContext = useWallet();
   const { connected, account } = walletContext;
+  const { theme } = useTheme();
+  const isDarkTheme = theme === 'dark';
 
   // Monitor wallet connection state changes
   useEffect(() => {
@@ -134,16 +136,15 @@ const WalletModal = ({
         left: 0, 
         width: '100vw', 
         height: '100vh', 
-        background: 'rgba(0,0,0,0.7)', 
+        background: isDarkTheme ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.4)', 
         zIndex: 1000, 
         display: 'flex', 
         alignItems: 'center', 
-        justifyContent: 'center',
-        backdropFilter: 'blur(8px)'
+        justifyContent: 'center'
       }}>
         <div className="modal-container" style={{
-          background: 'var(--card-bg)',
-          color: 'var(--text)', 
+          background: isDarkTheme ? '#0f0f11' : '#ffffff',
+          color: isDarkTheme ? '#f5f5f5' : '#111827', 
           borderRadius: 20, 
           minWidth: 360, 
           maxWidth: 400, 
@@ -152,8 +153,7 @@ const WalletModal = ({
           display: 'flex', 
           flexDirection: 'column', 
           alignItems: 'center',
-          border: '1px solid var(--border)',
-          backdropFilter: 'blur(20px)'
+          border: isDarkTheme ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)'
         }}>
           {/* Back button (top left) */}
           <button 
@@ -334,16 +334,15 @@ const WalletModal = ({
       left: 0, 
       width: '100vw', 
       height: '100vh', 
-      background: 'rgba(0,0,0,0.7)', 
+      background: isDarkTheme ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.4)', 
       zIndex: 1000, 
       display: 'flex', 
       alignItems: 'center', 
-      justifyContent: 'center',
-      backdropFilter: 'blur(8px)'
+      justifyContent: 'center'
     }}>
               <div className="modal-container" style={{
-          background: 'var(--card-bg)',
-          color: 'var(--text)', 
+          background: isDarkTheme ? '#0f0f11' : '#ffffff',
+          color: isDarkTheme ? '#f5f5f5' : '#111827', 
           borderRadius: 20, 
           minWidth: 360, 
           maxWidth: 420, 
@@ -351,8 +350,7 @@ const WalletModal = ({
           padding: '24px 20px', 
           display: 'flex', 
           flexDirection: 'column',
-          border: '1px solid var(--border)',
-          backdropFilter: 'blur(20px)'
+          border: isDarkTheme ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)'
         }}>
         <div className="modal-header" style={{
           display: 'flex', 
@@ -402,11 +400,11 @@ const WalletModal = ({
                       justifyContent: 'space-between', 
                       padding: '12px 16px', 
                       borderRadius: 12, 
-                      border: '1px solid rgba(255, 255, 255, 0.08)', 
+                      border: isDarkTheme ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(0, 0, 0, 0.08)', 
                       cursor: 'pointer', 
-                      background: 'rgba(255, 255, 255, 0.02)',
+                      background: isDarkTheme ? '#161618' : '#f8fafc',
                       transition: 'all 0.2s ease',
-                      backdropFilter: 'blur(10px)'
+                      boxShadow: isDarkTheme ? '0 2px 8px rgba(0,0,0,0.5)' : '0 2px 8px rgba(0,0,0,0.08)'
                     }}
                     onClick={() => {
                       if (isWalletReady) {
@@ -416,13 +414,13 @@ const WalletModal = ({
                       }
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                      e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.3)';
+                      e.currentTarget.style.background = isDarkTheme ? '#1e1e22' : '#eef2f7';
+                      e.currentTarget.style.borderColor = isDarkTheme ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)';
                       e.currentTarget.style.transform = 'translateY(-2px)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.02)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                      e.currentTarget.style.background = isDarkTheme ? '#161618' : '#f8fafc';
+                      e.currentTarget.style.borderColor = isDarkTheme ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.08)';
                       e.currentTarget.style.transform = 'translateY(0)';
                     }}
                   >
@@ -490,12 +488,12 @@ const WalletModal = ({
             {availableWallets.length === 0 && (
               <div className="no-wallets-message" style={{
                 marginTop: 24, 
-                color: '#b0b0b0',
+                color: isDarkTheme ? '#9ca3af' : '#6b7280',
                 textAlign: 'center',
                 padding: 24,
-                background: 'rgba(255, 255, 255, 0.02)',
+                background: isDarkTheme ? '#161618' : '#f8fafc',
                 borderRadius: 16,
-                border: '1px solid rgba(255, 255, 255, 0.1)'
+                border: isDarkTheme ? '1px solid rgba(255,255,255,0.08)' : '1px solid rgba(0,0,0,0.08)'
               }}>
                 <p style={{ margin: 0, fontSize: 16 }}>No wallets detected. Please install a supported wallet extension.</p>
               </div>

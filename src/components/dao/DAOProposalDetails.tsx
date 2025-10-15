@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { aptosClient } from '../../movement_service/movement-client';
+import { MODULE_ADDRESS } from '../../movement_service/constants';
 import { FaCheckCircle } from 'react-icons/fa';
 
 interface ProposalDetailsProps {
@@ -126,6 +128,22 @@ const DAOProposalDetails: React.FC<ProposalDetailsProps> = ({
 }) => {
   const total = votesFor + votesAgainst + votesAbstain;
   const [isVoting, setIsVoting] = useState(false);
+  const [voters, setVoters] = useState<string[]>([]);
+
+  // Fetch voters using ABI view when proposalId present
+  useEffect(() => {
+    const fetchVoters = async () => {
+      try {
+        if (!proposalId) return;
+        const res = await aptosClient.view({
+          payload: {
+            function: `${MODULE_ADDRESS}::proposal::get_proposal_voters`,
+            functionArguments: [/* dao address not needed if id scoped? use proposer dao? */],
+          }
+        } as any).catch(() => null);
+      } catch {}
+    };
+  }, [proposalId]);
 
   const handleVoteClick = async (voteType: number) => {
     setIsVoting(true);

@@ -1,5 +1,5 @@
 export const ABI = {
-  "address": "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189",
+  "address": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8",
   "name": "staking",
   "friends": [],
   "exposed_functions": [
@@ -29,18 +29,6 @@ export const ABI = {
         "&signer",
         "address",
         "u64"
-      ],
-      "return": []
-    },
-    {
-      "name": "distribute_staking_rewards",
-      "visibility": "public",
-      "is_entry": true,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [
-        "&signer",
-        "address"
       ],
       "return": []
     },
@@ -289,6 +277,7 @@ export const ABI = {
     {
       "name": "DAOStakeInfo",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "drop",
         "store"
@@ -308,6 +297,7 @@ export const ABI = {
     {
       "name": "RewardClaimedEvent",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
@@ -339,6 +329,7 @@ export const ABI = {
     {
       "name": "StakeEvent",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
@@ -374,6 +365,7 @@ export const ABI = {
     {
       "name": "StakerProfile",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "key"
       ],
@@ -381,7 +373,7 @@ export const ABI = {
       "fields": [
         {
           "name": "dao_stakes",
-          "type": "0x1::table::Table<address, 0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::staking::DAOStakeInfo>"
+          "type": "0x1::table::Table<address, 0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::staking::DAOStakeInfo>"
         },
         {
           "name": "total_staked",
@@ -392,6 +384,7 @@ export const ABI = {
     {
       "name": "StakerRegistry",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "key"
       ],
@@ -410,6 +403,7 @@ export const ABI = {
     {
       "name": "UnstakeEvent",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
@@ -445,6 +439,7 @@ export const ABI = {
     {
       "name": "Vault",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "key"
       ],
@@ -463,6 +458,7 @@ export const ABI = {
     {
       "name": "Vote",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "store"
       ],
@@ -502,13 +498,14 @@ export const ABI = {
         },
         {
           "name": "voters",
-          "type": "0x1::table::Table<address, 0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::staking::VoteRecord>"
+          "type": "0x1::table::Table<address, 0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::staking::VoteRecord>"
         }
       ]
     },
     {
       "name": "VoteRecord",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "copy",
         "drop",
@@ -529,6 +526,7 @@ export const ABI = {
     {
       "name": "VoteRepository",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "store",
         "key"
@@ -537,7 +535,7 @@ export const ABI = {
       "fields": [
         {
           "name": "votes",
-          "type": "vector<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::staking::Vote>"
+          "type": "vector<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::staking::Vote>"
         }
       ]
     }

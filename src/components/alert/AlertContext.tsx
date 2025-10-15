@@ -23,13 +23,24 @@ export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {children}
       {alert && (
         <div style={{
-          position: 'fixed', bottom: 24, left: 24, right: 'auto', transform: 'none',
-          background: '#131315',
-          color: '#fff', padding: '16px 20px', fontWeight: 400, fontSize: 14, zIndex: 2000,
-          boxShadow: '0 2px 16px rgba(0,0,0,0.18)',
-          width: '250px', height: '100px', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          textAlign: 'center', wordWrap: 'break-word', overflow: 'hidden'
-        }}>{alert.message}</div>
+          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          background: alert.type === 'success' ? '#16a34a' : alert.type === 'error' ? '#dc2626' : '#2563eb',
+          color: '#ffffff',
+          padding: '10px 16px',
+          fontWeight: 600,
+          fontSize: 14,
+          zIndex: 2000,
+          borderRadius: 12,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 10,
+          boxShadow: '0 6px 24px rgba(0,0,0,0.3)'
+        }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16 }}>
+            {alert.type === 'success' ? '✓' : alert.type === 'error' ? '⚠' : 'ℹ'}
+          </span>
+          <span>{alert.message}</span>
+        </div>
       )}
     </AlertContext.Provider>
   );

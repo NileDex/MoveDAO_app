@@ -1,5 +1,5 @@
 export const ABI = {
-  "address": "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189",
+  "address": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8",
   "name": "admin",
   "friends": [],
   "exposed_functions": [
@@ -69,6 +69,19 @@ export const ABI = {
       ],
       "return": [
         "vector<address>"
+      ]
+    },
+    {
+      "name": "get_min_temp_admin_duration",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "u64"
       ]
     },
     {
@@ -153,12 +166,26 @@ export const ABI = {
       "return": [
         "u8"
       ]
+    },
+    {
+      "name": "set_min_temp_admin_duration",
+      "visibility": "public",
+      "is_entry": true,
+      "is_view": false,
+      "generic_type_params": [],
+      "params": [
+        "&signer",
+        "address",
+        "u64"
+      ],
+      "return": []
     }
   ],
   "structs": [
     {
       "name": "Admin",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "copy",
         "drop",
@@ -183,6 +210,7 @@ export const ABI = {
     {
       "name": "AdminChanged",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
@@ -214,6 +242,7 @@ export const ABI = {
     {
       "name": "AdminList",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "key"
       ],
@@ -221,10 +250,14 @@ export const ABI = {
       "fields": [
         {
           "name": "admins",
-          "type": "0x1::simple_map::SimpleMap<address, 0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::admin::Admin>"
+          "type": "0x1::simple_map::SimpleMap<address, 0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::admin::Admin>"
         },
         {
           "name": "min_super_admins",
+          "type": "u64"
+        },
+        {
+          "name": "min_temp_admin_duration",
           "type": "u64"
         }
       ]

@@ -20,24 +20,9 @@ const SectionLoader: React.FC<SectionLoaderProps> = ({
   minHeight = '400px',
   loadingText = 'Loading...'
 }) => {
+  // Do not obstruct UI: render children without overlay while loading
   if (isLoading) {
-    return (
-      <div
-        className={`relative ${className}`}
-        style={{ minHeight }}
-      >
-        <div className="absolute inset-0 bg-gray-50/80 backdrop-blur-sm rounded-lg flex items-center justify-center z-10">
-          <div className="text-center">
-            <RefreshCw className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-3" />
-            <p className="text-gray-600 font-medium">{loadingText}</p>
-          </div>
-        </div>
-        {/* Render faded content underneath */}
-        <div className="opacity-30 pointer-events-none">
-          {children}
-        </div>
-      </div>
-    );
+    return <div className={className}>{children}</div>;
   }
 
   if (error) {

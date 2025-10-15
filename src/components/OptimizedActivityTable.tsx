@@ -362,7 +362,7 @@ const OptimizedActivityTable: React.FC<OptimizedActivityTableProps> = ({
       {/* Footer: count and pagination */}
       {(showingCountText || hasNextPage || hasPrevPage || (maxRows && activities.length > maxRows)) && (
         <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <div className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 text-center sm:text-left">
+          <div className={`text-xs sm:text-sm ${isDark ? 'text-gray-400' : 'text-gray-600'} text-center sm:text-left`}>
             {showingCountText
               ? showingCountText
               : maxRows && activities.length > maxRows

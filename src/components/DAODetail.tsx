@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ArrowDown, ArrowUp, Home, FileText, Wallet, Users, Zap, Coins, Shield, Menu, X } from 'lucide-react';
+import { ArrowLeft, ArrowDown, ArrowUp, Home, FileText, Wallet, Users, Zap, Coins, Shield } from 'lucide-react';
+import { FaXTwitter, FaDiscord, FaTelegram, FaGlobe } from 'react-icons/fa6';
 import { DAO } from '../types/dao';
 import DAOHome from './dao/DAOHome';
 import DAOProposals from './dao/DAOProposals';
@@ -8,6 +9,7 @@ import DAOMembers from './dao/DAOMembers';
 import DAOStaking from './dao/DAOStaking';
 import DAOAdmin from './dao/DAOAdmin';
 import { updateMetaTags, generateDAOMetaTags, resetToDefaultMetaTags } from '../utils/metaTags';
+import { useAlert } from './alert/AlertContext';
 import { useDAOMembership } from '../hooks/useDAOMembership';
 import { useDAOState } from '../contexts/DAOStateContext';
 import { useWallet } from '@razorlabs/razorkit';
@@ -15,6 +17,7 @@ import { BalanceService } from '../useServices/useBalance';
 import { MODULE_ADDRESS } from '../movement_service/constants';
 import { aptosClient } from '../movement_service/movement-client';
 import { useTreasury } from '../hooks/useTreasury';
+import { useVault } from '../hooks/useVault';
 
 interface DAODetailProps {
   dao: DAO;
@@ -51,6 +54,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
 
   // Wallet for quick actions
   const { account, signAndSubmitTransaction } = useWallet();
+  const { showAlert } = useAlert();
   const [stakeAmount, setStakeAmount] = useState('');
   const [unstakeAmount, setUnstakeAmount] = useState('');
   const [showStakeForm, setShowStakeForm] = useState(false);
@@ -58,6 +62,10 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
 
   // Treasury data for test panel
   const { treasuryData } = useTreasury(dao.id);
+  // Fetch DAO FA vaults to show in test panel holdings
+  const { vaults } = useVault(dao.id, (treasuryData as any)?.treasuryObject);
+  const [socialLinks, setSocialLinks] = useState<{ x?: string; discord?: string; telegram?: string; website?: string }>({});
+  const [category, setCategory] = useState<string | null>(null);
   const [movePrice, setMovePrice] = useState<number | null>(null);
   const [isStaking, setIsStaking] = useState(false);
   const [isUnstaking, setIsUnstaking] = useState(false);
@@ -88,12 +96,20 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
         typeArguments: [],
         functionArguments: [dao.id, amountOctas],
       } as any;
-      const tx = await signAndSubmitTransaction({ payload });
-      if (tx && (tx as any).hash) {
-        await aptosClient.waitForTransaction({ transactionHash: (tx as any).hash, options: { checkSuccess: true } });
+      const tx = await signAndSubmitTransaction({ payload } as any);
+      if (!tx || !(tx as any).hash) {
+        showAlert('Transaction cancelled', 'error');
+        return;
       }
-      // refresh global DAO membership state so UI updates immediately
-      await refreshDAOData(dao.id);
+      // Optimistic success (no blocking wait)
+      showAlert('Stake submitted', 'success');
+      // Background confirmation + refresh
+      (async () => {
+        try {
+          await aptosClient.waitForTransaction({ transactionHash: (tx as any).hash, options: { checkSuccess: true } });
+        } catch {}
+        try { await refreshDAOData(dao.id); } catch {}
+      })();
     } catch (e:any) {
       setStakeError(e?.message || 'Stake failed');
     } finally {
@@ -120,11 +136,18 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
         typeArguments: [],
         functionArguments: [dao.id, amountOctas],
       } as any;
-      const tx = await signAndSubmitTransaction({ payload });
-      if (tx && (tx as any).hash) {
-        await aptosClient.waitForTransaction({ transactionHash: (tx as any).hash, options: { checkSuccess: true } });
+      const tx = await signAndSubmitTransaction({ payload } as any);
+      if (!tx || !(tx as any).hash) {
+        showAlert('Transaction cancelled', 'error');
+        return;
       }
-      await refreshDAOData(dao.id);
+      showAlert('Unstake submitted', 'success');
+      (async () => {
+        try {
+          await aptosClient.waitForTransaction({ transactionHash: (tx as any).hash, options: { checkSuccess: true } });
+        } catch {}
+        try { await refreshDAOData(dao.id); } catch {}
+      })();
     } catch (e:any) {
       setUnstakeError(e?.message || 'Unstake failed');
     } finally {
@@ -133,6 +156,32 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
   };
 
   // Preload background and avatar to avoid flicker
+  useEffect(() => {
+    const fetchLinks = async () => {
+      try {
+        const res = await aptosClient.view({
+          payload: { function: `${MODULE_ADDRESS}::dao_core_file::get_dao_all_links`, functionArguments: [dao.id] }
+        });
+        if (Array.isArray(res) && res.length >= 4) {
+          const [x, discord, telegram, website] = res as string[];
+          setSocialLinks({
+            x: (x || '').trim() || undefined,
+            discord: (discord || '').trim() || undefined,
+            telegram: (telegram || '').trim() || undefined,
+            website: (website || '').trim() || undefined,
+          });
+        }
+      } catch {}
+      try {
+        const cat = await aptosClient.view({
+          payload: { function: `${MODULE_ADDRESS}::dao_core_file::get_dao_category`, functionArguments: [dao.id] }
+        });
+        const value = Array.isArray(cat) ? String(cat[0] || '') : '';
+        setCategory(value && value.trim() ? value.trim() : null);
+      } catch {}
+    };
+    fetchLinks();
+  }, [dao.id]);
   useEffect(() => {
     if (dao.background) {
       setBgLoaded(false);
@@ -194,7 +243,8 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
         }
       } catch (error) {
         console.warn('Failed to fetch MOVE price from CoinGecko:', error);
-        setMovePrice(1); // $1 fallback
+        // Remove $1 fallback; keep price unset so UI shows $0.00
+        setMovePrice(null);
       }
     };
 
@@ -235,7 +285,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
     { id: 'treasury', label: 'Treasury', icon: Wallet, color: 'text-yellow-400' },
     { id: 'members', label: 'Members', icon: Users, color: 'text-pink-400' },
     { id: 'admin', label: 'Admin', icon: Shield, color: 'text-purple-400' },
-    { id: 'apps', label: 'Apps', icon: Zap, color: 'text-cyan-400' },
+    
   ];
 
   // Handle tab change and notify parent
@@ -263,18 +313,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
         return <DAOMembers dao={dao} />;
       case 'admin':
         return <DAOAdmin dao={dao} />;
-      case 'apps':
-        return (
-          <div className="container mx-auto px-2 sm:px-6 max-w-screen-lg space-y-6">
-            <div className="professional-card rounded-xl p-12 text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-8 h-8 text-cyan-400" />
-              </div>
-              <h3 className="text-xl font-bold text-white mb-2">Apps & Integrations</h3>
-              <p className="text-gray-400">Connect third-party apps and services to enhance your DAO</p>
-            </div>
-          </div>
-        );
+      
       default:
         return (
           <div className="container mx-auto px-2 sm:px-6 max-w-screen-lg space-y-6">
@@ -315,7 +354,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
             <div className="absolute left-0 right-0 top-0 h-32 sm:h-40 md:h-48 bg-gradient-to-r from-indigo-600/30 to-purple-600/30 pointer-events-none" />
           )}
           
-          <div className="relative z-10 max-w-7xl 2xl:mx-auto px-6 no-px-override py-6">
+          <div className="relative z-10 max-w-7xl 2xl:mx-auto px-4 sm:px-6 no-px-override py-6">
             {/* Back button and mobile share */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center text-sm">
@@ -370,7 +409,36 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                   )}
                 </div>
                 <div className="text-left w-full sm:max-w-xl">
-                  <h1 className="text-3xl font-bold text-white mb-2">{dao.name}</h1>
+                  <div className="flex items-center gap-3 mb-2 flex-wrap">
+                    <h1 className="text-3xl font-bold text-white">{dao.name}</h1>
+                    {category && (
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md" style={{ color: '#ffdd3f' }}>
+                        {category}
+                      </span>
+                    )}
+                    <div className="flex items-center gap-2">
+                      {socialLinks.x && (
+                        <a href={socialLinks.x} target="_blank" rel="noreferrer" className="text-gray-300 hover:text-white">
+                          <FaXTwitter className="w-5 h-5" />
+                        </a>
+                      )}
+                      {socialLinks.discord && (
+                        <a href={socialLinks.discord} target="_blank" rel="noreferrer" className="text-gray-300 hover:text-white">
+                          <FaDiscord className="w-5 h-5" />
+                        </a>
+                      )}
+                      {socialLinks.telegram && (
+                        <a href={socialLinks.telegram} target="_blank" rel="noreferrer" className="text-gray-300 hover:text-white">
+                          <FaTelegram className="w-5 h-5" />
+                        </a>
+                      )}
+                      {socialLinks.website && (
+                        <a href={socialLinks.website} target="_blank" rel="noreferrer" className="text-gray-300 hover:text-white">
+                          <FaGlobe className="w-5 h-5" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
                   <p className="text-white text-sm sm:text-base max-w-xl mx-0">{dao.description}</p>
                   <div className="flex flex-wrap items-center gap-2 mt-3 text-xs text-gray-400">
                     <span className="whitespace-nowrap">{dao.established}</span>
@@ -386,7 +454,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
             </div>
 
             {/* Navigation Tabs */}
-            <nav className={`flex flex-row flex-wrap gap-1.5 md:gap-2 mt-6 md:mt-8`}>
+            <nav className="grid grid-cols-3 gap-1.5 sm:flex sm:flex-row sm:flex-wrap sm:gap-2 mt-6 md:mt-8 -mx-4 px-4 sm:mx-0 sm:px-0">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 const isActive = activeTab === tab.id;
@@ -394,7 +462,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                   <button
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`flex items-center space-x-1 md:space-x-1.5 px-2 py-1 md:px-3 md:py-1.5 rounded-lg font-medium justify-center transition-colors`}
+                    className={`flex items-center space-x-1 md:space-x-1.5 px-2 py-1 md:px-3 md:py-1.5 rounded-lg font-medium justify-center transition-colors w-full sm:w-auto`}
                     style={
                       isActive
                         ? {
@@ -430,10 +498,6 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
       >
         <div className="p-4">
           <div className="professional-card rounded-xl p-4 mb-6">
-            <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-              Test Panel
-            </h3>
 
             {/* Quick Stake Summary */}
             <div className="mb-4">
@@ -520,8 +584,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
               <div className="text-3xl font-bold text-white mb-1">
                 {movePrice !== null 
                   ? `$${(treasuryData.balance * movePrice).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` 
-                  : `$${(treasuryData.balance * 1).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`
-                }
+                  : `$0.00`}
               </div>
               <div className="text-sm text-gray-400">Treasury Balance</div>
               <div className="flex items-center gap-2 mt-1">
@@ -559,16 +622,39 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                       <div className="text-white text-sm font-medium">
                         {movePrice !== null 
                           ? `$${(treasuryData.balance * movePrice).toLocaleString(undefined, {maximumFractionDigits: 0})}` 
-                          : `$${(treasuryData.balance * 1).toLocaleString(undefined, {maximumFractionDigits: 0})}`
-                        }
+                          : `$0`}
                       </div>
                       <div className="text-gray-400 text-xs">{treasuryData.balance.toFixed(2)}</div>
                     </div>
                   </div>
+                ) : null}
+
+                {/* Fungible Asset Vaults */}
+                {vaults && vaults.length > 0 ? (
+                  vaults.map((v) => (
+                    <div key={v.address} className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {v.iconUrl ? (
+                          <img src={v.iconUrl} alt={v.tokenSymbol || 'FA'} className="w-6 h-6 rounded-full flex-shrink-0" onError={(e)=>{(e.currentTarget as HTMLImageElement).style.display='none';}} />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{background:'#ffdd3f',color:'#0f0f11'}}>
+                            <span className="text-xs font-bold">{(v.tokenSymbol||'FA').slice(0,2)}</span>
+                          </div>
+                        )}
+                        <div>
+                          <div className="text-white text-sm font-medium">{v.tokenSymbol || 'FA'}</div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-white text-sm font-medium">{v.totalAssets.toLocaleString(undefined,{maximumFractionDigits:2})}</div>
+                        <div className="text-gray-400 text-xs">{v.tokenSymbol || 'FA'}</div>
+                      </div>
+                    </div>
+                  ))
                 ) : (
-                  <div className="text-center py-4 text-gray-500 text-sm">
-                    No treasury funds yet
-                  </div>
+                  !treasuryData.balance && (
+                    <div className="text-center py-4 text-gray-500 text-sm">No holdings yet</div>
+                  )
                 )}
               </div>
             </div>

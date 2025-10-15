@@ -1,5 +1,5 @@
 export const ABI = {
-  "address": "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189",
+  "address": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8",
   "name": "dao_core_file",
   "friends": [],
   "exposed_functions": [
@@ -27,18 +27,6 @@ export const ABI = {
       "return": []
     },
     {
-      "name": "claim_rewards",
-      "visibility": "public",
-      "is_entry": true,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [
-        "&signer",
-        "address"
-      ],
-      "return": []
-    },
-    {
       "name": "create_dao",
       "visibility": "public",
       "is_entry": true,
@@ -51,29 +39,12 @@ export const ABI = {
         "0x1::string::String",
         "vector<u8>",
         "vector<u8>",
-        "vector<address>",
-        "u64"
-      ],
-      "return": []
-    },
-    {
-      "name": "create_dao_launchpad",
-      "visibility": "public",
-      "is_entry": true,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [
-        "&signer",
-        "address",
+        "u64",
         "0x1::string::String",
         "0x1::string::String",
-        "u64",
-        "u64",
-        "u64",
-        "u64",
-        "u64",
-        "u64",
-        "bool"
+        "0x1::string::String",
+        "0x1::string::String",
+        "0x1::string::String"
       ],
       "return": []
     },
@@ -94,8 +65,12 @@ export const ABI = {
         "bool",
         "0x1::string::String",
         "vector<u8>",
-        "vector<address>",
-        "u64"
+        "u64",
+        "0x1::string::String",
+        "0x1::string::String",
+        "0x1::string::String",
+        "0x1::string::String",
+        "0x1::string::String"
       ],
       "return": []
     },
@@ -112,8 +87,12 @@ export const ABI = {
         "0x1::string::String",
         "0x1::string::String",
         "0x1::string::String",
-        "vector<address>",
-        "u64"
+        "u64",
+        "0x1::string::String",
+        "0x1::string::String",
+        "0x1::string::String",
+        "0x1::string::String",
+        "0x1::string::String"
       ],
       "return": []
     },
@@ -127,7 +106,7 @@ export const ABI = {
         "vector<u8>"
       ],
       "return": [
-        "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::dao_core_file::ImageData"
+        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::ImageData"
       ]
     },
     {
@@ -140,7 +119,7 @@ export const ABI = {
         "0x1::string::String"
       ],
       "return": [
-        "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::dao_core_file::ImageData"
+        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::ImageData"
       ]
     },
     {
@@ -201,11 +180,11 @@ export const ABI = {
       "generic_type_params": [],
       "params": [],
       "return": [
-        "vector<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::dao_core_file::DAOSummary>"
+        "vector<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::DAOSummary>"
       ]
     },
     {
-      "name": "get_council_info",
+      "name": "get_dao_all_links",
       "visibility": "public",
       "is_entry": false,
       "is_view": true,
@@ -214,12 +193,14 @@ export const ABI = {
         "address"
       ],
       "return": [
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::council::CouncilConfig>",
-        "u64"
+        "0x1::string::String",
+        "0x1::string::String",
+        "0x1::string::String",
+        "0x1::string::String"
       ]
     },
     {
-      "name": "get_council_member_count",
+      "name": "get_dao_category",
       "visibility": "public",
       "is_entry": false,
       "is_view": true,
@@ -228,20 +209,7 @@ export const ABI = {
         "address"
       ],
       "return": [
-        "u64"
-      ]
-    },
-    {
-      "name": "get_council_object",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": true,
-      "generic_type_params": [],
-      "params": [
-        "address"
-      ],
-      "return": [
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::council::CouncilConfig>"
+        "0x1::string::String"
       ]
     },
     {
@@ -279,6 +247,19 @@ export const ABI = {
       ],
       "return": [
         "u64"
+      ]
+    },
+    {
+      "name": "get_dao_discord_link",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "0x1::string::String"
       ]
     },
     {
@@ -342,6 +323,45 @@ export const ABI = {
       ]
     },
     {
+      "name": "get_dao_telegram_link",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "0x1::string::String"
+      ]
+    },
+    {
+      "name": "get_dao_website",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "0x1::string::String"
+      ]
+    },
+    {
+      "name": "get_dao_x_link",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "0x1::string::String"
+      ]
+    },
+    {
       "name": "get_daos_created_by",
       "visibility": "public",
       "is_entry": false,
@@ -378,20 +398,7 @@ export const ABI = {
         "u64"
       ],
       "return": [
-        "vector<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::dao_core_file::DAOSummary>"
-      ]
-    },
-    {
-      "name": "get_initial_council",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": true,
-      "generic_type_params": [],
-      "params": [
-        "address"
-      ],
-      "return": [
-        "vector<address>"
+        "vector<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::DAOSummary>"
       ]
     },
     {
@@ -439,7 +446,7 @@ export const ABI = {
         "address"
       ],
       "return": [
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>"
+        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
       ]
     },
     {
@@ -493,20 +500,6 @@ export const ABI = {
         "&signer"
       ],
       "return": []
-    },
-    {
-      "name": "is_council_member",
-      "visibility": "public",
-      "is_entry": false,
-      "is_view": true,
-      "generic_type_params": [],
-      "params": [
-        "address",
-        "address"
-      ],
-      "return": [
-        "bool"
-      ]
     },
     {
       "name": "is_dao_creation_registry_initialized",
@@ -568,21 +561,6 @@ export const ABI = {
       ]
     },
     {
-      "name": "manage_launchpad_whitelist",
-      "visibility": "public",
-      "is_entry": true,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [
-        "&signer",
-        "address",
-        "vector<address>",
-        "vector<u8>",
-        "vector<u64>"
-      ],
-      "return": []
-    },
-    {
       "name": "propose_dao_creation",
       "visibility": "public",
       "is_entry": true,
@@ -597,7 +575,6 @@ export const ABI = {
         "0x1::string::String",
         "vector<u8>",
         "vector<u8>",
-        "vector<address>",
         "u64"
       ],
       "return": []
@@ -617,7 +594,6 @@ export const ABI = {
         "0x1::string::String",
         "0x1::string::String",
         "0x1::string::String",
-        "vector<address>",
         "u64"
       ],
       "return": []
@@ -641,6 +617,7 @@ export const ABI = {
     {
       "name": "CouncilDAOCreated",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
@@ -688,6 +665,7 @@ export const ABI = {
     {
       "name": "CouncilDAOCreationRegistry",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "key"
       ],
@@ -695,7 +673,7 @@ export const ABI = {
       "fields": [
         {
           "name": "proposals",
-          "type": "vector<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::dao_core_file::DAOCreationProposalData>"
+          "type": "vector<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::DAOCreationProposalData>"
         },
         {
           "name": "next_proposal_id",
@@ -710,6 +688,7 @@ export const ABI = {
     {
       "name": "DAOCreated",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
@@ -739,16 +718,13 @@ export const ABI = {
         {
           "name": "created_at",
           "type": "u64"
-        },
-        {
-          "name": "initial_council_size",
-          "type": "u64"
         }
       ]
     },
     {
       "name": "DAOCreationProposal",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
@@ -792,6 +768,7 @@ export const ABI = {
     {
       "name": "DAOCreationProposalData",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "store"
       ],
@@ -823,15 +800,11 @@ export const ABI = {
         },
         {
           "name": "logo",
-          "type": "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::dao_core_file::ImageData"
+          "type": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::ImageData"
         },
         {
           "name": "background",
-          "type": "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::dao_core_file::ImageData"
-        },
-        {
-          "name": "initial_council",
-          "type": "vector<address>"
+          "type": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::ImageData"
         },
         {
           "name": "min_stake_to_join",
@@ -864,12 +837,33 @@ export const ABI = {
         {
           "name": "approved",
           "type": "bool"
+        },
+        {
+          "name": "x_link",
+          "type": "0x1::string::String"
+        },
+        {
+          "name": "discord_link",
+          "type": "0x1::string::String"
+        },
+        {
+          "name": "telegram_link",
+          "type": "0x1::string::String"
+        },
+        {
+          "name": "website",
+          "type": "0x1::string::String"
+        },
+        {
+          "name": "category",
+          "type": "0x1::string::String"
         }
       ]
     },
     {
       "name": "DAOInfo",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "key"
       ],
@@ -889,33 +883,46 @@ export const ABI = {
         },
         {
           "name": "logo",
-          "type": "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::dao_core_file::ImageData"
+          "type": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::ImageData"
         },
         {
           "name": "background",
-          "type": "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::dao_core_file::ImageData"
+          "type": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::ImageData"
         },
         {
           "name": "created_at",
           "type": "u64"
         },
         {
-          "name": "council",
-          "type": "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::council::CouncilConfig>"
-        },
-        {
           "name": "treasury",
-          "type": "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>"
+          "type": "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
         },
         {
-          "name": "initial_council",
-          "type": "vector<address>"
+          "name": "x_link",
+          "type": "0x1::string::String"
+        },
+        {
+          "name": "discord_link",
+          "type": "0x1::string::String"
+        },
+        {
+          "name": "telegram_link",
+          "type": "0x1::string::String"
+        },
+        {
+          "name": "website",
+          "type": "0x1::string::String"
+        },
+        {
+          "name": "category",
+          "type": "0x1::string::String"
         }
       ]
     },
     {
       "name": "DAORegistered",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
@@ -935,6 +942,7 @@ export const ABI = {
     {
       "name": "DAORegistry",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "key"
       ],
@@ -957,6 +965,7 @@ export const ABI = {
     {
       "name": "DAOSummary",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "copy",
         "drop",
@@ -985,6 +994,7 @@ export const ABI = {
     {
       "name": "ImageData",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "copy",
         "drop",
@@ -1007,47 +1017,9 @@ export const ABI = {
       ]
     },
     {
-      "name": "LaunchpadCreated",
-      "is_native": false,
-      "abilities": [
-        "drop",
-        "store"
-      ],
-      "generic_type_params": [],
-      "fields": [
-        {
-          "name": "movedaoaddrxess",
-          "type": "address"
-        },
-        {
-          "name": "creator",
-          "type": "address"
-        },
-        {
-          "name": "project_name",
-          "type": "0x1::string::String"
-        },
-        {
-          "name": "token_name",
-          "type": "0x1::string::String"
-        },
-        {
-          "name": "total_supply",
-          "type": "u64"
-        },
-        {
-          "name": "price_per_token",
-          "type": "u64"
-        },
-        {
-          "name": "created_at",
-          "type": "u64"
-        }
-      ]
-    },
-    {
       "name": "SubnameRegistry",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "key"
       ],

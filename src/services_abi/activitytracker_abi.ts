@@ -1,5 +1,5 @@
 export const ABI = {
-  "address": "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189",
+  "address": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8",
   "name": "activity_tracker",
   "friends": [],
   "exposed_functions": [
@@ -129,20 +129,20 @@ export const ABI = {
       "name": "get_activity_by_id",
       "visibility": "public",
       "is_entry": false,
-      "is_view": false,
+      "is_view": true,
       "generic_type_params": [],
       "params": [
         "u64"
       ],
       "return": [
-        "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::activity_tracker::ActivityRecord"
+        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::activity_tracker::ActivityRecord"
       ]
     },
     {
       "name": "get_dao_activities",
       "visibility": "public",
       "is_entry": false,
-      "is_view": false,
+      "is_view": true,
       "generic_type_params": [],
       "params": [
         "address"
@@ -155,7 +155,7 @@ export const ABI = {
       "name": "get_total_activities",
       "visibility": "public",
       "is_entry": false,
-      "is_view": false,
+      "is_view": true,
       "generic_type_params": [],
       "params": [],
       "return": [
@@ -166,7 +166,7 @@ export const ABI = {
       "name": "get_user_activities",
       "visibility": "public",
       "is_entry": false,
-      "is_view": false,
+      "is_view": true,
       "generic_type_params": [],
       "params": [
         "address"
@@ -191,6 +191,7 @@ export const ABI = {
     {
       "name": "ActivityEvent",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
@@ -246,6 +247,7 @@ export const ABI = {
     {
       "name": "ActivityRecord",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "copy",
         "drop",
@@ -302,6 +304,7 @@ export const ABI = {
     {
       "name": "ActivityStore",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "key"
       ],
@@ -309,7 +312,7 @@ export const ABI = {
       "fields": [
         {
           "name": "activities",
-          "type": "0x1::table::Table<u64, 0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::activity_tracker::ActivityRecord>"
+          "type": "0x1::table::Table<u64, 0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::activity_tracker::ActivityRecord>"
         },
         {
           "name": "dao_activities",
@@ -332,6 +335,7 @@ export const ABI = {
     {
       "name": "GlobalActivityTracker",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "key"
       ],
@@ -339,7 +343,7 @@ export const ABI = {
       "fields": [
         {
           "name": "tracker",
-          "type": "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::activity_tracker::ActivityStore>"
+          "type": "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::activity_tracker::ActivityStore>"
         }
       ]
     }

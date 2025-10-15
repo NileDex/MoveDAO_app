@@ -1,6 +1,6 @@
-export const MODULE_ADDRESS = "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189";
+export const MODULE_ADDRESS = "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8";
 
-export const CONTRACT_MODULE = "MoveDAO-Contract-finalversion";
+export const CONTRACT_MODULE = "MoveDAO-official";
 
 // Latest Movement Network endpoints (updated 2025)
 export const NETWORK_CONFIG = {

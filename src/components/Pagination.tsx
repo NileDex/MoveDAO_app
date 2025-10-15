@@ -126,7 +126,7 @@ const Pagination: React.FC<PaginationProps> = ({
           <select
             value={limit}
             onChange={(e) => onLimitChange(Number(e.target.value))}
-            className="px-2 py-1 text-white bg-white/5 border border-white/10 rounded focus:outline-none focus:border-blue-500"
+            className="professional-input px-2 py-1 rounded"
           >
             <option value={10}>10</option>
             <option value={25}>25</option>

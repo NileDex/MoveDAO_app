@@ -1,8 +1,8 @@
 export const ABI = {
-  "address": "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189",
+  "address": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8",
   "name": "treasury",
   "friends": [
-    "0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::dao_core_file"
+    "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file"
   ],
   "exposed_functions": [
     {
@@ -12,7 +12,7 @@ export const ABI = {
       "is_view": true,
       "generic_type_params": [],
       "params": [
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>"
+        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
       ],
       "return": [
         "bool"
@@ -25,7 +25,7 @@ export const ABI = {
       "is_view": true,
       "generic_type_params": [],
       "params": [
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>",
+        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>",
         "u64"
       ],
       "return": [
@@ -40,7 +40,8 @@ export const ABI = {
       "generic_type_params": [],
       "params": [
         "&signer",
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>",
+        "address",
+        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>",
         "0x1::object::Object<0x1::fungible_asset::Metadata>"
       ],
       "return": []
@@ -66,7 +67,7 @@ export const ABI = {
       "generic_type_params": [],
       "params": [
         "&signer",
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>",
+        "address",
         "address",
         "u64"
       ],
@@ -80,10 +81,23 @@ export const ABI = {
       "generic_type_params": [],
       "params": [
         "&signer",
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>",
+        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>",
         "u64"
       ],
       "return": []
+    },
+    {
+      "name": "get_all_vaults_info",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
+      ],
+      "return": [
+        "vector<address>"
+      ]
     },
     {
       "name": "get_balance",
@@ -105,7 +119,7 @@ export const ABI = {
       "is_view": true,
       "generic_type_params": [],
       "params": [
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>"
+        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
       ],
       "return": [
         "u64"
@@ -118,7 +132,7 @@ export const ABI = {
       "is_view": true,
       "generic_type_params": [],
       "params": [
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>"
+        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
       ],
       "return": [
         "u64",
@@ -133,7 +147,7 @@ export const ABI = {
       "is_view": true,
       "generic_type_params": [],
       "params": [
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>"
+        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
       ],
       "return": [
         "vector<address>"
@@ -146,7 +160,7 @@ export const ABI = {
       "is_view": true,
       "generic_type_params": [],
       "params": [
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>"
+        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
       ],
       "return": [
         "u64",
@@ -155,6 +169,192 @@ export const ABI = {
         "u64",
         "address",
         "bool"
+      ]
+    },
+    {
+      "name": "get_vault_asset_decimals",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "u8"
+      ]
+    },
+    {
+      "name": "get_vault_asset_icon_uri",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "0x1::string::String"
+      ]
+    },
+    {
+      "name": "get_vault_asset_maximum",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "0x1::option::Option<u128>"
+      ]
+    },
+    {
+      "name": "get_vault_asset_name",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "0x1::string::String"
+      ]
+    },
+    {
+      "name": "get_vault_asset_project_uri",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "0x1::string::String"
+      ]
+    },
+    {
+      "name": "get_vault_asset_supply",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "0x1::option::Option<u128>"
+      ]
+    },
+    {
+      "name": "get_vault_asset_symbol",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "0x1::string::String"
+      ]
+    },
+    {
+      "name": "get_vault_balance",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "u64"
+      ]
+    },
+    {
+      "name": "get_vault_dao_address",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "address"
+      ]
+    },
+    {
+      "name": "get_vault_info",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "0x1::string::String",
+        "0x1::string::String",
+        "u8",
+        "u64",
+        "address"
+      ]
+    },
+    {
+      "name": "get_vault_maximum_or_zero",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "u128"
+      ]
+    },
+    {
+      "name": "get_vault_metadata",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "0x1::object::Object<0x1::fungible_asset::Metadata>"
+      ]
+    },
+    {
+      "name": "get_vault_supply_or_zero",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "u128"
+      ]
+    },
+    {
+      "name": "get_vaults_count",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
+      ],
+      "return": [
+        "u64"
       ]
     },
     {
@@ -167,7 +367,7 @@ export const ABI = {
         "&signer"
       ],
       "return": [
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>"
+        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
       ]
     },
     {
@@ -179,7 +379,7 @@ export const ABI = {
       "params": [
         "&signer",
         "address",
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>",
+        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>",
         "bool"
       ],
       "return": []
@@ -192,11 +392,24 @@ export const ABI = {
       "generic_type_params": [],
       "params": [
         "&signer",
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>",
+        "address",
         "address",
         "u64"
       ],
       "return": []
+    },
+    {
+      "name": "vault_exists",
+      "visibility": "public",
+      "is_entry": false,
+      "is_view": true,
+      "generic_type_params": [],
+      "params": [
+        "address"
+      ],
+      "return": [
+        "bool"
+      ]
     },
     {
       "name": "withdraw",
@@ -219,9 +432,10 @@ export const ABI = {
       "generic_type_params": [],
       "params": [
         "&signer",
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>",
         "address",
-        "u64"
+        "address",
+        "u64",
+        "address"
       ],
       "return": []
     },
@@ -234,20 +448,7 @@ export const ABI = {
       "params": [
         "&signer",
         "address",
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>",
-        "u64"
-      ],
-      "return": []
-    },
-    {
-      "name": "withdraw_rewards_from_object",
-      "visibility": "friend",
-      "is_entry": false,
-      "is_view": false,
-      "generic_type_params": [],
-      "params": [
-        "address",
-        "0x1::object::Object<0x8d5583a22574889575196d064ed454e2a7e0d811ec8fc3fcbeabc30349347189::treasury::Treasury>",
+        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>",
         "u64"
       ],
       "return": []
@@ -257,6 +458,7 @@ export const ABI = {
     {
       "name": "DAOVaultRegistry",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "key"
       ],
@@ -271,6 +473,7 @@ export const ABI = {
     {
       "name": "ReentrancyGuard",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "key"
       ],
@@ -283,8 +486,32 @@ export const ABI = {
       ]
     },
     {
+      "name": "TokenVault",
+      "is_native": false,
+      "is_event": false,
+      "abilities": [
+        "key"
+      ],
+      "generic_type_params": [],
+      "fields": [
+        {
+          "name": "dao_address",
+          "type": "address"
+        },
+        {
+          "name": "fa_metadata",
+          "type": "0x1::object::Object<0x1::fungible_asset::Metadata>"
+        },
+        {
+          "name": "store",
+          "type": "0x1::object::Object<0x1::fungible_asset::FungibleStore>"
+        }
+      ]
+    },
+    {
       "name": "Treasury",
       "is_native": false,
+      "is_event": false,
       "abilities": [
         "key"
       ],
@@ -323,6 +550,7 @@ export const ABI = {
     {
       "name": "TreasuryDepositEvent",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
@@ -358,6 +586,7 @@ export const ABI = {
     {
       "name": "TreasuryRewardWithdrawalEvent",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
@@ -393,6 +622,7 @@ export const ABI = {
     {
       "name": "TreasuryWithdrawalEvent",
       "is_native": false,
+      "is_event": true,
       "abilities": [
         "drop",
         "store"
