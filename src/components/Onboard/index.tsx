@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import OnboardLayout from './OnboardLayout';
 import { ArrowRight, Wallet, Link as LinkIcon, Coins, ChevronRight } from 'lucide-react';
+import mosaicLogo from './onboard-images/mosaiclogo.svg';
 
 const Onboard: React.FC = () => {
 
@@ -37,7 +38,7 @@ const Onboard: React.FC = () => {
                     Swap tokens seamlessly across multiple chains with Mosaic's cross-chain protocol
                   </p>
                 </div>
-                <img src="/src/components/Onboard/onboard-images/mosaiclogo.svg" alt="Mosaic" className="ml-4" style={{ width: '80px', height: '80px' }} />
+                <img src={mosaicLogo} alt="Mosaic" className="ml-4" style={{ width: '80px', height: '80px' }} />
               </div>
             </Link>
 
