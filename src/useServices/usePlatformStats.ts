@@ -413,26 +413,29 @@ export class PlatformStatsService {
   static async getDAOAddressesFromEvents(): Promise<string[]> {
     try {
       console.log('🔍 Discovering DAOs via events...');
-      
-      // Use indexer first (faster)
-      try {
-        const indexerEvents = await aptosClient.getModuleEventsByEventType({
-          eventType: `${MODULE_ADDRESS}::dao_core_file::DAOCreated`,
-          minimumLedgerVersion: 0
-        });
 
-        if (indexerEvents && indexerEvents.length > 0) {
-          console.log('✅ Found DAOs via indexer:', indexerEvents.length);
-          return indexerEvents.map((event: any) => event.data.movedaoaddrxess).filter(Boolean);
-        }
+      // Use indexer first (faster) - but skip if it's failing
+      try {
+        // Disable indexer for now as it's causing CORS issues
+        // const indexerEvents = await aptosClient.getModuleEventsByEventType({
+        //   eventType: `${MODULE_ADDRESS}::dao_core_file::DAOCreated`,
+        //   minimumLedgerVersion: 0
+        // });
+
+        // if (indexerEvents && indexerEvents.length > 0) {
+        //   console.log('✅ Found DAOs via indexer:', indexerEvents.length);
+        //   return indexerEvents.map((event: any) => event.data.movedaoaddrxess).filter(Boolean);
+        // }
+
+        console.log('⚠️ Indexer disabled - using mock data');
       } catch (indexerError) {
-        console.warn('Indexer failed, trying RPC scan:', indexerError);
+        console.warn('Indexer failed:', indexerError);
       }
 
-      // Fallback to RPC scanning (we'll implement a simple version)
-      console.log('🔄 Using RPC fallback for DAO discovery...');
-      return []; // Return empty for now, can be enhanced later
-      
+      // Fallback to empty array - prevents infinite loop
+      console.log('🔄 Using empty DAO list (indexer unavailable)');
+      return []; // Return empty for now to prevent crashes
+
     } catch (error) {
       console.error('Event-based DAO discovery failed:', error);
       return [];
