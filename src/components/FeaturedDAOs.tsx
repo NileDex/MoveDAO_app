@@ -89,6 +89,7 @@ const FeaturedDAOs: React.FC<FeaturedDAOsProps> = ({ onDAOSelect, onCreateDAO, s
               key={dao.id}
               dao={dao}
               onClick={() => onDAOSelect(dao)}
+              sidebarCollapsed={sidebarCollapsed}
             />
           ))}
         </div>

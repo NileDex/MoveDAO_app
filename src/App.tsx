@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route } from 'react-router-dom';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import MainDashboard from './components/MainDashboard';
@@ -6,6 +7,9 @@ import CreateDAO from './components/CreateDAO';
 import DAODetail from './components/DAODetail';
 import PlatformGrowthCharts from './components/PlatformGrowthCharts';
 import { UserProfile } from './components/profile';
+import Onboard from './components/Onboard';
+import Mosaic from './components/Onboard/Mosaic';
+import Transfer from './components/Onboard/Transfer';
 import { DAO } from './types/dao';
 import { Home, FileText, Wallet, Users, Coins, Shield, Zap } from 'lucide-react';
 
@@ -199,38 +203,45 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--bg)' }}>
-      {/* Header: always at the top */}
-      <Header
-        currentDAO={selectedDAO?.name}
-        // Pass a prop to trigger sidebar open on mobile
-        onMenuClick={() => setSidebarOpen(true)}
-        onProfileClick={() => setCurrentView('profile')}
-      />
-      
-      {/* Content area with sidebar below header */}
-      <div className="flex flex-1 min-h-0">
-        {/* Sidebar: below header on desktop, overlay on mobile */}
-        <Sidebar
-          currentView={currentView}
-          onViewChange={(view) => {
-            setCurrentView(view);
-            setSidebarOpen(false); // close on mobile after selection
-          }}
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-          onCollapseChange={setSidebarCollapsed}
-          daoTabs={currentView === 'dao-detail' ? daoTabs : undefined}
-          activeTab={daoActiveTab}
-          onTabChange={setDaoActiveTab}
-        />
-        <main className={`flex-1 overflow-auto transition-all duration-300 ${
-          sidebarCollapsed ? 'md:ml-16' : 'md:ml-48'
-        }`}>
-          {renderContent()}
-        </main>
-      </div>
-    </div>
+    <Routes>
+      <Route path="/onboard" element={<Onboard />} />
+      <Route path="/mosaic" element={<Mosaic />} />
+      <Route path="/transfer" element={<Transfer />} />
+      <Route path="*" element={
+        <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--bg)' }}>
+          {/* Header: always at the top */}
+          <Header
+            currentDAO={selectedDAO?.name}
+            // Pass a prop to trigger sidebar open on mobile
+            onMenuClick={() => setSidebarOpen(true)}
+            onProfileClick={() => setCurrentView('profile')}
+          />
+
+          {/* Content area with sidebar below header */}
+          <div className="flex flex-1 min-h-0">
+            {/* Sidebar: below header on desktop, overlay on mobile */}
+            <Sidebar
+              currentView={currentView}
+              onViewChange={(view) => {
+                setCurrentView(view);
+                setSidebarOpen(false); // close on mobile after selection
+              }}
+              isOpen={sidebarOpen}
+              onClose={() => setSidebarOpen(false)}
+              onCollapseChange={setSidebarCollapsed}
+              daoTabs={currentView === 'dao-detail' ? daoTabs : undefined}
+              activeTab={daoActiveTab}
+              onTabChange={setDaoActiveTab}
+            />
+            <main className={`flex-1 overflow-auto transition-all duration-300 ${
+              sidebarCollapsed ? 'md:ml-16' : 'md:ml-48'
+            }`}>
+              {renderContent()}
+            </main>
+          </div>
+        </div>
+      } />
+    </Routes>
   );
 }
 

@@ -1,8 +1,7 @@
 /* Header.css - Vanilla CSS for Header component */
 
 .header {
-  background: var(--card-bg, rgba(15,15,17,0.8));
-  backdrop-filter: blur(12px);
+  background: #131315;
   border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
   padding: 0.4rem 0.6rem;
   position: sticky;
@@ -129,21 +128,38 @@
   border-color: var(--border, rgba(255, 255, 255, 0.12));
 }
 .header-menu-btn {
-  display: block;
+  display: none;
   padding: 0.5rem;
-  color: var(--text-dim, #9ca3af);
+  color: var(--text, #fff);
   background: none;
   border: none;
   border-radius: 0.5rem;
   transition: color 0.2s;
+  cursor: pointer;
+  z-index: 100;
 }
 .header-menu-btn:hover {
   color: var(--text, #fff);
+  opacity: 0.8;
+}
+
+@media (max-width: 767px) {
+  .header-menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@media (min-width: 768px) {
+  .header-menu-btn {
+    display: none !important;
+  }
 }
 
 /* Light theme specific header overrides */
 [data-theme="light"] .header {
-  background: rgba(255, 255, 255, 0.9) !important;
+  background: rgb(255, 255, 255) !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
 }
 

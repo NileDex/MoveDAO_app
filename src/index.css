@@ -336,14 +336,10 @@ body {
 
 /* Responsive padding for All DAOs grid */
 .dao-grid {
-  padding-left: 0.8rem;
-  padding-right: 0.8rem;
 }
 
 @media (max-width: 640px) {
   .dao-grid {
-    padding-left: 0;
-    padding-right: 0;
   }
 }
 
@@ -709,4 +705,39 @@ body {
     padding-left: 1.5rem !important;
     padding-right: 1.5rem !important;
   }
+}
+
+/* Mosaic Widget - Ensure token images display properly */
+[class*="mosaic"] img,
+[class*="token"] img,
+[id*="mosaic"] img,
+[data-loaded="true"] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* Force all images with data-loaded attribute to be visible */
+img[data-loaded="true"] {
+  opacity: 1 !important;
+  transition: opacity 0.3s ease !important;
+}
+
+/* Mosaic Widget - Preserve button styles */
+[class*="mosaic"] button,
+[class*="mosaic"] .bg-primary,
+button[style*="background-color"] {
+  background-color: revert !important;
+}
+
+button[style*="background-color"][style*="rgb(230, 177, 19)"] {
+  background-color: rgb(230, 177, 19) !important;
+}
+
+/* Remove py-12 padding */
+.py-12 {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
 }

@@ -5,9 +5,10 @@ import { DAO } from '../types/dao';
 interface DAOCardProps {
   dao: DAO;
   onClick: () => void;
+  sidebarCollapsed?: boolean;
 }
 
-const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
+const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick, sidebarCollapsed = true }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [backgroundLoaded, setBackgroundLoaded] = useState(false);
@@ -101,9 +102,11 @@ const DAOCard: React.FC<DAOCardProps> = ({ dao, onClick }) => {
   }, [dao.background]);
 
   return (
-    <div 
+    <div
       onClick={onClick}
-      className="professional-card rounded-xl overflow-hidden cursor-pointer group animate-fade-in relative"
+      className={`professional-card rounded-xl overflow-hidden cursor-pointer group animate-fade-in relative ${
+        !sidebarCollapsed ? 'max-w-[340px]' : ''
+      }`}
     >
       {/* Twitter-like banner (top strip, not covering entire card) */}
       {dao.background && !backgroundError && (

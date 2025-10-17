@@ -6,50 +6,7 @@ import { useTheme } from '../contexts/ThemeContext';
 
 const StatsOverview: React.FC = () => {
   const { stats: platformStats, isLoading, error, lastUpdated } = usePlatformStats();
-  const [networkStatus, setNetworkStatus] = useState<'online' | 'offline' | 'checking'>('checking');
   const { isDark } = useTheme();
-
-  // Check network status periodically
-  useEffect(() => {
-    let isMounted = true;
-
-    const checkNetworkStatus = async () => {
-      try {
-        // Use the GraphQL endpoint which is more reliable for health checks
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
-
-        const response = await fetch(NETWORK_CONFIG.indexer, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ query: '{ __typename }' }), // Minimal introspection query
-          signal: controller.signal
-        });
-
-        clearTimeout(timeoutId);
-
-        if (isMounted) {
-          setNetworkStatus(response.ok ? 'online' : 'offline');
-        }
-      } catch (error) {
-        // Only log if it's not an abort error
-        if (error instanceof Error && error.name !== 'AbortError') {
-          console.warn('Network status check failed:', error.message);
-        }
-        if (isMounted) {
-          setNetworkStatus('offline');
-        }
-      }
-    };
-
-    checkNetworkStatus();
-    const interval = setInterval(checkNetworkStatus, 45000); // Check every 45 seconds (less frequent)
-
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, []);
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -90,13 +47,13 @@ const StatsOverview: React.FC = () => {
       color: 'from-yellow-500 to-orange-500',
       bgColor: 'bg-yellow-500/10'
     },
-    { 
-      label: 'Movement Network', 
-      value: networkStatus === 'checking' ? '...' : 'Testnet', 
-      change: networkStatus === 'online' ? '+Live' : networkStatus === 'offline' ? 'Offline' : '...',
-      icon: Globe, 
-      color: networkStatus === 'online' ? 'from-emerald-500 to-teal-500' : 'from-red-500 to-orange-500',
-      bgColor: networkStatus === 'online' ? 'bg-emerald-500/10' : 'bg-red-500/10'
+    {
+      label: 'Movement Network',
+      value: 'Testnet',
+      change: '+Live',
+      icon: Globe,
+      color: 'from-emerald-500 to-teal-500',
+      bgColor: 'bg-emerald-500/10'
     }
   ];
 
@@ -106,25 +63,10 @@ const StatsOverview: React.FC = () => {
       <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-4">
         <div className="flex items-center gap-3">
           <h2 className="text-xl sm:text-2xl font-bold text-white">Platform Overview</h2>
-          {error ? (
+          {error && (
             <span className="flex items-center gap-1 text-xs text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
               <span className="w-2 h-2 bg-red-500 rounded-full"></span>
               Error
-            </span>
-          ) : networkStatus === 'online' ? (
-            <span className="flex items-center gap-1 text-xs text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              Live
-            </span>
-          ) : networkStatus === 'offline' ? (
-            <span className="flex items-center gap-1 text-xs text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
-              <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-              Offline
-            </span>
-          ) : (
-            <span className="flex items-center gap-1 text-xs text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-full">
-              <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
-              Checking
             </span>
           )}
         </div>

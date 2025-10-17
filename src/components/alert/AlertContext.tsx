@@ -24,7 +24,7 @@ export const AlertProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {alert && (
         <div style={{
           position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
-          background: alert.type === 'success' ? '#16a34a' : alert.type === 'error' ? '#dc2626' : '#2563eb',
+          background: '#252527',
           color: '#ffffff',
           padding: '10px 16px',
           fontWeight: 600,

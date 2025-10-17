@@ -1,13 +1,13 @@
 import React from 'react';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, ResponsiveContainer } from 'recharts';
-import { TrendingUp, Users, Building2, Vote, DollarSign, RefreshCw, AlertTriangle } from 'lucide-react';
+import { TrendingUp, Users, Building2, Vote,  RefreshCw, AlertTriangle } from 'lucide-react';
 import { usePlatformStats } from '../useServices/usePlatformStats';
 
 const PlatformGrowthCharts: React.FC = () => {
   const { stats, isLoading, error, lastUpdated, refresh } = usePlatformStats();
   // Debug platform stats
   React.useEffect(() => {
-    console.log('📊 Current platform stats:', stats);
+    console.log(' Current platform stats:', stats);
   }, [stats]);
 
   // Create time-series data for charts showing daily activity
