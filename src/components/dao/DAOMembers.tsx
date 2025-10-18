@@ -123,7 +123,7 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
       setIsLoadingMembers(true);
       const candidateAddresses = new Set<string>();
 
-      // Query staking events to gather staker addresses for THIS DAO (they include movedaoaddrxess)
+      // Query staking events to gather staker addresses for THIS DAO (they include movedao_addrx)
       const stakeType = `${MODULE_ADDRESS}::staking::StakeEvent` as `${string}::${string}::${string}`;
       const unstakeType = `${MODULE_ADDRESS}::staking::UnstakeEvent` as `${string}::${string}::${string}`;
 
@@ -135,7 +135,7 @@ const DAOMembers: React.FC<DAOMembersProps> = ({ dao }) => {
 
       const pushIfForDAO = (ev: any) => {
         const d = ev?.data || {};
-        if ((d.movedaoaddrxess || d.dao_address) === dao.id && typeof d.staker === 'string') {
+        if ((d.movedao_addrx || d.dao_address) === dao.id && typeof d.staker === 'string') {
           candidateAddresses.add(d.staker);
         }
       };

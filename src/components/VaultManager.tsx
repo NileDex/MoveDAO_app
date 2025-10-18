@@ -119,7 +119,7 @@ const VaultManager: React.FC<VaultManagerProps> = ({ daoId, treasuryObject }) =>
     <div className="bg-transparent">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
         <div className="flex items-center space-x-3">
-          <Vault className="w-5 h-5" style={{ color: '#ffdd3f' }} />
+          <Vault className="w-5 h-5" style={{ color: '#facc16' }} />
           <h3 className="text-lg font-semibold text-white">DAO Vaults</h3>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -134,8 +134,7 @@ const VaultManager: React.FC<VaultManagerProps> = ({ daoId, treasuryObject }) =>
           {isAdmin && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200"
-              style={{ backgroundColor: '#ffdd3f', color: '#0f172a', border: '1px solid #ffdd3f' }}
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 bg-yellow-400 text-slate-900 hover:bg-yellow-500 border border-yellow-400"
             >
               <Plus className="w-4 h-4" />
               <span className="text-sm font-medium">Create Vault</span>
@@ -157,7 +156,7 @@ const VaultManager: React.FC<VaultManagerProps> = ({ daoId, treasuryObject }) =>
 
       {vaults.length === 0 ? (
         <div className="text-center py-12 px-4">
-          <Vault className="w-12 h-12 mx-auto mb-3" style={{ color: '#ffdd3f' }} />
+          <Vault className="w-12 h-12 mx-auto mb-3" style={{ color: '#facc16' }} />
           <h4 className="text-base font-medium text-white mb-2">No Vaults Created</h4>
           <p className="text-gray-400 text-sm mb-4 max-w-md mx-auto">
             {isAdmin
@@ -168,8 +167,7 @@ const VaultManager: React.FC<VaultManagerProps> = ({ daoId, treasuryObject }) =>
           {isAdmin && (
             <button
               onClick={() => setShowCreateModal(true)}
-              className="px-5 py-2.5 rounded-lg transition-all duration-200 text-sm font-semibold"
-              style={{ backgroundColor: '#ffdd3f', color: '#0f172a', border: '1px solid #ffdd3f' }}
+              className="px-5 py-2.5 rounded-lg transition-all duration-200 text-sm font-semibold bg-yellow-400 text-slate-900 hover:bg-yellow-500 border border-yellow-400"
             >
               Create First Vault
             </button>
@@ -199,7 +197,7 @@ const VaultManager: React.FC<VaultManagerProps> = ({ daoId, treasuryObject }) =>
                     <tr key={vault.address} className="hover:bg-gray-800/30 transition-colors">
                       <td className="py-3 px-3 sm:px-4 align-top">
                         <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#ffdd3f', color: '#0f172a' }}>
+                          <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center text-xs font-bold" style={{ backgroundColor: '#facc16', color: '#0f172a' }}>
                             {vault.iconUrl ? (
                               <img
                                 src={vault.iconUrl}
@@ -351,7 +349,7 @@ const VaultManager: React.FC<VaultManagerProps> = ({ daoId, treasuryObject }) =>
                 <button
                   onClick={handleCreateVault}
                   disabled={isProcessing}
-                  className="flex-1 h-11 px-6 rounded-xl font-semibold text-black bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 h-11 px-6 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed bg-yellow-400 text-slate-900 hover:bg-yellow-500"
                 >
                   {isProcessing ? 'Creating...' : 'Create Vault'}
                 </button>
@@ -397,7 +395,7 @@ const VaultManager: React.FC<VaultManagerProps> = ({ daoId, treasuryObject }) =>
                 <button
                   onClick={handleDeposit}
                   disabled={isProcessing || !depositAmount}
-                  className="flex-1 h-11 px-6 rounded-xl font-semibold text-black bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 h-11 px-6 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed bg-yellow-400 text-slate-900 hover:bg-yellow-500"
                 >
                   {isProcessing ? 'Depositing...' : 'Deposit'}
                 </button>
@@ -443,7 +441,7 @@ const VaultManager: React.FC<VaultManagerProps> = ({ daoId, treasuryObject }) =>
                 <button
                   onClick={handleWithdraw}
                   disabled={isProcessing || !withdrawAmount}
-                  className="flex-1 h-11 px-6 rounded-xl font-semibold text-black bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 h-11 px-6 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed bg-yellow-400 text-slate-900 hover:bg-yellow-500"
                 >
                   {isProcessing ? 'Withdrawing...' : 'Withdraw'}
                 </button>

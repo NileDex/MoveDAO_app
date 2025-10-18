@@ -115,6 +115,23 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
     sectionLoader.executeWithLoader(loadTreasuryData);
   };
 
+  // Test function to create a small treasury deposit for testing
+  const testTreasuryDeposit = async () => {
+    if (!account?.address) {
+      showAlert('Please connect your wallet first', 'error');
+      return;
+    }
+
+    try {
+      console.log('🧪 Testing treasury deposit...');
+      await deposit(0.001); // Deposit 0.001 MOVE for testing
+      showAlert('Test deposit successful! Check treasury activities.', 'success');
+    } catch (error: any) {
+      console.error('Test deposit failed:', error);
+      showAlert(`Test deposit failed: ${error.message}`, 'error');
+    }
+  };
+
   // Original MOVE price fetch logic (now part of loading)
   const fetchMovePrice = async () => {
     try {
@@ -455,6 +472,21 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
         </div>
       )}
 
+      {/* Test Button - Only show if no transactions found */}
+      {transactions.length === 0 && isWalletConnected && (
+        <div className="mt-4">
+          <button
+            onClick={testTreasuryDeposit}
+            className="flex items-center justify-center space-x-2 px-4 py-2 text-yellow-400 border border-yellow-500/30 rounded-lg font-medium hover:bg-yellow-500/10 transition-all text-sm"
+          >
+            <span>🧪 Test Treasury Deposit (0.001 MOVE)</span>
+          </button>
+          <p className="text-xs text-gray-500 mt-2">
+            This will create a small test deposit to verify treasury activities are working
+          </p>
+        </div>
+      )}
+
       {/* Deposit Modal */}
       {showDepositForm && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4" style={{ backgroundColor: 'transparent' }} onClick={() => setShowDepositForm(false)}>
@@ -487,9 +519,11 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
                   return typeof obj === 'string' ? obj : (obj?.inner || obj?.value || obj);
                 })();
                 const payloadPreview = objectAddress ? {
-                  function: `${MODULE_ADDRESS}::treasury::deposit_to_object`,
-                  typeArguments: [],
+                  function: `${MODULE_ADDRESS}::treasury::deposit_to_object_typed`,
+                  type_arguments: ['0x1::aptos_coin::AptosCoin'],
+                  typeArguments: ['0x1::aptos_coin::AptosCoin'],
                   functionArguments: [objectAddress, String(octas)],
+                  arguments: [objectAddress, String(octas)],
                 } : {
                   function: `${MODULE_ADDRESS}::treasury::deposit`,
                   typeArguments: [],
@@ -524,8 +558,8 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleDeposit}
-                  className="flex-1 h-11 px-6 rounded-xl font-semibold text-black bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={!amount || parseFloat(amount) <= 0 || isDepositing}
+                  className="flex-1 h-11 px-6 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed bg-yellow-400 text-slate-900 hover:bg-yellow-500"
                 >
                   {isDepositing ? 'Depositing…' : 'Confirm Deposit'}
                 </button>
@@ -609,8 +643,8 @@ const DAOTreasury: React.FC<DAOTreasuryProps> = ({ dao }) => {
               <div className="flex items-center gap-3">
                 <button
                   onClick={handleWithdraw}
-                  className="flex-1 h-11 px-6 rounded-xl font-semibold text-black bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={!amount || parseFloat(amount) <= 0 || parseFloat(amount) > Math.min(treasuryData.remainingDaily, treasuryData.balance) || isWithdrawing}
+                  className="flex-1 h-11 px-6 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed bg-yellow-400 text-slate-900 hover:bg-yellow-500"
                 >
                   {isWithdrawing ? 'Withdrawing…' : 'Confirm Withdraw'}
                 </button>

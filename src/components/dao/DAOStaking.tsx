@@ -866,7 +866,10 @@ const DAOStaking: React.FC<DAOStakingProps> = ({ dao, sidebarCollapsed = false }
                 <button
                   onClick={handleStake}
                   disabled={isStaking || !stakeAmount || parseFloat(stakeAmount) <= 0}
-                  className={`w-full px-6 py-3 disabled:opacity-50 rounded-xl font-medium transition-colors bg-[#faca20] text-black hover:bg-[#fbd84f]`}
+                  className="w-full px-6 py-3 disabled:cursor-not-allowed rounded-xl font-semibold bg-yellow-400 text-slate-900 hover:bg-yellow-500"
+                  style={{ 
+                    opacity: (isStaking || !stakeAmount || parseFloat(stakeAmount) <= 0) ? 0.5 : 1
+                  }}
                 >
                   {isStaking ? 'Staking...' : 'Stake MOVE'}
                 </button>

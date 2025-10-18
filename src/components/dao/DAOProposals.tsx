@@ -1682,19 +1682,19 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
                 <h3 className="text-white font-semibold">Important Requirements & Fees</h3>
                 <div className="text-sm text-gray-300 space-y-1">
                   <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></span>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#facc16' }}></span>
                     <span><strong className="text-gray-100">Proposal Fee:</strong> 0.01 MOVE tokens (anti-spam fee)</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></span>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#facc16' }}></span>
                     <span><strong className="text-gray-100">Gas Fees:</strong> ~0.5 MOVE for transaction</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></span>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#facc16' }}></span>
                     <span><strong className="text-gray-100">Cooldown:</strong> 24 hours between proposals</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full"></span>
+                    <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: '#facc16' }}></span>
                     <span><strong className="text-gray-100">Total Needed:</strong> At least 0.51 MOVE in wallet</span>
                   </div>
                 </div>
@@ -1891,11 +1891,12 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
               <button
                 onClick={handleCreateProposal}
                 disabled={isCreating || !newProposal.title || !newProposal.description || !newProposal.startTime || !newProposal.endTime}
-                className={`px-6 py-2 rounded-xl text-sm font-semibold transition-all ${
-                  isCreating || !newProposal.title || !newProposal.description || !newProposal.startTime || !newProposal.endTime
-                    ? 'bg-yellow-400/60 text-black cursor-not-allowed'
-                    : 'bg-yellow-400 hover:bg-yellow-500 text-black'
-                }`}
+                className="px-6 py-2 rounded-xl text-sm font-semibold transition-all"
+                style={{
+                  backgroundColor: (isCreating || !newProposal.title || !newProposal.description || !newProposal.startTime || !newProposal.endTime) ? '#facc1660' : '#facc16',
+                  color: '#0f172a',
+                  cursor: (isCreating || !newProposal.title || !newProposal.description || !newProposal.startTime || !newProposal.endTime) ? 'not-allowed' : 'pointer'
+                }}
               >
                 {isCreating ? 'Creating...' : 'Create Proposal'}
               </button>
@@ -1997,7 +1998,7 @@ const DAOProposals: React.FC<DAOProposalsProps> = ({ dao, sidebarCollapsed = fal
                         className="h-full rounded-full transition-all duration-300"
                         style={{
                           width: `${Math.min((proposal.quorumCurrent / Math.max(proposal.quorumRequired, 0.001)) * 100, 100)}%`,
-                          backgroundColor: '#ffdd40'
+                          backgroundColor: '#facc16'
                         }}
                       />
                     </div>

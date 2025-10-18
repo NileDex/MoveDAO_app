@@ -30,7 +30,7 @@ export const useTreasury = (daoId: string) => {
   // Session cache with TTL + SWR (similar to Members)
   // @ts-ignore
   const treasurySessionCache: Map<string, any> = (window as any).__treasuryHookCache || ((window as any).__treasuryHookCache = new Map());
-  const TREASURY_TTL_MS = 5 * 60 * 1000; // 5 minutes fresh
+  // const TREASURY_TTL_MS = 5 * 60 * 1000; // 5 minutes fresh
   const TREASURY_MAX_STALE_MS = 10 * 60 * 1000; // 10 minutes allowable stale
   const cacheNow = Date.now();
   const cacheBaseKey = `dao_${daoId}`;
@@ -163,26 +163,49 @@ export const useTreasury = (daoId: string) => {
         return;
       }
 
-      // Determine which address emits events: prefer treasury object, else DAO address (legacy)
-      let eventAccount = daoId;
+      // Fetch treasury events from module account transactions
+      let allEvents: any[] = [];
+
       try {
-        const objRes = await aptosClient.view({
-          payload: { function: `${MODULE_ADDRESS}::dao_core_file::get_treasury_object`, functionArguments: [daoId] },
+        const treasuryTransactions = await aptosClient.getAccountTransactions({
+          accountAddress: MODULE_ADDRESS,
+          options: { limit: 100 }
         });
-        const rawObj = (objRes as any)?.[0];
-        const objAddr = typeof rawObj === 'string' ? rawObj : rawObj?.inner || rawObj?.value || rawObj?.address;
-        if (objAddr) eventAccount = objAddr;
-      } catch {}
 
-      const depositType = `${MODULE_ADDRESS}::treasury::TreasuryDepositEvent` as `${string}::${string}::${string}`;
-      const withdrawType = `${MODULE_ADDRESS}::treasury::TreasuryWithdrawalEvent` as `${string}::${string}::${string}`;
-      const rewardType = `${MODULE_ADDRESS}::treasury::TreasuryRewardWithdrawalEvent` as `${string}::${string}::${string}`;
+        // Extract treasury events from transactions
+        for (const tx of treasuryTransactions as any[]) {
+          if (tx.events && Array.isArray(tx.events)) {
+            for (const event of tx.events) {
+              if (event.type && (
+                event.type.includes('TreasuryDepositEvent') ||
+                event.type.includes('TreasuryWithdrawalEvent') ||
+                event.type.includes('TreasuryRewardWithdrawalEvent')
+              )) {
+                allEvents.push(event);
+              }
+            }
+          }
+        }
+      } catch (err: any) {
+        console.warn('Error fetching treasury transactions:', err.message);
+      }
 
-      const [deposits, withdrawals, rewards] = await Promise.all([
-        aptosClient.getAccountEventsByEventType({ accountAddress: eventAccount, eventType: depositType, options: { limit: 50 } }).catch(() => []),
-        aptosClient.getAccountEventsByEventType({ accountAddress: eventAccount, eventType: withdrawType, options: { limit: 50 } }).catch(() => []),
-        aptosClient.getAccountEventsByEventType({ accountAddress: eventAccount, eventType: rewardType, options: { limit: 50 } }).catch(() => []),
-      ]);
+      // Categorize events
+      const deposits = allEvents.filter(e => e.type?.includes('TreasuryDepositEvent'));
+      const withdrawals = allEvents.filter(e => e.type?.includes('TreasuryWithdrawalEvent') && !e.type?.includes('Reward'));
+      const rewards = allEvents.filter(e => e.type?.includes('TreasuryRewardWithdrawalEvent'));
+
+      // Filter events for this specific DAO
+      const filterForDAO = (events: any[]) => {
+        return events.filter(e => {
+          const daoAddr = e?.data?.movedao_addrxess || e?.data?.dao_address;
+          return daoAddr === daoId;
+        });
+      };
+
+      const daoDeposits = filterForDAO(deposits as any[]);
+      const daoWithdrawals = filterForDAO(withdrawals as any[]);
+      const daoRewards = filterForDAO(rewards as any[]);
 
       const mapTx = (ev: any): TreasuryTransaction | null => {
         const kind = ev?.type?.endsWith('TreasuryDepositEvent') ? 'deposit' : 'withdrawal';
@@ -201,9 +224,9 @@ export const useTreasury = (daoId: string) => {
       };
 
       const txs: TreasuryTransaction[] = [];
-      for (const e of deposits as any[]) { const t = mapTx(e); if (t) txs.push(t); }
-      for (const e of withdrawals as any[]) { const t = mapTx(e); if (t) txs.push(t); }
-      for (const e of rewards as any[]) {
+      for (const e of daoDeposits) { const t = mapTx(e); if (t) txs.push(t); }
+      for (const e of daoWithdrawals) { const t = mapTx(e); if (t) txs.push(t); }
+      for (const e of daoRewards) {
         const data = (e as any)?.data || {};
         const tsSec = Number(data.timestamp || 0);
         const amt = Number(data.amount || 0);
@@ -219,42 +242,11 @@ export const useTreasury = (daoId: string) => {
         }
       }
 
-      // Fallback to module-level events if account-level queries returned nothing (indexer variance)
-      if (txs.length === 0) {
-        const [modDeposits, modWithdrawals, modRewards] = await Promise.all([
-          aptosClient.getModuleEventsByEventType({ eventType: depositType, options: { limit: 100 } }).catch(() => []),
-          aptosClient.getModuleEventsByEventType({ eventType: withdrawType, options: { limit: 100 } }).catch(() => []),
-          aptosClient.getModuleEventsByEventType({ eventType: rewardType, options: { limit: 100 } }).catch(() => []),
-        ]);
-
-        const filtered = [
-          ...(modDeposits as any[]).filter(e => (e?.data?.movedaoaddrxess || e?.data?.dao_address) === daoId),
-          ...(modWithdrawals as any[]).filter(e => (e?.data?.movedaoaddrxess || e?.data?.dao_address) === daoId),
-          ...(modRewards as any[]).filter(e => (e?.data?.movedaoaddrxess || e?.data?.dao_address) === daoId),
-        ];
-
-        for (const e of filtered) {
-          const kind = (e?.type || '').endsWith('TreasuryDepositEvent') ? 'deposit' : 'withdrawal';
-          const data = (e as any).data || {};
-          const tsSec = Number(data.timestamp || 0);
-          const amt = Number(data.amount || 0);
-          if (!amt) continue;
-          txs.push({
-            type: kind as any,
-            amount: toMOVE(amt),
-            from: data.depositor || undefined,
-            to: data.withdrawer || data.recipient || undefined,
-            timestamp: new Date((tsSec || 0) * 1000).toISOString(),
-            txHash: data.transaction_hash || (e as any)?.version || '',
-          });
-        }
-      }
-
       txs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
       setTransactions(txs);
       treasurySessionCache.set(`${cacheBaseKey}_transactions`, { data: txs, timestamp: Date.now() });
     } catch (err) {
-      console.warn('Failed to fetch treasury transactions:', err);
+      console.warn('❌ Failed to fetch treasury transactions:', err);
       setTransactions([]);
     }
   }, [daoId]);
@@ -378,54 +370,8 @@ export const useTreasury = (daoId: string) => {
 
     try {
       const amountOctas = Math.floor(amount * 1e8);
-      
-      // Debug: Check treasury setup thoroughly
-      console.log('=== Treasury Debug Info ===');
-      console.log('DAO ID:', daoId);
-      console.log('Treasury Object:', treasuryData.treasuryObject);
-      console.log('Full treasury data:', treasuryData);
-      console.log('User Address:', account.address);
-      console.log('Amount to deposit:', amount, 'MOVE');
-      console.log('Amount in Octas:', amountOctas.toString());
-      
-      // Check treasury balance
-      try {
-        const treasuryBalance = await aptosClient.view({
-          payload: {
-            function: `${MODULE_ADDRESS}::treasury::get_balance`,
-            functionArguments: [daoId]
-          }
-        });
-        console.log('Treasury balance check:', treasuryBalance);
-      } catch (e) {
-        console.log('Treasury balance check failed:', e);
-      }
-      
-      // Check if user is a member
-      try {
-        const isMember = await aptosClient.view({
-          payload: {
-            function: `${MODULE_ADDRESS}::membership::is_member`,
-            functionArguments: [daoId, account.address]
-          }
-        });
-        console.log('User is member:', isMember);
-      } catch (e) {
-        console.log('Member check failed:', e);
-      }
-      
-      // Check user's coin store
-      try {
-        const coinStore = await aptosClient.getAccountResource({
-          accountAddress: account.address,
-          resourceType: `0x1::coin::CoinStore<0x1::aptos_coin::AptosCoin>`,
-        });
-        console.log('User has AptosCoin store:', !!coinStore);
-      } catch (e) {
-        console.log('User AptosCoin store check failed:', e);
-      }
-      
-      // Ensure user has AptosCoin store; if missing, skip on-chain registration here
+
+      // Ensure user has AptosCoin store
       // Some networks/wallets do not expose an entry function for coin registration.
       // In such cases, receiving any amount of MOVE auto-creates the store.
       try {
@@ -437,11 +383,10 @@ export const useTreasury = (daoId: string) => {
         console.log('AptosCoin store not found; skipping in-app registration.');
       }
 
-      // Get treasury object - try from state first, then fetch if needed
+      // Get treasury object
       let treasuryObject = treasuryData.treasuryObject;
-      
+
       if (!treasuryObject) {
-        console.log('Treasury object missing from state, fetching for DAO:', daoId);
         try {
           const objectResult = await aptosClient.view({
             payload: {
@@ -449,12 +394,8 @@ export const useTreasury = (daoId: string) => {
               functionArguments: [daoId]
             }
           });
-          console.log('Treasury object fetch result:', objectResult);
           treasuryObject = (objectResult as any)?.[0];
-          
           if (treasuryObject) {
-            console.log('Fetched treasury object:', treasuryObject);
-            // Update state for future use
             setTreasuryData(prev => ({ ...prev, treasuryObject }));
           }
         } catch (error) {
@@ -465,20 +406,18 @@ export const useTreasury = (daoId: string) => {
       // Use object-based deposit if treasury object is available
       let payload;
       if (treasuryObject) {
-        // Extract address for wallet parameter
         const objectAddress = typeof treasuryObject === 'string'
           ? treasuryObject
           : (treasuryObject as any).inner || (treasuryObject as any).value || treasuryObject;
 
-        console.log('Using deposit_to_object_typed with address:', objectAddress);
         payload = {
           function: `${MODULE_ADDRESS}::treasury::deposit_to_object_typed`,
-          typeArguments: ['0x1::aptos_coin::AptosCoin'], // Type argument for wallet to display
+          type_arguments: ['0x1::aptos_coin::AptosCoin'],
+          typeArguments: ['0x1::aptos_coin::AptosCoin'],
           functionArguments: [objectAddress, amountOctas.toString()],
+          arguments: [objectAddress, amountOctas.toString()],
         };
       } else {
-        // Fallback to legacy deposit (shouldn't happen for modern DAOs)
-        console.log('No treasury object available, using legacy deposit');
         payload = {
           function: `${MODULE_ADDRESS}::treasury::deposit`,
           typeArguments: [],
@@ -486,41 +425,23 @@ export const useTreasury = (daoId: string) => {
         };
       }
 
-      console.log('Final deposit payload:', JSON.stringify(payload, null, 2));
-      
       const tx = await signAndSubmitTransaction({ payload } as any);
       if (!tx || !(tx as any).hash) {
         throw new Error('Transaction cancelled by user');
       }
       if (tx && (tx as any).hash) {
-        await aptosClient.waitForTransaction({ 
-          transactionHash: (tx as any).hash, 
-          options: { checkSuccess: true } 
+        await aptosClient.waitForTransaction({
+          transactionHash: (tx as any).hash,
+          options: { checkSuccess: true }
         });
-        console.log('Deposit transaction successful:', (tx as any).hash);
       }
 
-      // Debug: Check what events were emitted
-      if (tx && (tx as any).hash) {
-        console.log('Treasury deposit transaction hash:', (tx as any).hash);
-        try {
-          const txDetails = await aptosClient.getTransactionByHash({
-            transactionHash: (tx as any).hash
-          });
-          console.log('Events emitted:', (txDetails as any)?.events);
-        } catch (e) {
-          console.log('Failed to get transaction details:', e);
-        }
-      }
-
-      // Refresh data
       await Promise.all([fetchTreasuryData(), fetchUserBalance(), fetchTreasuryTransactions()]);
       return true;
 
     } catch (error: any) {
       console.error('Deposit failed:', error);
-      console.error('Full error details:', JSON.stringify(error, null, 2));
-      
+
       if (error.message?.includes('User rejected')) {
         throw new Error('Transaction cancelled by user');
       } else if (error.message?.includes('not an entry function')) {
@@ -567,23 +488,19 @@ export const useTreasury = (daoId: string) => {
     try {
       const amountOctas = Math.floor(amount * 1e8);
 
-      // Use object-based withdraw function (correct method for new DAOs)
+      // Use object-based withdraw function
       let payload;
       if (treasuryData.treasuryObject) {
-        // Extract the inner address for the wallet - it expects just the address string for Object<T> parameters
-        const objectAddress = typeof treasuryData.treasuryObject === 'string' 
-          ? treasuryData.treasuryObject 
+        const objectAddress = typeof treasuryData.treasuryObject === 'string'
+          ? treasuryData.treasuryObject
           : (treasuryData.treasuryObject as any).inner || (treasuryData.treasuryObject as any).value || treasuryData.treasuryObject;
-        
-        console.log('Using treasury object for withdrawal:', objectAddress);
+
         payload = {
           function: `${MODULE_ADDRESS}::treasury::withdraw_from_object`,
           typeArguments: [],
           functionArguments: [daoId, objectAddress, amountOctas.toString()],
         };
       } else {
-        // Fallback to legacy withdraw if no treasury object found
-        console.log('Using legacy withdraw method');
         payload = {
           function: `${MODULE_ADDRESS}::treasury::withdraw`,
           typeArguments: [],
@@ -640,7 +557,7 @@ export const useTreasury = (daoId: string) => {
       Promise.race([
         Promise.all(allTasks),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Treasury data fetch timeout')), 15000))
-      ]).catch((error) => {
+      ]).catch(() => {
         // Silent - data will still be available even if some requests timeout
       });
     }
@@ -676,17 +593,12 @@ export const useTreasury = (daoId: string) => {
     }
 
     try {
-      console.log('Toggling public deposits:', allow, 'for DAO:', daoId);
-      console.log('Treasury object:', treasuryData.treasuryObject);
-      
       let payload;
       if (treasuryData.treasuryObject) {
-        // Extract the inner address for the wallet - it expects just the address string for Object<T> parameters
-        const objectAddress = typeof treasuryData.treasuryObject === 'string' 
-          ? treasuryData.treasuryObject 
+        const objectAddress = typeof treasuryData.treasuryObject === 'string'
+          ? treasuryData.treasuryObject
           : (treasuryData.treasuryObject as any).inner || (treasuryData.treasuryObject as any).value || treasuryData.treasuryObject;
-        
-        console.log('Using treasury object for toggle:', objectAddress);
+
         payload = {
           function: `${MODULE_ADDRESS}::treasury::set_public_deposits`,
           typeArguments: [],
@@ -734,16 +646,12 @@ export const useTreasury = (daoId: string) => {
     }
 
     try {
-      const amountRaw = Math.floor(amount * 1e6); // Assuming 6 decimals for FA tokens
+      const amountRaw = Math.floor(amount * 1e6);
 
-      // Extract the inner address for the wallet - it expects just the address string for Object<T> parameters
       const objectAddress = typeof treasuryData.treasuryObject === 'string'
         ? treasuryData.treasuryObject
         : (treasuryData.treasuryObject as any).inner || (treasuryData.treasuryObject as any).value || treasuryData.treasuryObject;
 
-      console.log('Depositing to vault with treasury object address:', objectAddress);
-
-      // Treasury ABI shows: user_deposit_to_vault(&signer, treasury_obj, vault_address, amount)
       const payload = {
         function: `${MODULE_ADDRESS}::treasury::user_deposit_to_vault`,
         typeArguments: [],
@@ -776,20 +684,15 @@ export const useTreasury = (daoId: string) => {
   }, [account, signAndSubmitTransaction, treasuryData.treasuryObject]);
 
   const getDAOVaults = useCallback(async (): Promise<string[]> => {
-    if (!treasuryData.treasuryObject) {
-      return [];
-    }
+    if (!treasuryData.treasuryObject) return [];
 
     try {
-      console.log('Getting DAO vaults with treasury object:', treasuryData.treasuryObject);
-
       const result = await aptosClient.view({
         payload: {
           function: `${MODULE_ADDRESS}::treasury::get_dao_vaults`,
           functionArguments: [treasuryData.treasuryObject]
         }
       });
-
       return (result[0] as string[]) || [];
     } catch (error) {
       console.warn('Failed to fetch DAO vaults:', error);

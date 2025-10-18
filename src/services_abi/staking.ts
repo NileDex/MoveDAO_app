@@ -1,5 +1,5 @@
 export const ABI = {
-  "address": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8",
+  "address": "0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b",
   "name": "staking",
   "friends": [],
   "exposed_functions": [
@@ -305,7 +305,7 @@ export const ABI = {
       "generic_type_params": [],
       "fields": [
         {
-          "name": "movedaoaddrxess",
+          "name": "movedao_addrx",
           "type": "address"
         },
         {
@@ -337,7 +337,7 @@ export const ABI = {
       "generic_type_params": [],
       "fields": [
         {
-          "name": "movedaoaddrxess",
+          "name": "movedao_addrx",
           "type": "address"
         },
         {
@@ -373,7 +373,7 @@ export const ABI = {
       "fields": [
         {
           "name": "dao_stakes",
-          "type": "0x1::table::Table<address, 0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::staking::DAOStakeInfo>"
+          "type": "0x1::table::Table<address, 0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::staking::DAOStakeInfo>"
         },
         {
           "name": "total_staked",
@@ -411,7 +411,7 @@ export const ABI = {
       "generic_type_params": [],
       "fields": [
         {
-          "name": "movedaoaddrxess",
+          "name": "movedao_addrx",
           "type": "address"
         },
         {
@@ -498,7 +498,7 @@ export const ABI = {
         },
         {
           "name": "voters",
-          "type": "0x1::table::Table<address, 0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::staking::VoteRecord>"
+          "type": "0x1::table::Table<address, 0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::staking::VoteRecord>"
         }
       ]
     },
@@ -535,7 +535,7 @@ export const ABI = {
       "fields": [
         {
           "name": "votes",
-          "type": "vector<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::staking::Vote>"
+          "type": "vector<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::staking::Vote>"
         }
       ]
     }

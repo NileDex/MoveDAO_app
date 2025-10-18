@@ -7,7 +7,7 @@ import { DAO } from '../types/dao'
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 interface DAOCreatedEvent {
-  movedaoaddrxess: string
+  movedao_addrx: string
   creator: string
   name: string
   subname: string
@@ -689,9 +689,9 @@ export function useFetchCreatedDAOs() {
             for (const ev of indexerEvents) {
               try {
                 const eventData = ev.data as DAOCreatedEvent
-                if (!eventData?.movedaoaddrxess) continue
+                if (!eventData?.movedao_addrx) continue
                 
-                const dao = await processSingleDAO(eventData.movedaoaddrxess)
+                const dao = await processSingleDAO(eventData.movedao_addrx)
                 if (dao && !foundDAOs.some(d => d.id === dao.id)) {
                   foundDAOs.push(dao)
                 }

@@ -75,6 +75,13 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
   const handleQuickStake = async () => {
     setStakeError('');
     const raw = parseFloat(stakeAmount);
+    
+    // Enhanced validation: Check against both contract minimum (6 MOVE) and DAO-specific minimum
+    const contractMinimum = 6; // Contract enforces 6 MOVE minimum
+    const daoMinimum = Math.max(membershipData?.minStakeRequired || 6, contractMinimum);
+    const currentStake = membershipData?.stakedAmount || 0;
+    const totalStake = currentStake + raw;
+    
     if (!Number.isFinite(raw) || raw <= 0) {
       setStakeError('Enter a valid amount');
       return;
@@ -83,6 +90,25 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
       setStakeError('Connect wallet');
       return;
     }
+    
+    // Contract minimum check
+    if (raw < contractMinimum) {
+      setStakeError(`Contract minimum is ${contractMinimum} MOVE tokens. You're trying to stake ${raw.toFixed(2)} MOVE.`);
+      return;
+    }
+    
+    // DAO minimum check for new stakers
+    if (raw < daoMinimum && currentStake === 0) {
+      setStakeError(`${dao.name} requires ${daoMinimum} MOVE minimum stake. You're trying to stake ${raw.toFixed(2)} MOVE.`);
+      return;
+    }
+    
+    // Check if after staking, user will meet DAO minimum (for membership status display)
+    if (totalStake < (membershipData?.minStakeRequired || 6)) {
+      setStakeError(`Total stake of ${totalStake.toFixed(2)} tokens would be below ${membershipData?.minStakeRequired || 6} tokens minimum for ${dao.name} membership`);
+      return;
+    }
+
     try {
       setIsStaking(true);
       const balanceCheck = await BalanceService.hasSufficientBalance(account.address, raw, 0.02);
@@ -128,6 +154,17 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
       setUnstakeError('Connect wallet');
       return;
     }
+
+    // Check minimum stake requirement after unstaking
+    const currentStake = membershipData?.stakedAmount || 0;
+    const remainingStake = currentStake - raw;
+    const minStakeRequired = membershipData?.minStakeRequired || 6;
+    
+    if (remainingStake < minStakeRequired && remainingStake > 0) {
+      setUnstakeError(`Unstaking would leave ${remainingStake.toFixed(2)} tokens, below ${minStakeRequired} tokens minimum for ${dao.name} membership`);
+      return;
+    }
+
     try {
       setIsUnstaking(true);
       const amountOctas = BalanceService.moveToOctas(raw);
@@ -412,7 +449,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                   <div className="flex items-center gap-3 mb-2 flex-wrap">
                     <h1 className="text-3xl font-bold text-white">{dao.name}</h1>
                     {category && (
-                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md" style={{ color: '#ffdd3f' }}>
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-md" style={{ color: '#facc16' }}>
                         {category}
                       </span>
                     )}
@@ -509,8 +546,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
             {/* Deposit / Withdraw */}
             <div className="grid grid-cols-2 gap-3">
               <button
-                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-black font-medium shadow-inner"
-                style={{ backgroundColor: '#ffdd40' }}
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg font-medium shadow-inner bg-yellow-400 text-slate-900 hover:bg-yellow-500"
                 onClick={() => { setShowStakeForm(true); setShowUnstakeForm(false); }}
               >
                 <ArrowDown className="w-4 h-4" />
@@ -537,8 +573,64 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                   className="w-full professional-input px-3 py-2 rounded-lg"
                 />
                 {stakeError && <div className="text-red-400 text-xs">{stakeError}</div>}
+                
+                {/* Minimum stake warning */}
+                {(() => {
+                  const currentStake = membershipData?.stakedAmount || 0;
+                  const newStakeAmount = parseFloat(stakeAmount) || 0;
+                  const totalStake = currentStake + newStakeAmount;
+                  const contractMinimum = 6;
+                  const daoMinimum = Math.max(membershipData?.minStakeRequired || 6, contractMinimum);
+                  const minStakeRequired = membershipData?.minStakeRequired || 6;
+                  
+                  if (newStakeAmount > 0) {
+                    // Contract minimum warning
+                    if (newStakeAmount < contractMinimum) {
+                      return (
+                        <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-4 h-4 bg-red-500 rounded-full flex-shrink-0"></div>
+                            <div className="text-red-400 text-xs">
+                              Contract minimum is {contractMinimum} MOVE tokens. You're trying to stake {newStakeAmount.toFixed(2)} MOVE.
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    // DAO minimum warning for new stakers
+                    if (newStakeAmount < daoMinimum && currentStake === 0) {
+                      return (
+                        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-4 h-4 bg-yellow-500 rounded-full flex-shrink-0"></div>
+                            <div className="text-yellow-400 text-xs">
+                              {dao.name} requires {daoMinimum} MOVE minimum stake. You're trying to stake {newStakeAmount.toFixed(2)} MOVE.
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                    
+                    // Total stake warning
+                    if (totalStake < minStakeRequired) {
+                      return (
+                        <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-4 h-4 bg-yellow-500 rounded-full flex-shrink-0"></div>
+                            <div className="text-yellow-400 text-xs">
+                              Total stake of {totalStake.toFixed(2)} tokens would be below {minStakeRequired} tokens minimum for {dao.name} membership
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    }
+                  }
+                  return null;
+                })()}
+                
                 <div className="grid grid-cols-2 gap-2">
-                  <button onClick={handleQuickStake} disabled={isStaking} className="px-2 py-1.5 rounded-lg text-black text-sm font-medium disabled:opacity-50" style={{ backgroundColor: '#ffdd40' }}>
+                  <button onClick={handleQuickStake} disabled={isStaking} className="px-2 py-1.5 rounded-lg text-sm font-medium disabled:opacity-50 bg-yellow-400 text-slate-900 hover:bg-yellow-500">
                     {isStaking ? 'Staking…' : 'Confirm Stake'}
                   </button>
                   <button onClick={() => { setShowStakeForm(false); setStakeAmount(''); setStakeError(''); }} className="px-2 py-1.5 rounded-lg bg-white/5 text-gray-300 text-sm font-medium border border-white/10 hover:bg-white/10 transition-colors">
@@ -560,6 +652,29 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                   className="w-full professional-input px-3 py-2 rounded-lg"
                 />
                 {unstakeError && <div className="text-red-400 text-xs">{unstakeError}</div>}
+                
+                {/* Minimum stake warning for unstaking */}
+                {(() => {
+                  const currentStake = membershipData?.stakedAmount || 0;
+                  const unstakeAmountValue = parseFloat(unstakeAmount) || 0;
+                  const remainingStake = currentStake - unstakeAmountValue;
+                  const minStakeRequired = membershipData?.minStakeRequired || 6;
+                  
+                  if (unstakeAmountValue > 0 && remainingStake < minStakeRequired && remainingStake > 0) {
+                    return (
+                      <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                        <div className="flex items-center space-x-2">
+                          <div className="w-4 h-4 bg-yellow-500 rounded-full flex-shrink-0"></div>
+                          <div className="text-yellow-400 text-xs">
+                            Unstaking would leave {remainingStake.toFixed(2)} tokens, below {minStakeRequired} tokens minimum for {dao.name} membership
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+                
                 <div className="grid grid-cols-2 gap-2">
                   <button onClick={handleQuickUnstake} disabled={isUnstaking} className="px-2 py-1.5 rounded-lg bg-white/10 text-white text-sm font-medium border border-white/10 disabled:opacity-50">
                     {isUnstaking ? 'Unstaking…' : 'Confirm Unstake'}
@@ -637,7 +752,7 @@ const DAODetail: React.FC<DAODetailProps> = ({ dao, onBack, sidebarCollapsed = f
                         {v.iconUrl ? (
                           <img src={v.iconUrl} alt={v.tokenSymbol || 'FA'} className="w-6 h-6 rounded-full flex-shrink-0" onError={(e)=>{(e.currentTarget as HTMLImageElement).style.display='none';}} />
                         ) : (
-                          <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{background:'#ffdd3f',color:'#0f0f11'}}>
+                          <div className="w-6 h-6 rounded-full flex items-center justify-center" style={{background:'#facc16',color:'#0f172a'}}>
                             <span className="text-xs font-bold">{(v.tokenSymbol||'FA').slice(0,2)}</span>
                           </div>
                         )}

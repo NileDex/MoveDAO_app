@@ -210,7 +210,7 @@ export class PlatformStatsService {
 
       // The result should be an array of DAOStats structs
       return (result[0] as any[]).map((stats: any) => ({
-        dao_address: stats.movedaoaddrxess, // Updated field name in contract
+        dao_address: stats.movedao_addrx, // Updated field name in contract
         active_proposals: Number(stats.active_proposals),
         total_proposals: Number(stats.total_proposals),
         total_members: Number(stats.total_members),
@@ -416,18 +416,18 @@ export class PlatformStatsService {
 
       // Use indexer first (faster) - but skip if it's failing
       try {
-        // Disable indexer for now as it's causing CORS issues
-        // const indexerEvents = await aptosClient.getModuleEventsByEventType({
+        // Use indexer
+        const indexerEvents = await aptosClient.getModuleEventsByEventType({
         //   eventType: `${MODULE_ADDRESS}::dao_core_file::DAOCreated`,
         //   minimumLedgerVersion: 0
-        // });
+        });
 
-        // if (indexerEvents && indexerEvents.length > 0) {
-        //   console.log('✅ Found DAOs via indexer:', indexerEvents.length);
-        //   return indexerEvents.map((event: any) => event.data.movedaoaddrxess).filter(Boolean);
-        // }
+        if (indexerEvents && indexerEvents.length > 0) {
+          console.log('✅ Found DAOs via indexer:', indexerEvents.length);
+          return indexerEvents.map((event: any) => event.data.movedao_addrx).filter(Boolean);
+        }
 
-        console.log('⚠️ Indexer disabled - using mock data');
+        
       } catch (indexerError) {
         console.warn('Indexer failed:', indexerError);
       }
@@ -522,7 +522,7 @@ export const useAllDAOStats = () => {
 
       // Result is an array of DAOStats structs
       const daoStatsArray = (result[0] as any[]).map((stats: any) => ({
-        dao_address: stats.movedaoaddrxess,
+        dao_address: stats.movedao_addrx,
         active_proposals: Number(stats.active_proposals),
         total_proposals: Number(stats.total_proposals),
         total_members: Number(stats.total_members),

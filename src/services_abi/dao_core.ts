@@ -1,5 +1,5 @@
 export const ABI = {
-  "address": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8",
+  "address": "0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b",
   "name": "dao_core_file",
   "friends": [],
   "exposed_functions": [
@@ -106,7 +106,7 @@ export const ABI = {
         "vector<u8>"
       ],
       "return": [
-        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::ImageData"
+        "0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::dao_core_file::ImageData"
       ]
     },
     {
@@ -119,7 +119,7 @@ export const ABI = {
         "0x1::string::String"
       ],
       "return": [
-        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::ImageData"
+        "0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::dao_core_file::ImageData"
       ]
     },
     {
@@ -180,7 +180,7 @@ export const ABI = {
       "generic_type_params": [],
       "params": [],
       "return": [
-        "vector<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::DAOSummary>"
+        "vector<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::dao_core_file::DAOSummary>"
       ]
     },
     {
@@ -398,7 +398,7 @@ export const ABI = {
         "u64"
       ],
       "return": [
-        "vector<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::DAOSummary>"
+        "vector<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::dao_core_file::DAOSummary>"
       ]
     },
     {
@@ -446,7 +446,7 @@ export const ABI = {
         "address"
       ],
       "return": [
-        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
+        "0x1::object::Object<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::treasury::Treasury>"
       ]
     },
     {
@@ -625,7 +625,7 @@ export const ABI = {
       "generic_type_params": [],
       "fields": [
         {
-          "name": "movedaoaddrxess",
+          "name": "movedao_addrxess",
           "type": "address"
         },
         {
@@ -673,7 +673,7 @@ export const ABI = {
       "fields": [
         {
           "name": "proposals",
-          "type": "vector<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::DAOCreationProposalData>"
+          "type": "vector<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::dao_core_file::DAOCreationProposalData>"
         },
         {
           "name": "next_proposal_id",
@@ -696,7 +696,7 @@ export const ABI = {
       "generic_type_params": [],
       "fields": [
         {
-          "name": "movedaoaddrxess",
+          "name": "movedao_addrxess",
           "type": "address"
         },
         {
@@ -744,7 +744,7 @@ export const ABI = {
           "type": "address"
         },
         {
-          "name": "target_movedaoaddrxess",
+          "name": "target_movedao_addrxess",
           "type": "address"
         },
         {
@@ -783,7 +783,7 @@ export const ABI = {
           "type": "address"
         },
         {
-          "name": "target_movedaoaddrxess",
+          "name": "target_movedao_addrxess",
           "type": "address"
         },
         {
@@ -800,11 +800,11 @@ export const ABI = {
         },
         {
           "name": "logo",
-          "type": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::ImageData"
+          "type": "0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::dao_core_file::ImageData"
         },
         {
           "name": "background",
-          "type": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::ImageData"
+          "type": "0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::dao_core_file::ImageData"
         },
         {
           "name": "min_stake_to_join",
@@ -883,11 +883,11 @@ export const ABI = {
         },
         {
           "name": "logo",
-          "type": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::ImageData"
+          "type": "0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::dao_core_file::ImageData"
         },
         {
           "name": "background",
-          "type": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file::ImageData"
+          "type": "0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::dao_core_file::ImageData"
         },
         {
           "name": "created_at",
@@ -895,7 +895,7 @@ export const ABI = {
         },
         {
           "name": "treasury",
-          "type": "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
+          "type": "0x1::object::Object<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::treasury::Treasury>"
         },
         {
           "name": "x_link",

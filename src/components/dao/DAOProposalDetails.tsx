@@ -254,7 +254,7 @@ const DAOProposalDetails: React.FC<ProposalDetailsProps> = ({
                     className="h-2 rounded-full"
                     style={{
                       width: `${Math.min((quorumCurrentPercent / Math.max(quorumRequiredPercent, 0.001)) * 100, 100)}%`,
-                      backgroundColor: '#ffdd40'
+                      backgroundColor: '#facc16'
                     }}
                   />
                 </div>

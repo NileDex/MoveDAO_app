@@ -1,8 +1,8 @@
 export const ABI = {
-  "address": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8",
+  "address": "0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b",
   "name": "treasury",
   "friends": [
-    "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::dao_core_file"
+    "0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::dao_core_file"
   ],
   "exposed_functions": [
     {
@@ -12,7 +12,7 @@ export const ABI = {
       "is_view": true,
       "generic_type_params": [],
       "params": [
-        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
+        "0x1::object::Object<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::treasury::Treasury>"
       ],
       "return": [
         "bool"
@@ -25,7 +25,7 @@ export const ABI = {
       "is_view": true,
       "generic_type_params": [],
       "params": [
-        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>",
+        "0x1::object::Object<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::treasury::Treasury>",
         "u64"
       ],
       "return": [
@@ -41,7 +41,7 @@ export const ABI = {
       "params": [
         "&signer",
         "address",
-        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>",
+        "0x1::object::Object<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::treasury::Treasury>",
         "0x1::object::Object<0x1::fungible_asset::Metadata>"
       ],
       "return": []
@@ -74,14 +74,18 @@ export const ABI = {
       "return": []
     },
     {
-      "name": "deposit_to_object",
+      "name": "deposit_to_object_typed",
       "visibility": "public",
       "is_entry": true,
       "is_view": false,
-      "generic_type_params": [],
+      "generic_type_params": [
+        {
+          "constraints": []
+        }
+      ],
       "params": [
         "&signer",
-        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>",
+        "0x1::object::Object<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::treasury::Treasury>",
         "u64"
       ],
       "return": []
@@ -93,7 +97,7 @@ export const ABI = {
       "is_view": true,
       "generic_type_params": [],
       "params": [
-        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
+        "0x1::object::Object<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::treasury::Treasury>"
       ],
       "return": [
         "vector<address>"
@@ -119,7 +123,7 @@ export const ABI = {
       "is_view": true,
       "generic_type_params": [],
       "params": [
-        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
+        "0x1::object::Object<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::treasury::Treasury>"
       ],
       "return": [
         "u64"
@@ -132,7 +136,7 @@ export const ABI = {
       "is_view": true,
       "generic_type_params": [],
       "params": [
-        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
+        "0x1::object::Object<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::treasury::Treasury>"
       ],
       "return": [
         "u64",
@@ -147,7 +151,7 @@ export const ABI = {
       "is_view": true,
       "generic_type_params": [],
       "params": [
-        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
+        "0x1::object::Object<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::treasury::Treasury>"
       ],
       "return": [
         "vector<address>"
@@ -160,7 +164,7 @@ export const ABI = {
       "is_view": true,
       "generic_type_params": [],
       "params": [
-        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
+        "0x1::object::Object<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::treasury::Treasury>"
       ],
       "return": [
         "u64",
@@ -351,7 +355,7 @@ export const ABI = {
       "is_view": true,
       "generic_type_params": [],
       "params": [
-        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
+        "0x1::object::Object<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::treasury::Treasury>"
       ],
       "return": [
         "u64"
@@ -367,7 +371,7 @@ export const ABI = {
         "&signer"
       ],
       "return": [
-        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>"
+        "0x1::object::Object<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::treasury::Treasury>"
       ]
     },
     {
@@ -379,7 +383,7 @@ export const ABI = {
       "params": [
         "&signer",
         "address",
-        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>",
+        "0x1::object::Object<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::treasury::Treasury>",
         "bool"
       ],
       "return": []
@@ -448,7 +452,7 @@ export const ABI = {
       "params": [
         "&signer",
         "address",
-        "0x1::object::Object<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::treasury::Treasury>",
+        "0x1::object::Object<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::treasury::Treasury>",
         "u64"
       ],
       "return": []
@@ -534,7 +538,7 @@ export const ABI = {
           "type": "u64"
         },
         {
-          "name": "movedaoaddrxess",
+          "name": "movedao_addrxess",
           "type": "address"
         },
         {
@@ -558,7 +562,7 @@ export const ABI = {
       "generic_type_params": [],
       "fields": [
         {
-          "name": "movedaoaddrxess",
+          "name": "movedao_addrxess",
           "type": "address"
         },
         {
@@ -594,7 +598,7 @@ export const ABI = {
       "generic_type_params": [],
       "fields": [
         {
-          "name": "movedaoaddrxess",
+          "name": "movedao_addrxess",
           "type": "address"
         },
         {
@@ -630,7 +634,7 @@ export const ABI = {
       "generic_type_params": [],
       "fields": [
         {
-          "name": "movedaoaddrxess",
+          "name": "movedao_addrxess",
           "type": "address"
         },
         {

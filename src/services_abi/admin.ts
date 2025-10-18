@@ -1,5 +1,5 @@
 export const ABI = {
-  "address": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8",
+  "address": "0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b",
   "name": "admin",
   "friends": [],
   "exposed_functions": [
@@ -250,7 +250,7 @@ export const ABI = {
       "fields": [
         {
           "name": "admins",
-          "type": "0x1::simple_map::SimpleMap<address, 0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::admin::Admin>"
+          "type": "0x1::simple_map::SimpleMap<address, 0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::admin::Admin>"
         },
         {
           "name": "min_super_admins",

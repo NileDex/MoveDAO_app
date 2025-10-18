@@ -1,5 +1,5 @@
 export const ABI = {
-  "address": "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8",
+  "address": "0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b",
   "name": "platform_stats",
   "friends": [],
   "exposed_functions": [
@@ -33,7 +33,7 @@ export const ABI = {
       "generic_type_params": [],
       "params": [],
       "return": [
-        "vector<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::platform_stats::DAOStats>"
+        "vector<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::platform_stats::DAOStats>"
       ]
     },
     {
@@ -63,7 +63,7 @@ export const ABI = {
         "address"
       ],
       "return": [
-        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::platform_stats::DAOStats"
+        "0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::platform_stats::DAOStats"
       ]
     },
     {
@@ -76,7 +76,7 @@ export const ABI = {
         "vector<address>"
       ],
       "return": [
-        "vector<0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::platform_stats::DAOStats>"
+        "vector<0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::platform_stats::DAOStats>"
       ]
     },
     {
@@ -102,7 +102,7 @@ export const ABI = {
       "generic_type_params": [],
       "params": [],
       "return": [
-        "0x9fc26ce453f4f1e9a7486353830505a32a12c51a59f24734cf8502d94f28a6a8::platform_stats::PlatformStatsData"
+        "0x68a5b5caaa956e8f124cd2f01451c73886dc60b88797ba3da254263bd7a4818b::platform_stats::PlatformStatsData"
       ]
     },
     {
@@ -141,7 +141,7 @@ export const ABI = {
       "generic_type_params": [],
       "fields": [
         {
-          "name": "movedaoaddrxess",
+          "name": "movedao_addrx",
           "type": "address"
         },
         {

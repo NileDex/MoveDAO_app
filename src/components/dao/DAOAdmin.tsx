@@ -112,7 +112,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         eventType: `${MODULE_ADDRESS}::dao_core_file::DAOCreated`,
         minimumLedgerVersion: 0
       });
-      const ev = (events as any[]).find((e: any) => e?.data?.movedaoaddrxess === daoAddress);
+      const ev = (events as any[]).find((e: any) => e?.data?.movedao_addrxess === daoAddress);
       return ev?.data?.creator || null;
     } catch {
       return null;
@@ -157,7 +157,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
         
         // Find the creation event for this specific DAO
         const creationEvent = daoCreatedEvents.find((event: any) => 
-          event.data?.movedaoaddrxess === dao.id
+          event.data?.movedao_addrxess === dao.id
         );
         
         if (creationEvent) {
@@ -1311,7 +1311,7 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
               </div>
             )}
             <div className="flex flex-col sm:flex-row gap-3">
-              <button onClick={handleAddAdmin} className="px-5 py-2 rounded-xl font-semibold text-black bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full sm:w-auto">Add Admin</button>
+              <button onClick={handleAddAdmin} className="px-5 py-2 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors w-full sm:w-auto" style={{ backgroundColor: '#facc16', color: '#0f172a' }}>Add Admin</button>
               <button onClick={() => setShowAddAdmin(false)} className="px-5 py-2 rounded-xl font-semibold bg-white/5 text-gray-300 border border-white/10 hover:bg-white/10 transition-colors w-full sm:w-auto">Cancel</button>
             </div>
           </div>
@@ -1833,14 +1833,16 @@ const DAOAdmin: React.FC<AdminProps> = ({ dao }) => {
               <button
                 onClick={handleUpdateMinStake}
                 disabled={!newMinStake}
-                className="px-5 py-2 rounded-xl font-semibold text-black bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-5 py-2 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                style={{ backgroundColor: '#facc16', color: '#0f172a' }}
               >
                 Update Join
               </button>
               <button
                 onClick={handleUpdateMinProposalStake}
                 disabled={!newMinProposalStake}
-                className="px-5 py-2 rounded-xl font-semibold text-black bg-yellow-400 hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="px-5 py-2 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                style={{ backgroundColor: '#facc16', color: '#0f172a' }}
               >
                 Update Proposals
                 </button>

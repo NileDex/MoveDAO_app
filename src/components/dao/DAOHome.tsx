@@ -243,7 +243,7 @@ const DAOHome: React.FC<DAOHomeProps> = ({ dao }) => {
             options: { limit: 100 },
           });
 
-          const ev = (events as any[]).find(e => e?.data?.movedaoaddrxess === dao.id);
+          const ev = (events as any[]).find(e => e?.data?.movedao_addrx === dao.id);
           const creator = ev?.data?.creator as string | undefined;
           if (creator) {
             setFullAdminAddress(creator);
